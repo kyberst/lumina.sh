@@ -1,0 +1,13 @@
+
+{
+  "loading": "Generando Código...",
+  "error": "Fallo de Construcción",
+  "save": "Guardar Proyecto",
+  "delete": "Eliminar",
+  "send": "Enviar",
+  "search": "Buscar proyectos...",
+  "import": "Importar Chat",
+  "export": "Exportar Chat",
+  "cancel": "Cancelar",
+  "confirm": "Confirmar"
+}

@@ -1,0 +1,13 @@
+
+{
+  "loading": "Generating Code...",
+  "error": "Build Failed",
+  "save": "Save Project",
+  "delete": "Delete",
+  "send": "Send",
+  "search": "Search projects...",
+  "import": "Import Chat",
+  "export": "Export Chat",
+  "cancel": "Cancel",
+  "confirm": "Confirm"
+}

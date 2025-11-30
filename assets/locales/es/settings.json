@@ -1,0 +1,32 @@
+
+
+{
+  "title": "Preferencias",
+  "language": "Idioma de Interfaz",
+  "model": "Modelo de Código",
+  "github": "Integración GitHub",
+  "export": "Exportar Proyectos",
+  "token": "Token de GitHub",
+  "user": "Usuario",
+  "connect": "Conectar GitHub",
+  "connected": "Conectado como",
+  "disconnect": "Desconectar",
+  "general": "General",
+  "dataManagement": "Gestión de Datos",
+  "exportBackup": "Guarda una copia de seguridad de todo tu historial como archivo JSON.",
+  "zoom": "Nivel de Zoom",
+  "automation": "Automatización",
+  "autoApprove": "Aprobar Cambios Automáticamente",
+  "autoFix": "Corregir Errores Automáticamente",
+  "aiConfig": "Configuración IA",
+  "aiProviders": "Proveedores IA",
+  "thinkingBudget": "Presupuesto de Pensamiento",
+  "contextSize": "Tamaño de Contexto",
+  "telemetry": "Telemetría",
+  "telemetryDesc": "Registra datos anónimos para mejorar el producto.",
+  "mcp": "Herramientas (MCP)",
+  "addServer": "Agregar Servidor",
+  "dangerZone": "Zona de Peligro",
+  "resetAll": "Restablecer Todo",
+  "resetDesc": "Esto eliminará todas tus apps, chats y configuraciones. Esta acción no se puede deshacer."
+}

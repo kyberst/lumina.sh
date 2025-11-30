@@ -1,0 +1,28 @@
+
+{
+  "prompt": "¿Qué app quieres construir?",
+  "placeholder": "Describe una app web Node.js (ej: \"Chat en tiempo real oscuro\" o \"Dashboard de criptomonedas\")...",
+  "mood": "Complejidad",
+  "analyze": "Generar App",
+  "importGithub": "Vincular Repo",
+  "importFiles": "Escanear Docs",
+  "voiceStart": "Dictar Specs",
+  "voiceStop": "Parar",
+  "project": "Categoría",
+  "attachments": "Contexto y Assets",
+  "envVars": "Variables de Entorno",
+  "publish": "Publicar",
+  "security": "Seguridad",
+  "history": "Historial de Versiones",
+  "preview": "Vista Previa",
+  "code": "Código",
+  "console": "Consola",
+  "info": "Info",
+  "saveCode": "Guardar Cambios",
+  "securityPrompt": "Prompt de Análisis de Seguridad",
+  "runScan": "Ejecutar Escaneo",
+  "repoName": "Nombre del Repositorio",
+  "privateRepo": "Repositorio Privado",
+  "publishBtn": "Subir a GitHub",
+  "selectModel": "Seleccionar Modelo IA"
+}

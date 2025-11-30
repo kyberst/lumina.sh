@@ -1,0 +1,28 @@
+
+{
+  "prompt": "What app do you want to build?",
+  "placeholder": "Describe a Node.js web app (e.g., \"A realtime chat with dark mode\" or \"A dashboard for crypto prices\")...",
+  "mood": "Complexity",
+  "analyze": "Generate App",
+  "importGithub": "Link Repo",
+  "importFiles": "Scan Docs",
+  "voiceStart": "Dictate Spec",
+  "voiceStop": "Stop",
+  "project": "Category",
+  "attachments": "Context & Assets",
+  "envVars": "Env Vars",
+  "publish": "Publish",
+  "security": "Security",
+  "history": "Time Travel",
+  "preview": "Preview",
+  "code": "Code",
+  "console": "Console",
+  "info": "Info",
+  "saveCode": "Save Changes",
+  "securityPrompt": "Custom Security Scan Prompt",
+  "runScan": "Run Security Scan",
+  "repoName": "Repository Name",
+  "privateRepo": "Private Repository",
+  "publishBtn": "Push to GitHub",
+  "selectModel": "Select AI Model"
+}
