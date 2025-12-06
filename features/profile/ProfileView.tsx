@@ -1,28 +1,62 @@
 
 import React, { useState } from 'react';
 import { User } from '../../types';
+import { t } from '../../services/i18n';
 import { ProfileDetails } from './components/ProfileDetails';
+import { ProfileSessions } from './components/ProfileSessions';
+import { ProfileBilling } from './components/ProfileBilling';
+import { ProfileHeader } from './components/ProfileHeader';
 
 interface ProfileViewProps { user: User; onUpdateUser: (u: User) => void; }
 
+/**
+ * Main Profile Container.
+ * Manages tab state and layout, delegates content to sub-components.
+ */
 export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdateUser }) => {
+    const [activeTab, setActiveTab] = useState<'details' | 'security' | 'billing'>('details');
+
+    const tabClass = (id: string) => `px-4 py-2 text-sm font-semibold rounded-lg transition-all ${activeTab === id ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`;
+
     return (
-        <div className="max-w-4xl mx-auto py-8 px-4">
-            <h2 className="text-3xl font-bold mb-8">My Profile</h2>
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-                <div className="md:col-span-4">
-                    <div className="bg-white rounded-2xl p-6 shadow border text-center">
-                        <img src={user.avatar} className="w-32 h-32 mx-auto rounded-full mb-4" />
-                        <h3 className="text-xl font-bold">{user.name}</h3>
-                        <p className="text-slate-500">{user.email}</p>
-                        <div className="mt-4 bg-slate-900 text-white rounded p-4">
-                            <div className="text-xs uppercase opacity-70">Credits</div>
-                            <div className="text-3xl font-black">{user.credits}</div>
-                        </div>
+        <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6">
+            <h2 className="text-3xl font-bold mb-8 text-slate-900 tracking-tight">{t('myProfile', 'auth')}</h2>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Left Sidebar */}
+                <div className="lg:col-span-4 space-y-6">
+                    <ProfileHeader user={user} />
+
+                    {/* Navigation */}
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-2 flex flex-col gap-1">
+                        <button onClick={() => setActiveTab('details')} className={tabClass('details')}>Personal Details</button>
+                        <button onClick={() => setActiveTab('security')} className={tabClass('security')}>Sessions & Security</button>
+                        <button onClick={() => setActiveTab('billing')} className={tabClass('billing')}>Billing History</button>
                     </div>
                 </div>
-                <div className="md:col-span-8 bg-white rounded-3xl p-8 shadow border">
-                    <ProfileDetails user={user} onUpdate={onUpdateUser} />
+
+                {/* Main Content Area */}
+                <div className="lg:col-span-8">
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 min-h-[500px] p-6 sm:p-8 animate-in fade-in slide-in-from-bottom-2">
+                        {activeTab === 'details' && (
+                            <>
+                                <h3 className="text-lg font-bold text-slate-800 mb-6 pb-4 border-b">Edit Profile</h3>
+                                <ProfileDetails user={user} onUpdate={onUpdateUser} />
+                            </>
+                        )}
+                        {activeTab === 'security' && (
+                            <>
+                                <h3 className="text-lg font-bold text-slate-800 mb-6 pb-4 border-b">Active Sessions</h3>
+                                <ProfileSessions userId={user.id} />
+                            </>
+                        )}
+                        {activeTab === 'billing' && (
+                            <>
+                                <h3 className="text-lg font-bold text-slate-800 mb-6 pb-4 border-b">Credit History</h3>
+                                <ProfileBilling userId={user.id} />
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

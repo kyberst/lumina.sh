@@ -9,5 +9,13 @@
   "import": "Import Chat",
   "export": "Export Chat",
   "cancel": "Cancel",
-  "confirm": "Confirm"
+  "confirm": "Confirm",
+  "dependencies": {
+    "loading": "Linking Modules...",
+    "error": "Dependency Load Failed",
+    "resolve": "Resolving Dependencies..."
+  },
+  "editor": {
+    "quickFix": "Quick Fix Available"
+  }
 }

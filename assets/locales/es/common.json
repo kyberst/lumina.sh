@@ -9,5 +9,13 @@
   "import": "Importar Chat",
   "export": "Exportar Chat",
   "cancel": "Cancelar",
-  "confirm": "Confirmar"
+  "confirm": "Confirmar",
+  "dependencies": {
+    "loading": "Vinculando Módulos...",
+    "error": "Error de Dependencias",
+    "resolve": "Resolviendo Dependencias..."
+  },
+  "editor": {
+    "quickFix": "Solución Rápida Disponible"
+  }
 }

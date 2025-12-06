@@ -1,5 +1,4 @@
 
-
 /**
  * Global TypeScript definitions for Lumina Studio.
  * Organized by functional module.
@@ -35,13 +34,23 @@ export interface User {
   createdAt: number;
 }
 
+/** Represents a active login session. */
+export interface Session {
+  id: string;
+  userId: string;
+  device: string; // User Agent or simplified name
+  ip: string;
+  lastActive: number;
+  isCurrent?: boolean; // UI helper, not DB
+}
+
 /** Represents a transaction or usage history. */
 export interface Transaction {
   id: string;
   userId: string;
-  amount: number; 
-  credits: number; 
-  type: 'purchase' | 'usage' | 'bonus';
+  amount: number; // Currency amount (0 for bonus)
+  credits: number; // Credits added/deducted
+  type: 'purchase' | 'usage' | 'bonus' | 'refund';
   description: string;
   timestamp: number;
 }
@@ -49,7 +58,6 @@ export interface Transaction {
 /** 
  * A single code file in the virtual file system. 
  * STRICTLY IMMUTABLE to prevent state mutation bugs during AI patching.
- * Any update must create a new instance of GeneratedFile.
  */
 export interface GeneratedFile {
   readonly name: string;
@@ -57,7 +65,6 @@ export interface GeneratedFile {
   readonly language: 'javascript' | 'typescript' | 'html' | 'css' | 'json' | 'markdown';
 }
 
-/** Request from AI for runtime environment variables. */
 export interface EnvVarRequest {
   key: string;
   description: string;
@@ -72,10 +79,6 @@ export interface CommandLog {
     status: 'pending' | 'approved' | 'executed' | 'skipped';
 }
 
-/** 
- * Main Project entity. 
- * Represents a "Memory" or "App" in the system. 
- */
 export interface JournalEntry {
   id: string;
   prompt: string;
@@ -83,43 +86,47 @@ export interface JournalEntry {
   description?: string;
   files: GeneratedFile[]; 
   tags: string[]; 
-  mood: number; // Used for Graph Visualization (Physics size)
-  sentimentScore?: number; // Used for Graph Color
+  mood: number;
+  sentimentScore?: number;
   project?: string;
   previewUrl?: string; 
   contextSource?: string;
   envVars?: Record<string, string>;
-  dependencies?: Record<string, string>; // ImportMap dependencies
+  dependencies?: Record<string, string>;
   installCommand?: string;
   startCommand?: string;
   requiredEnvVars?: EnvVarRequest[];
   pendingGeneration?: boolean; 
 }
 
-/** Context from the active code editor for AI awareness. */
 export interface EditorContext {
   activeFile: string;
   cursorLine: number;
   selectedCode?: string;
 }
 
-/** Visual Feedback from AI (Linter/Error detection) */
 export interface CodeAnnotation {
   file: string;
   line: number;
   type: 'error' | 'warning' | 'info';
   message: string;
-  suggestion?: string; // Code to replace the error line with (Quick Fix)
+  suggestion?: string;
 }
 
-/** Chat history for the Refactor/Workspace view. */
+export interface AIPlan {
+  currentStep: number;
+  totalSteps: number;
+  currentTask: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'model';
   text: string;
   timestamp: number;
-  snapshot?: GeneratedFile[]; // Snapshot of files before this turn (for rollback)
-  reasoning?: string; // <lumina-reasoning> content
+  snapshot?: GeneratedFile[];
+  reasoning?: string;
+  plan?: AIPlan;
   modifiedFiles?: string[]; 
   pendingFile?: string; 
   commands?: CommandLog[]; 
@@ -127,8 +134,8 @@ export interface ChatMessage {
   requiredEnvVars?: EnvVarRequest[];
   envVarsSaved?: boolean; 
   isStreaming?: boolean;
-  editorContext?: EditorContext; // State of the editor when message was sent
-  annotations?: CodeAnnotation[]; // AI suggested linting/errors
+  editorContext?: EditorContext;
+  annotations?: CodeAnnotation[];
   usage?: {
       inputTokens: number;
       outputTokens: number;
@@ -144,20 +151,12 @@ export interface MCPServer {
   url?: string;
 }
 
-export interface AIModel {
-  id: string;
-  name: string;
-  contextWindow?: number;
-  maxOutput?: number;
-  description?: string;
-}
-
 export interface AIProvider {
   id: string;
   name: string;
   baseUrl: string;
   apiKeyConfigKey: string; 
-  models: AIModel[];
+  models: { id: string, name: string }[];
 }
 
 export interface AppSettings {
@@ -179,13 +178,6 @@ export interface AppSettings {
   telemetryId: string;
 }
 
-export interface GitHubEvent {
-  type: string;
-  repo: { name: string };
-  created_at: string;
-  payload?: any;
-}
-
 export interface GitHubRepo {
   id: number;
   name: string;
@@ -194,6 +186,13 @@ export interface GitHubRepo {
   html_url: string;
   description: string;
   updated_at: string;
+}
+
+export interface GitHubEvent {
+  type: string;
+  repo: { name: string };
+  created_at: string;
+  payload?: any;
 }
 
 export class AppError extends Error {
@@ -226,12 +225,4 @@ export interface ValidationSchema {
   max?: number;
   required?: string[];
   properties?: Record<string, ValidationSchema>;
-}
-
-export interface RefineAppResult {
-  reasoning: string; 
-  commentary: string; 
-  files: GeneratedFile[];
-  modifiedFileNames: string[];
-  requiredEnvVars?: EnvVarRequest[];
 }

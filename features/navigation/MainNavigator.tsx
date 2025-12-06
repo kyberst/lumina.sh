@@ -1,0 +1,81 @@
+
+import React from 'react';
+import { ViewMode, JournalEntry, AppSettings, User } from '../../types';
+import { JournalInput } from '../journal/JournalInput';
+import { EntryCard } from '../journal/EntryCard';
+import { SettingsView } from '../settings/SettingsView';
+import { ProfileView } from '../profile/ProfileView';
+import { t } from '../../services/i18n';
+
+interface Props {
+    view: ViewMode;
+    user: User;
+    entries: JournalEntry[];
+    settings: AppSettings;
+    actions: {
+        createEntry: (e: JournalEntry) => void;
+        updateEntry: (e: JournalEntry) => void;
+        deleteEntry: (id: string) => void;
+        selectProject: (e: JournalEntry) => void;
+        updateUser: (u: User) => void;
+        saveSettings: (s: AppSettings) => void;
+        setSearch: (s: string) => void;
+    };
+    searchQuery: string;
+}
+
+export const MainNavigator: React.FC<Props> = ({ view, entries, settings, actions, user, searchQuery }) => {
+    
+    if (view === 'builder') {
+        return (
+            <div className="max-w-4xl mx-auto">
+                <header className="mb-12 text-center animate-in fade-in slide-in-from-top-8">
+                    <h1 className="text-5xl font-extrabold text-slate-900 mb-4">{t('prompt', 'builder')}</h1>
+                    <p className="text-slate-500 text-xl">{t('placeholder', 'builder')}</p>
+                </header>
+                <JournalInput onEntryCreated={actions.createEntry} settings={settings} />
+            </div>
+        );
+    }
+
+    if (view === 'projects') {
+        const filtered = entries.filter(e => 
+            e.project?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            e.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))
+        );
+        return (
+            <div className="max-w-6xl mx-auto">
+                <div className="flex justify-between items-center mb-8">
+                    <h2 className="text-2xl font-bold">Projects ({filtered.length})</h2>
+                    <input 
+                        className="shadcn-input w-64" 
+                        placeholder="Search..." 
+                        value={searchQuery} 
+                        onChange={e => actions.setSearch(e.target.value)} 
+                    />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {filtered.map(e => (
+                        <EntryCard 
+                            key={e.id} entry={e} 
+                            onDelete={actions.deleteEntry} 
+                            onSelect={() => actions.selectProject(e)} 
+                            onTagClick={actions.setSearch} 
+                            onUpdate={actions.updateEntry} 
+                        />
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    if (view === 'profile') {
+        return <ProfileView user={user} onUpdateUser={actions.updateUser} />;
+    }
+
+    if (view === 'settings') {
+        return <SettingsView settings={settings} onSave={actions.saveSettings} entries={entries} />;
+    }
+
+    return null;
+};

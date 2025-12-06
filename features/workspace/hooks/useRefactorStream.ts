@@ -1,4 +1,5 @@
 
+
 import { useState, useRef } from 'react';
 import { JournalEntry, ChatMessage, AppSettings, EditorContext } from '../../../types';
 import { streamChatRefactor } from '../../../services/geminiService';
@@ -87,7 +88,8 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
                 text: currentState.textBuffer.trim() || (isInitial ? "App generated." : "Updates applied."), 
                 reasoning: currentState.reasoningBuffer, timestamp: Date.now(),
                 modifiedFiles: Object.keys(currentState.fileStatuses), usage: finalUsage,
-                snapshot: finalFiles 
+                snapshot: finalFiles,
+                plan: currentState.aiPlan 
             };
 
             // 5. Save Model Message with DIFF (Passing T and T+1)

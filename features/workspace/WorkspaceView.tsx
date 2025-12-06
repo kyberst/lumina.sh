@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { JournalEntry, GeneratedFile, ChatMessage, AppSettings } from '../../types';
 import { analyzeSecurity } from '../../services/geminiService';
@@ -190,6 +191,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, o
             isListening={isListening} toggleListening={toggleListening} 
             attachments={chatAttachments} setAttachments={setChatAttachments} 
             isCollapsed={isSidebarCollapsed} setCollapsed={setIsSidebarCollapsed}
+            aiPlan={streamState.aiPlan}
           />
           <div className={`flex-1 flex flex-col bg-slate-100 overflow-hidden relative ${isSidebarCollapsed ? 'w-full' : 'hidden md:flex'}`}>
               {rightTab === 'info' && <WorkspaceInfo entry={entry} onUpdate={handleUpdate} />}

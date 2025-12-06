@@ -1,6 +1,6 @@
 
 
-import { GeneratedFile, CodeAnnotation } from '../../types';
+import { GeneratedFile, CodeAnnotation, AIPlan } from '../../types';
 import { applyDiff } from './diffUtils';
 
 /**
@@ -19,6 +19,7 @@ export interface StreamState {
   commands: string[];
   dependencies: Record<string, string>;
   annotations: CodeAnnotation[]; // Visual feedback/errors from AI
+  aiPlan?: AIPlan; // Structured plan progress
 }
 
 /** Initializes a fresh stream state based on current project files. */
@@ -32,7 +33,8 @@ export const createInitialStreamState = (initialFiles: GeneratedFile[]): StreamS
   workingFiles: [...initialFiles],
   commands: [],
   dependencies: {},
-  annotations: []
+  annotations: [],
+  aiPlan: undefined
 });
 
 /** Determines generic language based on file extension. */
@@ -88,7 +90,7 @@ const parseAttributes = (tagContent: string): Record<string, string> => {
  * strictly enforces immutability for file patching.
  */
 export const parseStreamChunk = (chunk: string, state: StreamState): StreamState => {
-    let { buffer, mode, currentFileName, reasoningBuffer, textBuffer, fileStatuses, workingFiles, commands, dependencies, annotations } = state;
+    let { buffer, mode, currentFileName, reasoningBuffer, textBuffer, fileStatuses, workingFiles, commands, dependencies, annotations, aiPlan } = state;
     
     buffer += chunk;
 
@@ -122,6 +124,14 @@ export const parseStreamChunk = (chunk: string, state: StreamState): StreamState
                             suggestion: attrs.suggestion // Code fix suggestion
                         }];
                     }
+                } else if (tagName === 'plan') {
+                    // <lumina-plan step="1/5" task="Creating..." />
+                    const stepParts = (attrs.step || '0/0').split('/');
+                    aiPlan = {
+                        currentStep: parseInt(stepParts[0]) || 0,
+                        totalSteps: parseInt(stepParts[1]) || 0,
+                        currentTask: attrs.task || 'Processing...'
+                    };
                 } else if (tagName === 'reasoning') {
                     mode = 'REASONING';
                 } else if (tagName === 'summary') {
@@ -151,7 +161,7 @@ export const parseStreamChunk = (chunk: string, state: StreamState): StreamState
                 else if (mode === 'SUMMARY') textBuffer += content;
                 else if (mode === 'COMMAND') commands = [...commands, content.trim()];
                 else if (mode === 'FILE') {
-                    state = updateFile({ ...state, workingFiles, fileStatuses }, currentFileName, content);
+                    state = updateFile({ ...state, workingFiles, fileStatuses, aiPlan }, currentFileName, content);
                     workingFiles = state.workingFiles;
                     fileStatuses = state.fileStatuses;
                 }
@@ -184,7 +194,7 @@ export const parseStreamChunk = (chunk: string, state: StreamState): StreamState
         }
     }
 
-    return { buffer, mode, currentFileName, reasoningBuffer, textBuffer, fileStatuses, workingFiles, commands, dependencies, annotations };
+    return { buffer, mode, currentFileName, reasoningBuffer, textBuffer, fileStatuses, workingFiles, commands, dependencies, annotations, aiPlan };
 };
 
 export const finalizeStream = (state: StreamState): StreamState => ({ ...state, buffer: '', mode: 'TEXT' });
