@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { t } from '../../../services/i18n';
 import { useVoiceInput } from '../../../hooks/useVoiceInput';
@@ -104,13 +103,13 @@ export const CreationForm: React.FC<CreationFormProps> = ({
 
   return (
     <>
-         <div className="flex flex-col h-[14rem] relative mb-6 bg-[#ffffbb]/20 border-2 border-[#ffff7e] rounded-3xl focus-within:border-[#ffc93a] focus-within:ring-4 focus-within:ring-[#ffff7e] transition-all overflow-hidden shadow-inner">
+         <div className="flex flex-col h-[14rem] relative mb-6 bg-white border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all overflow-hidden shadow-sm">
             {attachments.length > 0 && (
-                <div className="flex gap-2 p-3 bg-white border-b border-[#ffff7e] overflow-x-auto">
+                <div className="flex gap-2 p-3 bg-slate-50 border-b border-slate-100 overflow-x-auto">
                     {attachments.map((att, idx) => (
-                        <div key={idx} className="bg-[#ffff7e]/50 text-xs px-3 py-1.5 rounded-full flex items-center gap-2 border border-[#ffc93a] shrink-0 text-[#ff7e15] font-bold">
+                        <div key={idx} className="bg-white text-xs px-3 py-1.5 rounded-full flex items-center gap-2 border border-slate-200 shrink-0 text-slate-700 font-medium shadow-sm">
                             <span className="truncate max-w-[120px]">{att.name}</span>
-                            <button onClick={() => removeAttachment(idx)} className="hover:text-[#ff2935] hover:bg-[#ff2935]/10 rounded-full w-5 h-5 flex items-center justify-center transition-colors text-lg leading-none">&times;</button>
+                            <button onClick={() => removeAttachment(idx)} className="hover:text-red-500 text-lg leading-none">&times;</button>
                         </div>
                     ))}
                 </div>
@@ -119,11 +118,11 @@ export const CreationForm: React.FC<CreationFormProps> = ({
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder={t('placeholder', 'journal')}
-                className="flex-1 bg-transparent text-slate-700 placeholder:text-slate-400 text-lg focus:outline-none resize-none font-medium leading-relaxed p-6"
+                className="flex-1 bg-transparent text-slate-900 placeholder:text-slate-400 text-lg focus:outline-none resize-none font-medium leading-relaxed p-6"
                 disabled={isProcessing}
             />
             {/* Character Count */}
-            <div className="absolute bottom-4 right-6 text-xs text-slate-400 font-bold pointer-events-none bg-white/80 backdrop-blur px-3 py-1.5 rounded-lg border border-[#ffc93a]/30">
+            <div className="absolute bottom-4 right-6 text-xs text-slate-400 font-bold pointer-events-none bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
                 {content.length}/8000
             </div>
          </div>
@@ -133,20 +132,20 @@ export const CreationForm: React.FC<CreationFormProps> = ({
             
             {/* Left Column: Stack & Complexity */}
             <div className="flex flex-col gap-4">
-                <div className="bg-white p-5 rounded-3xl border border-[#ffff7e] shadow-sm">
-                    <div className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest mb-3 flex justify-between items-center">
+                <div className="bg-white text-slate-800 p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <div className="text-[11px] text-slate-900 font-black uppercase tracking-widest mb-3 flex justify-between items-center">
                         <span>Target Stack</span>
-                        <span className="text-[#ff7e15]">{stack.length} selected</span>
+                        <span className="text-indigo-600">{stack.length} selected</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
                         {COMMON_STACKS.map(tech => (
                             <button
                                 key={tech}
                                 onClick={() => toggleStackItem(tech)}
-                                className={`px-3 py-1.5 rounded-full text-[10px] font-bold transition-all border ${
+                                className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold transition-all shadow-sm ${
                                     stack.includes(tech)
-                                    ? 'bg-[#ff7e15] text-white border-[#ff7e15] shadow-md shadow-[#ff7e15]/20'
-                                    : 'bg-slate-50 text-slate-500 border-slate-100 hover:border-[#ffc93a] hover:text-[#ff7e15]'
+                                    ? 'border-indigo-600 bg-indigo-600 text-white'
+                                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300'
                                 }`}
                             >
                                 {tech}
@@ -155,17 +154,17 @@ export const CreationForm: React.FC<CreationFormProps> = ({
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-3 bg-white p-5 rounded-3xl border border-[#ffff7e] shadow-sm">
-                    <div className="flex justify-between w-full text-xs text-slate-500 font-extrabold uppercase tracking-wider items-center">
+                <div className="flex flex-col gap-3 bg-white text-slate-800 p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <div className="flex justify-between w-full text-[11px] text-slate-900 font-black uppercase tracking-wider items-center">
                         <span>Simple</span>
-                        <span className="text-[#ff7e15] bg-[#ffff7e]/30 px-2 py-1 rounded-md">{t('mood', 'journal')}: {complexity}%</span>
+                        <span className="text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">{t('mood', 'journal')}: {complexity}%</span>
                         <span>Complex</span>
                     </div>
                     <div className="relative pt-2">
                         <input
                             type="range" min="0" max="100" value={complexity}
                             onChange={(e) => setComplexity(Number(e.target.value))}
-                            className="w-full h-3 bg-slate-100 rounded-full appearance-none cursor-pointer accent-[#ff7e15] hover:accent-[#ff2935] transition-all"
+                            className="w-full h-2 bg-slate-200 rounded-full appearance-none cursor-pointer accent-indigo-600"
                             disabled={isProcessing}
                         />
                     </div>
@@ -174,65 +173,58 @@ export const CreationForm: React.FC<CreationFormProps> = ({
             
             {/* Right Column: Name & Model & Language */}
             <div className="flex flex-col gap-4">
-                 <input 
-                    type="text" value={project} onChange={(e) => setProject(e.target.value)}
-                    placeholder={t('project', 'journal') + " (e.g. ChatApp)"}
-                    className="w-full bg-white border-2 border-[#ffff7e] rounded-2xl px-5 py-4 text-sm text-slate-800 focus:border-[#ffc93a] focus:ring-4 focus:ring-[#ffff7e]/50 outline-none font-bold placeholder:font-normal transition-all shadow-sm"
-                    disabled={isProcessing}
-                />
+                 <div>
+                    <label className="block text-[11px] text-slate-900 font-black uppercase mb-1.5 ml-1">Project Category</label>
+                    <input 
+                        type="text" value={project} onChange={(e) => setProject(e.target.value)}
+                        placeholder="e.g. Finance Dashboard"
+                        className="shadcn-input h-11 text-sm font-semibold text-slate-900"
+                        disabled={isProcessing}
+                    />
+                 </div>
                  
                  {/* App Language */}
-                 <div className="bg-white p-4 rounded-2xl border border-[#ffff7e] shadow-sm">
-                     <label className="block text-[10px] text-slate-400 font-bold uppercase mb-2">App Content Language (Multi-Select)</label>
+                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                     <label className="block text-[11px] text-slate-900 font-black uppercase mb-2">App Content Language</label>
                      <div className="relative mb-2">
-                         <select onChange={addLanguage} className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-[#ffc93a] cursor-pointer">
+                         <select onChange={addLanguage} className="shadcn-input cursor-pointer font-medium text-slate-700">
                              <option value="">+ Add Language...</option>
                              {LANGUAGES_LIST.map(l => <option key={l} value={l} disabled={appLanguages.includes(l)}>{l}</option>)}
                          </select>
-                         <div className="absolute right-3 top-3 pointer-events-none text-slate-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                         </div>
                      </div>
-                     <div className="flex flex-wrap gap-2">
+                     <div className="flex flex-wrap gap-2 min-h-[2rem]">
                          {appLanguages.map(lang => (
-                             <div key={lang} className="bg-[#ffffbb] border border-[#ffc93a] text-[#ff7e15] text-[10px] font-bold px-2 py-1 rounded-md flex items-center gap-1">
+                             <div key={lang} className="bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-1 rounded-md flex items-center gap-1">
                                  {lang}
-                                 <button onClick={() => removeLanguage(lang)} className="hover:text-[#ff2935]">&times;</button>
+                                 <button onClick={() => removeLanguage(lang)} className="hover:text-red-500 text-base leading-none ml-1">&times;</button>
                              </div>
                          ))}
-                         {appLanguages.length === 0 && <span className="text-[10px] text-slate-400 italic">No language selected (English default)</span>}
                      </div>
                  </div>
 
                  {/* LLM Selector */}
                  <div className="flex gap-3">
                      <div className="relative flex-1">
-                        <label className="block text-[10px] text-slate-400 font-bold uppercase mb-1 ml-1">Provider</label>
+                        <label className="block text-[11px] text-slate-900 font-black uppercase mb-1.5 ml-1">Provider</label>
                         <select 
                             value={selectedProvider} 
                             onChange={e => { setSelectedProvider(e.target.value); setSelectedModel(''); }}
-                            className="w-full appearance-none bg-[#ffffbb]/30 border border-[#ffc93a] hover:border-[#ff7e15] rounded-2xl px-4 py-3 text-xs font-bold text-[#ff7e15] outline-none flex-1 focus:ring-2 focus:ring-[#ffff7e] cursor-pointer transition-colors"
+                            className="shadcn-input font-medium text-slate-700"
                         >
                             <option value="gemini">Google Gemini</option>
                             {settings.customProviders.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
-                        <div className="absolute right-3 top-8 pointer-events-none text-[#ffc93a]">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                        </div>
                      </div>
                      <div className="relative flex-1">
-                        <label className="block text-[10px] text-slate-400 font-bold uppercase mb-1 ml-1">Model</label>
+                        <label className="block text-[11px] text-slate-900 font-black uppercase mb-1.5 ml-1">Model</label>
                         <select 
                             value={selectedModel} 
                             onChange={e => setSelectedModel(e.target.value)}
-                            className="w-full appearance-none bg-[#ffffbb]/30 border border-[#ffc93a] hover:border-[#ff7e15] rounded-2xl px-4 py-3 text-xs font-bold text-[#ff7e15] outline-none flex-1 focus:ring-2 focus:ring-[#ffff7e] cursor-pointer transition-colors"
+                            className="shadcn-input font-medium text-slate-700"
                         >
                             {selectedProvider === 'gemini' && !selectedModel && <option value="flash">Flash (Default)</option>}
                             {activeModels.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                         </select>
-                        <div className="absolute right-3 top-8 pointer-events-none text-[#ffc93a]">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                        </div>
                      </div>
                  </div>
             </div>
@@ -243,7 +235,7 @@ export const CreationForm: React.FC<CreationFormProps> = ({
             <div className="flex gap-2">
                 <button 
                     onClick={() => attachmentRef.current?.click()}
-                    className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-[#ff7e15] hover:bg-[#ffff7e] transition-all border border-slate-100 hover:border-[#ffc93a]"
+                    className="shadcn-btn shadcn-btn-outline h-12 w-12 rounded-full p-0 bg-white"
                     title={t('attachments', 'journal')}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
@@ -252,10 +244,10 @@ export const CreationForm: React.FC<CreationFormProps> = ({
                 
                 <button 
                     onClick={toggleListening}
-                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-all border ${
+                    className={`h-12 w-12 rounded-full flex items-center justify-center transition-all border shadow-sm ${
                         isListening 
-                        ? 'bg-[#ff2935] text-white animate-pulse border-[#ff2935]' 
-                        : 'bg-white text-slate-400 hover:text-[#ff7e15] hover:bg-[#ffff7e] border-slate-100 hover:border-[#ffc93a]'
+                        ? 'bg-red-500 text-white animate-pulse border-red-600' 
+                        : 'bg-white text-slate-500 hover:text-indigo-600 border-slate-200 hover:border-indigo-300'
                     }`}
                     title={isListening ? t('voiceStop', 'journal') : t('voiceStart', 'journal')}
                 >
@@ -266,17 +258,17 @@ export const CreationForm: React.FC<CreationFormProps> = ({
             <button 
                 onClick={onSubmit}
                 disabled={isProcessing || !content.trim()}
-                className="bg-gradient-to-r from-[#ff7e15] to-[#ff2935] hover:from-[#ff2935] hover:to-[#ff7e15] text-white rounded-2xl px-10 py-4 font-extrabold text-sm uppercase tracking-widest shadow-xl shadow-[#ff7e15]/30 hover:-translate-y-1 hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+                className="shadcn-btn shadcn-btn-primary h-12 px-8 text-sm font-bold uppercase tracking-widest shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 transition-all rounded-full"
             >
                 {isProcessing ? (
                     <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
                         Building...
                     </>
                 ) : (
                     <>
                         {t('analyze', 'journal')}
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                     </>
                 )}
             </button>

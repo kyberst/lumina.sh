@@ -1,4 +1,5 @@
 
+
 export enum AppModule {
   AUTH = 'auth',
   BUILDER = 'builder',
@@ -91,6 +92,10 @@ export interface ChatMessage {
   requiredEnvVars?: EnvVarRequest[]; // AI requests for env vars
   envVarsSaved?: boolean; // UI state to show if they were saved
   isStreaming?: boolean; // UI state for active stream
+  usage?: {
+      inputTokens: number;
+      outputTokens: number;
+  };
 }
 
 export interface MCPServer {

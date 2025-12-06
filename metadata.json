@@ -1,6 +1,6 @@
 {
-  "name": "Umbra: The Digital Dyad",
-  "description": "A mysterious, secure, and modular journaling application that uses AI to form a reflective dyad with the user. Inspired by the depth of Dyad and the aesthetics of Emergent.",
+  "name": "Lumina Studio",
+  "description": "A sophisticated AI-powered application builder that transforms natural language into functional web apps.",
   "requestFramePermissions": [
     "microphone"
   ]

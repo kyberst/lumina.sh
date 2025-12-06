@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { JournalEntry, AppModule, AppSettings } from '../../types';
 import { validate } from '../../services/validator';
@@ -71,28 +70,32 @@ export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, sett
   };
 
   return (
-    <div className="w-full flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 bg-white p-2 rounded-[2.5rem] border border-white shadow-2xl shadow-[#ff7e15]/20 relative">
+    <div className="w-full flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 bg-white p-2 rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/50 relative">
       
-      {/* Top Tabs */}
-      <div className="flex gap-2 p-1.5 bg-[#ffffbb]/80 rounded-[2rem] w-fit mx-auto mt-2 border border-[#ffc93a]/30">
-         <button onClick={() => setActiveTab('create')} className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 ${activeTab === 'create' ? 'bg-white text-[#ff7e15] shadow-md shadow-[#ffc93a]/30' : 'text-slate-500 hover:text-slate-700'}`}>
-             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      {/* Top Tabs (Shadcn Style) */}
+      <div className="inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-500 w-fit mx-auto mt-2">
+         <button 
+            onClick={() => setActiveTab('create')} 
+            className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${activeTab === 'create' ? 'bg-white text-slate-950 shadow-sm' : 'hover:bg-slate-200 hover:text-slate-900'}`}
+         >
              New App
          </button>
-         <button onClick={() => setActiveTab('import')} className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 ${activeTab === 'import' ? 'bg-white text-[#ff7e15] shadow-md shadow-[#ffc93a]/30' : 'text-slate-500 hover:text-slate-700'}`}>
-             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+         <button 
+            onClick={() => setActiveTab('import')} 
+            className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${activeTab === 'import' ? 'bg-white text-slate-950 shadow-sm' : 'hover:bg-slate-200 hover:text-slate-900'}`}
+         >
              Import
          </button>
       </div>
 
       <div className="px-6 pb-8 pt-2">
         {error && (
-            <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-100 text-red-600 text-sm flex justify-between items-center shadow-sm">
+            <div className="mb-6 p-4 rounded-md bg-red-50 border border-red-200 text-red-600 text-sm flex justify-between items-center shadow-sm">
             <span className="flex items-center gap-2 font-medium">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 {error}
             </span>
-            <button onClick={() => setError(null)} className="hover:text-red-800 ml-2 bg-red-100 hover:bg-red-200 w-6 h-6 rounded-full flex items-center justify-center transition-colors">&times;</button>
+            <button onClick={() => setError(null)} className="hover:text-red-800 ml-2">&times;</button>
             </div>
         )}
 
