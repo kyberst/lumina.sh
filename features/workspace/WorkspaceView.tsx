@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { JournalEntry, GeneratedFile, ChatMessage, AppSettings } from '../../types';
 import { analyzeSecurity } from '../../services/geminiService';
@@ -9,6 +10,7 @@ import { MarkdownRenderer } from '../../components/ui/MarkdownRenderer';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
 import { generateIframeHtml } from './utils/iframeBuilder';
 import { useRefactorStream } from './hooks/useRefactorStream';
+import { CodeEditorApi } from '../../components/ui/CodeEditor';
 
 import { WorkspaceHeader } from './components/WorkspaceHeader';
 import { WorkspaceChat } from './components/WorkspaceChat';
@@ -33,6 +35,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, o
   const [editorContent, setEditorContent] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
   
+  // --- Editor API Ref for Context Injection ---
+  const editorApiRef = useRef<CodeEditorApi | null>(null);
+
   // --- Console & Debug State ---
   const [showConsole, setShowConsole] = useState(false);
   const [consoleLogs, setConsoleLogs] = useState<any[]>([]);
@@ -47,11 +52,41 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, o
   const [scrollToLine, setScrollToLine] = useState<number | null>(null);
   const [thinkTime, setThinkTime] = useState(0);
 
+  // --- Wrapper for onUpdate to handle Locking ---
+  const handleUpdate = async (updatedEntry: JournalEntry) => {
+      try {
+          // This call might throw if the project is locked by an async task (like a Rollback)
+          await onUpdate(updatedEntry);
+          return true; // Success
+      } catch (e: any) {
+          if (e.code === 'PROJECT_LOCKED') {
+              toast.info(e.message);
+          } else {
+              toast.error("Failed to save: " + e.message);
+          }
+          return false; // Failed
+      }
+  };
+
   // --- Logic Hooks ---
   const { isListening, toggleListening, transcript, resetTranscript } = useVoiceInput();
   const { isProcessing, streamState, handleStreamingBuild, cancelStream } = useRefactorStream({
-      entry, settings, history, setHistory, onUpdate, setTotalUsage, setIframeKey
+      entry, settings, history, setHistory, onUpdate: handleUpdate, setTotalUsage, setIframeKey
   });
+
+  // --- Helper to get Editor Context ---
+  const getEditorContext = () => {
+    if (!selectedFile || !editorApiRef.current) return undefined;
+    try {
+        const selection = editorApiRef.current.getSelection();
+        const pos = editorApiRef.current.getPosition();
+        return {
+            activeFile: selectedFile.name,
+            cursorLine: pos.lineNumber,
+            selectedCode: selection || undefined
+        };
+    } catch(e) { return undefined; }
+  };
 
   // --- Side Effects ---
   useEffect(() => { if(transcript) { setChatInput(p => p + (p ? ' ' : '') + transcript); resetTranscript(); } }, [transcript]);
@@ -75,7 +110,9 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, o
         if(e.data?.type === 'CONSOLE_LOG') {
             const rawLine = e.data.line || 0;
             let mappedSource: any = undefined;
-            if (rawLine > 0 && e.data.level === 'error') {
+            
+            // Map the line number from the iframe (rawLine) to the source file using sourceMap
+            if (rawLine > 0) {
                  for (const [key, range] of Object.entries(sourceMapRef.current)) {
                      if (rawLine >= range.start && rawLine <= range.end) {
                          mappedSource = { file: range.file, line: rawLine - range.start + 1 };
@@ -83,7 +120,14 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, o
                      }
                  }
             }
-            setConsoleLogs(p => [...p, { type: e.data.level, msg: e.data.message, time: new Date().toLocaleTimeString(), source: mappedSource }]);
+            
+            setConsoleLogs(p => [...p, { 
+                type: e.data.level, 
+                msg: e.data.message, 
+                time: new Date().toLocaleTimeString(), 
+                source: mappedSource 
+            }]);
+            
             if(e.data.level === 'error') setErrorCount(c => c+1);
         }
     };
@@ -102,9 +146,19 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, o
     <div className="fixed inset-0 bg-white z-[100] flex flex-col animate-in fade-in duration-300">
       <WorkspaceHeader 
         entry={entry} rightTab={rightTab} setRightTab={setRightTab} onClose={onClose} 
-        onSecurityScan={async () => { const r = await analyzeSecurity(entry.files, "Check"); dialogService.alert("Report", <MarkdownRenderer content={r}/>); }}
+        onSecurityScan={async () => { 
+             // Exclusive Task: Locks the project during scan
+             try {
+                const r = await sqliteService.runExclusiveProjectTask(entry.id, "Security Scan", async () => {
+                     return await analyzeSecurity(entry.files, "Check");
+                });
+                dialogService.alert("Report", <MarkdownRenderer content={r}/>); 
+             } catch(e: any) {
+                toast.error(e.message);
+             }
+        }}
         onPublish={() => publishToGitHub(entry, 'app', settings.githubToken!, false).then(u => window.open(u))}
-        onDownload={() => { /* Assume download logic is simple enough or extracted later */ toast.success("Downloading...") }} 
+        onDownload={() => { toast.success("Downloading...") }} 
         onRefresh={() => { setIframeKey(k => k+1); setConsoleLogs([]); setErrorCount(0); }}
         totalUsage={totalUsage}
       />
@@ -115,16 +169,30 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, o
             fileStatuses={streamState.fileStatuses} 
             currentReasoning={streamState.reasoningBuffer + (streamState.mode === 'REASONING' ? streamState.buffer : '')}
             currentText={streamState.textBuffer + (streamState.mode === 'SUMMARY' ? streamState.buffer : '')}
-            onSend={() => { handleStreamingBuild(chatInput, chatAttachments); setChatInput(''); setChatAttachments([]); }} 
+            onSend={() => { 
+                handleStreamingBuild(chatInput, chatAttachments, getEditorContext()); 
+                setChatInput(''); 
+                setChatAttachments([]); 
+            }} 
             onStop={cancelStream} 
-            onRollback={(s) => onUpdate({...entry, files: s})} 
-            onEnvVarSave={(v) => onUpdate({...entry, envVars: {...entry.envVars, ...v}})}
+            onRollback={async (filesSnapshot) => { 
+                // Exclusive Task: Rollback involves writing to DB
+                try {
+                    await sqliteService.runExclusiveProjectTask(entry.id, "Restoring Snapshot...", async () => {
+                        await handleUpdate({...entry, files: filesSnapshot});
+                    });
+                    setIframeKey(k => k+1);
+                } catch(e: any) {
+                    toast.error(e.message);
+                }
+            }} 
+            onEnvVarSave={(v) => handleUpdate({...entry, envVars: {...entry.envVars, ...v}})}
             isListening={isListening} toggleListening={toggleListening} 
             attachments={chatAttachments} setAttachments={setChatAttachments} 
             isCollapsed={isSidebarCollapsed} setCollapsed={setIsSidebarCollapsed}
           />
           <div className={`flex-1 flex flex-col bg-slate-100 overflow-hidden relative ${isSidebarCollapsed ? 'w-full' : 'hidden md:flex'}`}>
-              {rightTab === 'info' && <WorkspaceInfo entry={entry} onUpdate={onUpdate} />}
+              {rightTab === 'info' && <WorkspaceInfo entry={entry} onUpdate={handleUpdate} />}
               {rightTab === 'preview' && (
                   <WorkspacePreview 
                       iframeSrc={iframeSrc} iframeKey={iframeKey} 
@@ -141,8 +209,18 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, o
                       editorContent={editorContent} hasChanges={hasChanges} 
                       onFileSelect={(f) => { setSelectedFile(f); setEditorContent(f.content); setScrollToLine(null); }} 
                       onCodeChange={(v) => { setEditorContent(v); setHasChanges(true); }} 
-                      onSave={() => { if(selectedFile) { onUpdate({...entry, files: entry.files.map(x => x.name === selectedFile.name ? {...x, content: editorContent} : x)}); setHasChanges(false); setIframeKey(k=>k+1); } }}
+                      onSave={async () => { 
+                          if(selectedFile) { 
+                              const success = await handleUpdate({...entry, files: entry.files.map(x => x.name === selectedFile.name ? {...x, content: editorContent} : x)}); 
+                              if (success) {
+                                  setHasChanges(false); 
+                                  setIframeKey(k=>k+1); 
+                              }
+                          } 
+                      }}
                       scrollToLine={scrollToLine}
+                      onEditorMount={(api) => editorApiRef.current = api}
+                      annotations={streamState.annotations}
                   />
               )}
           </div>

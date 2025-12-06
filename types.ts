@@ -1,3 +1,5 @@
+
+
 /**
  * Global TypeScript definitions for Lumina Studio.
  * Organized by functional module.
@@ -44,11 +46,15 @@ export interface Transaction {
   timestamp: number;
 }
 
-/** A single code file in the virtual file system. */
+/** 
+ * A single code file in the virtual file system. 
+ * STRICTLY IMMUTABLE to prevent state mutation bugs during AI patching.
+ * Any update must create a new instance of GeneratedFile.
+ */
 export interface GeneratedFile {
-  name: string;
-  content: string;
-  language: 'javascript' | 'typescript' | 'html' | 'css' | 'json' | 'markdown';
+  readonly name: string;
+  readonly content: string;
+  readonly language: 'javascript' | 'typescript' | 'html' | 'css' | 'json' | 'markdown';
 }
 
 /** Request from AI for runtime environment variables. */
@@ -90,6 +96,22 @@ export interface JournalEntry {
   pendingGeneration?: boolean; 
 }
 
+/** Context from the active code editor for AI awareness. */
+export interface EditorContext {
+  activeFile: string;
+  cursorLine: number;
+  selectedCode?: string;
+}
+
+/** Visual Feedback from AI (Linter/Error detection) */
+export interface CodeAnnotation {
+  file: string;
+  line: number;
+  type: 'error' | 'warning' | 'info';
+  message: string;
+  suggestion?: string; // Code to replace the error line with (Quick Fix)
+}
+
 /** Chat history for the Refactor/Workspace view. */
 export interface ChatMessage {
   id: string;
@@ -105,6 +127,8 @@ export interface ChatMessage {
   requiredEnvVars?: EnvVarRequest[];
   envVarsSaved?: boolean; 
   isStreaming?: boolean;
+  editorContext?: EditorContext; // State of the editor when message was sent
+  annotations?: CodeAnnotation[]; // AI suggested linting/errors
   usage?: {
       inputTokens: number;
       outputTokens: number;

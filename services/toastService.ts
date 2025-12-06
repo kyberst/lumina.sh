@@ -1,4 +1,5 @@
-type ToastType = 'success' | 'error' | 'info';
+
+type ToastType = 'success' | 'error' | 'info' | 'loading';
 
 interface ToastEvent {
   id: string;
@@ -6,11 +7,12 @@ interface ToastEvent {
   type: ToastType;
 }
 
-type Listener = (toast: ToastEvent) => void;
+type Listener = (toasts: ToastEvent[]) => void;
 
 class ToastService {
   private static instance: ToastService;
   private listeners: Listener[] = [];
+  private activeToasts: ToastEvent[] = [];
 
   private constructor() {}
 
@@ -23,30 +25,41 @@ class ToastService {
 
   public subscribe(listener: Listener): () => void {
     this.listeners.push(listener);
+    listener(this.activeToasts); // Initial state
     return () => {
       this.listeners = this.listeners.filter(l => l !== listener);
     };
   }
 
-  public show(message: string, type: ToastType = 'info') {
-    const event: ToastEvent = {
-      id: crypto.randomUUID(),
-      message,
-      type
-    };
-    this.listeners.forEach(l => l(event));
+  private notify() {
+    this.listeners.forEach(l => l([...this.activeToasts]));
   }
 
-  public success(message: string) {
-    this.show(message, 'success');
+  public show(message: string, type: ToastType = 'info'): string {
+    const id = crypto.randomUUID();
+    const event: ToastEvent = { id, message, type };
+    this.activeToasts.push(event);
+    this.notify();
+
+    if (type !== 'loading') {
+        setTimeout(() => {
+            this.dismiss(id);
+        }, 4000);
+    }
+    return id;
   }
 
-  public error(message: string) {
-    this.show(message, 'error');
+  public dismiss(id: string) {
+      this.activeToasts = this.activeToasts.filter(t => t.id !== id);
+      this.notify();
   }
 
-  public info(message: string) {
-    this.show(message, 'info');
+  public success(message: string) { this.show(message, 'success'); }
+  public error(message: string) { this.show(message, 'error'); }
+  public info(message: string) { this.show(message, 'info'); }
+  
+  public loading(message: string): string {
+      return this.show(message, 'loading');
   }
 }
 

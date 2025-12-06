@@ -1,4 +1,6 @@
-import { GeneratedFile } from '../../types';
+
+
+import { GeneratedFile, CodeAnnotation } from '../../types';
 import { applyDiff } from './diffUtils';
 
 /**
@@ -16,6 +18,7 @@ export interface StreamState {
   workingFiles: GeneratedFile[];
   commands: string[];
   dependencies: Record<string, string>;
+  annotations: CodeAnnotation[]; // Visual feedback/errors from AI
 }
 
 /** Initializes a fresh stream state based on current project files. */
@@ -28,7 +31,8 @@ export const createInitialStreamState = (initialFiles: GeneratedFile[]): StreamS
   fileStatuses: {},
   workingFiles: [...initialFiles],
   commands: [],
-  dependencies: {}
+  dependencies: {},
+  annotations: []
 });
 
 /** Determines generic language based on file extension. */
@@ -41,15 +45,21 @@ const getLanguageFromFilename = (filename: string): string => {
     return 'javascript';
 };
 
-/** Updates or Creates a file in the working file list. */
+/** 
+ * Updates or Creates a file in the working file list.
+ * IMMUTABLE: Creates a new GeneratedFile instance and a new array.
+ */
 const updateFile = (state: StreamState, name: string, content: string): StreamState => {
     const existingIdx = state.workingFiles.findIndex(f => f.name === name);
-    const newFile = { 
+    
+    // Create NEW instance for immutability compliance
+    const newFile: GeneratedFile = { 
         name, 
         content: content.trim(), 
         language: getLanguageFromFilename(name) as any 
     };
     
+    // Create NEW array for state update
     let newFiles = [...state.workingFiles];
     if (existingIdx >= 0) newFiles[existingIdx] = newFile;
     else newFiles.push(newFile);
@@ -75,9 +85,10 @@ const parseAttributes = (tagContent: string): Record<string, string> => {
 /** 
  * Main Parsing Logic.
  * Takes a chunk of text, appends to buffer, and processes state transitions.
+ * strictly enforces immutability for file patching.
  */
 export const parseStreamChunk = (chunk: string, state: StreamState): StreamState => {
-    let { buffer, mode, currentFileName, reasoningBuffer, textBuffer, fileStatuses, workingFiles, commands, dependencies } = state;
+    let { buffer, mode, currentFileName, reasoningBuffer, textBuffer, fileStatuses, workingFiles, commands, dependencies, annotations } = state;
     
     buffer += chunk;
 
@@ -93,14 +104,23 @@ export const parseStreamChunk = (chunk: string, state: StreamState): StreamState
             if (match && match.index !== undefined) {
                 const tagName = match[1];
                 const attrs = parseAttributes(match[2]);
-                const isSelfClosing = match[3] === '/';
 
                 buffer = buffer.substring(match.index + match[0].length);
-                processed = true; // Loop again to process content after tag
+                processed = true; 
 
                 if (tagName === 'dependency') {
                     if (attrs.name && attrs.version) {
                         dependencies = { ...dependencies, [attrs.name]: attrs.version };
+                    }
+                } else if (tagName === 'annotation') {
+                    if (attrs.file && attrs.line && attrs.message) {
+                        annotations = [...annotations, {
+                            file: attrs.file,
+                            line: parseInt(attrs.line) || 1,
+                            type: (attrs.type as any) || 'info',
+                            message: attrs.message,
+                            suggestion: attrs.suggestion // Code fix suggestion
+                        }];
                     }
                 } else if (tagName === 'reasoning') {
                     mode = 'REASONING';
@@ -141,7 +161,13 @@ export const parseStreamChunk = (chunk: string, state: StreamState): StreamState
                         const original = workingFiles[fIndex].content;
                         const patched = applyDiff(original, content);
                         if (patched !== original) {
-                            workingFiles = workingFiles.map((f, i) => i === fIndex ? { ...f, content: patched } : f);
+                            // IMMUTABLE UPDATE: Create new file instance
+                            const updatedFile: GeneratedFile = {
+                                ...workingFiles[fIndex],
+                                content: patched
+                            };
+                            // IMMUTABLE UPDATE: Create new array
+                            workingFiles = workingFiles.map((f, i) => i === fIndex ? updatedFile : f);
                             fileStatuses = { ...fileStatuses, [currentFileName]: 'success' };
                         } else {
                             fileStatuses = { ...fileStatuses, [currentFileName]: 'error' };
@@ -153,12 +179,12 @@ export const parseStreamChunk = (chunk: string, state: StreamState): StreamState
 
                 buffer = buffer.substring(closeIdx + closeTag.length);
                 mode = 'TEXT';
-                processed = true; // Loop again to process next tag
+                processed = true; 
             }
         }
     }
 
-    return { buffer, mode, currentFileName, reasoningBuffer, textBuffer, fileStatuses, workingFiles, commands, dependencies };
+    return { buffer, mode, currentFileName, reasoningBuffer, textBuffer, fileStatuses, workingFiles, commands, dependencies, annotations };
 };
 
 export const finalizeStream = (state: StreamState): StreamState => ({ ...state, buffer: '', mode: 'TEXT' });

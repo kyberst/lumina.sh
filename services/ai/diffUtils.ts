@@ -1,93 +1,116 @@
+
 /**
  * Utility functions for handling Unified Diff format updates.
- * Used by the Stream Parser to apply AI-generated patches to code files.
  */
 
 /**
  * Applies a Unified Diff content to the original string.
- * It is robust against incorrect line numbers in the diff header (@@ ... @@)
- * by relying on context lines for fuzzy matching.
- * 
- * @param originalContent The current file content
- * @param diffContent The unified diff string provided by the AI
- * @returns The new file content
+ * Supports fuzzy matching for robustness.
  */
 export const applyDiff = (originalContent: string, diffContent: string): string => {
     const lines = originalContent.split('\n');
     let result = [...lines];
-    
-    // Normalize newlines in diff
     const diffLines = diffContent.split('\n');
     
     let i = 0;
     while (i < diffLines.length) {
-        // Find start of a hunk
-        if (!diffLines[i].startsWith('@@')) {
-            i++;
-            continue;
-        }
-
-        i++; // Skip the @@ header line (we ignore line numbers as LLMs are bad at counting)
+        // Skip headers until '@@'
+        if (!diffLines[i].startsWith('@@')) { i++; continue; }
+        i++; 
         
         const searchBlock: string[] = [];
         const replaceBlock: string[] = [];
         
-        // Collect lines for this hunk until next @@ or end
+        // Parse Hunk
         while (i < diffLines.length && !diffLines[i].startsWith('@@')) {
             const line = diffLines[i];
             const char = line.charAt(0);
             const text = line.substring(1); 
 
-            if (char === ' ') {
-                searchBlock.push(text);
-                replaceBlock.push(text);
-            } else if (char === '-') {
-                searchBlock.push(text);
-            } else if (char === '+') {
-                replaceBlock.push(text);
-            }
+            if (char === ' ') { searchBlock.push(text); replaceBlock.push(text); }
+            else if (char === '-') { searchBlock.push(text); }
+            else if (char === '+') { replaceBlock.push(text); }
             i++;
         }
 
         if (searchBlock.length === 0 && replaceBlock.length === 0) continue;
 
-        // Strategy 1: Exact string replace (Fast & Accurate if LLM is perfect)
+        // Try Exact Match
         const searchString = searchBlock.join('\n');
         const replaceString = replaceBlock.join('\n');
-        
         const exactResult = result.join('\n').replace(searchString, replaceString);
+        
         if (exactResult !== result.join('\n')) {
             result = exactResult.split('\n');
             continue;
         }
 
-        // Strategy 2: Line-by-line Fuzzy Matching (ignores whitespace diffs)
-        // Useful when LLM hallucinating indentation
-        let bestMatchIndex = -1;
+        // Try Fuzzy Match (Scan lines)
         const norm = (s: string) => s.trim();
+        let bestMatchIndex = -1;
 
         for (let l = 0; l <= result.length - searchBlock.length; l++) {
             let match = true;
             for (let s = 0; s < searchBlock.length; s++) {
-                if (norm(result[l + s]) !== norm(searchBlock[s])) {
-                    match = false;
-                    break;
-                }
+                if (norm(result[l + s]) !== norm(searchBlock[s])) { match = false; break; }
             }
-            if (match) {
-                bestMatchIndex = l;
-                break; 
-            }
+            if (match) { bestMatchIndex = l; break; }
         }
 
         if (bestMatchIndex !== -1) {
             const before = result.slice(0, bestMatchIndex);
             const after = result.slice(bestMatchIndex + searchBlock.length);
             result = [...before, ...replaceBlock, ...after];
-        } else {
-            console.warn("Could not apply hunk:", searchBlock.join('\n'));
+        }
+    }
+    return result.join('\n');
+};
+
+/**
+ * Generates a simple Unified Diff between two strings using LCS.
+ * NOTE: This is a basic implementation suitable for text files.
+ */
+export const createPatch = (fileName: string, oldStr: string, newStr: string): string => {
+    const oldLines = oldStr.split('\n');
+    const newLines = newStr.split('\n');
+    
+    // LCS Matrix Calculation
+    const matrix: number[][] = [];
+    for (let i = 0; i <= oldLines.length; i++) matrix[i] = new Array(newLines.length + 1).fill(0);
+
+    for (let i = 1; i <= oldLines.length; i++) {
+        for (let j = 1; j <= newLines.length; j++) {
+            if (oldLines[i - 1] === newLines[j - 1]) {
+                matrix[i][j] = matrix[i - 1][j - 1] + 1;
+            } else {
+                matrix[i][j] = Math.max(matrix[i - 1][j], matrix[i][j - 1]);
+            }
         }
     }
 
-    return result.join('\n');
+    // Backtrack to generate diff lines
+    const changes: string[] = [];
+    let i = oldLines.length, j = newLines.length;
+    
+    while (i > 0 || j > 0) {
+        if (i > 0 && j > 0 && oldLines[i - 1] === newLines[j - 1]) {
+            changes.unshift(' ' + oldLines[i - 1]);
+            i--; j--;
+        } else if (j > 0 && (i === 0 || matrix[i][j - 1] >= matrix[i - 1][j])) {
+            changes.unshift('+' + newLines[j - 1]);
+            j--;
+        } else if (i > 0 && (j === 0 || matrix[i][j - 1] < matrix[i - 1][j])) {
+            changes.unshift('-' + oldLines[i - 1]);
+            i--;
+        }
+    }
+
+    const hunks: string[] = [];
+    hunks.push(`--- a/${fileName}`);
+    hunks.push(`+++ b/${fileName}`);
+    if (changes.length > 0) {
+        hunks.push(`@@ -1,${Math.max(1, oldLines.length)} +1,${Math.max(1, newLines.length)} @@`);
+        hunks.push(...changes);
+    }
+    return hunks.join('\n');
 };
