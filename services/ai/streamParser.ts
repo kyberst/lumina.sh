@@ -1,33 +1,37 @@
 import { GeneratedFile } from '../../types';
+import { applyDiff } from './diffUtils';
 
-export type StreamMode = 'TEXT' | 'REASONING' | 'SUMMARY' | 'FILE' | 'PATCH' | 'SEARCH' | 'REPLACE' | 'COMMAND';
+/**
+ * State definitions for the Stream Parser.
+ */
+export type StreamMode = 'TEXT' | 'REASONING' | 'SUMMARY' | 'FILE' | 'PATCH' | 'COMMAND';
 
 export interface StreamState {
-  buffer: string;
-  mode: StreamMode;
-  currentFileName: string;
-  searchBuffer: string;
-  replaceBuffer: string;
-  reasoningBuffer: string;
-  textBuffer: string;
+  buffer: string;             // Raw text buffer from stream
+  mode: StreamMode;           // Current parsing mode
+  currentFileName: string;    // Active file being written/patched
+  reasoningBuffer: string;    // Accumulator for <lumina-reasoning>
+  textBuffer: string;         // Accumulator for <lumina-summary>
   fileStatuses: Record<string, 'pending' | 'success' | 'error'>;
   workingFiles: GeneratedFile[];
   commands: string[];
+  dependencies: Record<string, string>;
 }
 
+/** Initializes a fresh stream state based on current project files. */
 export const createInitialStreamState = (initialFiles: GeneratedFile[]): StreamState => ({
   buffer: '',
   mode: 'TEXT',
   currentFileName: '',
-  searchBuffer: '',
-  replaceBuffer: '',
   reasoningBuffer: '',
   textBuffer: '',
   fileStatuses: {},
   workingFiles: [...initialFiles],
-  commands: []
+  commands: [],
+  dependencies: {}
 });
 
+/** Determines generic language based on file extension. */
 const getLanguageFromFilename = (filename: string): string => {
     if(filename.endsWith('html')) return 'html';
     if(filename.endsWith('css')) return 'css';
@@ -37,6 +41,7 @@ const getLanguageFromFilename = (filename: string): string => {
     return 'javascript';
 };
 
+/** Updates or Creates a file in the working file list. */
 const updateFile = (state: StreamState, name: string, content: string): StreamState => {
     const existingIdx = state.workingFiles.findIndex(f => f.name === name);
     const newFile = { 
@@ -46,11 +51,8 @@ const updateFile = (state: StreamState, name: string, content: string): StreamSt
     };
     
     let newFiles = [...state.workingFiles];
-    if (existingIdx >= 0) {
-        newFiles[existingIdx] = newFile;
-    } else {
-        newFiles.push(newFile);
-    }
+    if (existingIdx >= 0) newFiles[existingIdx] = newFile;
+    else newFiles.push(newFile);
     
     return {
         ...state,
@@ -59,66 +61,23 @@ const updateFile = (state: StreamState, name: string, content: string): StreamSt
     };
 };
 
-const applyPatch = (originalContent: string, searchBlock: string, replaceBlock: string): string => {
-    // 1. Exact Match
-    if (originalContent.includes(searchBlock)) {
-        return originalContent.replace(searchBlock, replaceBlock);
+/** Extracts attributes like name="file.js" from XML tags. */
+const parseAttributes = (tagContent: string): Record<string, string> => {
+    const attrs: Record<string, string> = {};
+    const regex = /([a-zA-Z0-9-]+)=["']([^"']*)["']/g;
+    let match;
+    while ((match = regex.exec(tagContent)) !== null) {
+        attrs[match[1]] = match[2];
     }
-
-    // 2. Normalized Line Endings Match
-    const normalize = (s: string) => s.replace(/\r\n/g, '\n');
-    const normOriginal = normalize(originalContent);
-    const normSearch = normalize(searchBlock).trim();
-    const normReplace = normalize(replaceBlock).trim();
-
-    if (normOriginal.includes(normSearch)) {
-        return normOriginal.replace(normSearch, normReplace);
-    } 
-    
-    // 3. Fuzzy / Trimmed Line Match
-    // Split into lines and match by trimmed content to ignore indentation diffs
-    const originalLines = normOriginal.split('\n');
-    const searchLines = normSearch.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    const replaceLines = normReplace.split('\n'); // keep replacing structure mostly intact or just use block
-
-    if (searchLines.length === 0) return originalContent;
-
-    for (let i = 0; i < originalLines.length; i++) {
-        // Attempt match starting at i
-        let match = true;
-        // We need to match all search lines sequentially against original lines, skipping empty original lines if needed? 
-        // No, usually strict line sequence.
-        
-        // Let's try matching strict sequence of non-empty search lines against original lines (trimming both)
-        for (let j = 0; j < searchLines.length; j++) {
-            if (i + j >= originalLines.length) { match = false; break; }
-            if (originalLines[i + j].trim() !== searchLines[j]) { match = false; break; }
-        }
-
-        if (match) {
-            // Found match at lines i to i+searchLines.length-1
-            // But we matched against *filtered* search lines. We need to replace the corresponding span in original.
-            // This is tricky if the original had blank lines that we skipped? 
-            // Simplified approach: Match against searchLinesStrict (unfiltered) to preserve spacing intent if possible,
-            // but LLMs often mess up empty lines.
-            
-            // Let's assume the LLM provided a contiguous block. 
-            // We'll replace the block of lines in original that matched.
-            // Since we matched `searchLines.length` non-empty lines, we need to find the span in original.
-            
-            const before = originalLines.slice(0, i).join('\n');
-            const after = originalLines.slice(i + searchLines.length).join('\n');
-            
-            return before + (before ? '\n' : '') + normReplace + (after ? '\n' : '') + after;
-        }
-    }
-
-    console.warn("Patch failed to apply even with fuzzy matching.");
-    return originalContent; 
+    return attrs;
 };
 
+/** 
+ * Main Parsing Logic.
+ * Takes a chunk of text, appends to buffer, and processes state transitions.
+ */
 export const parseStreamChunk = (chunk: string, state: StreamState): StreamState => {
-    let { buffer, mode, currentFileName, searchBuffer, replaceBuffer, reasoningBuffer, textBuffer, fileStatuses, workingFiles, commands } = state;
+    let { buffer, mode, currentFileName, reasoningBuffer, textBuffer, fileStatuses, workingFiles, commands, dependencies } = state;
     
     buffer += chunk;
 
@@ -126,44 +85,43 @@ export const parseStreamChunk = (chunk: string, state: StreamState): StreamState
     while (processed) {
         processed = false;
 
-        // Detect Opening Tags
+        // Mode: TEXT (Looking for Open Tags)
         if (mode === 'TEXT') {
-            // Relaxed Regex: Supports quoted or unquoted attributes
-            const tagRegex = /<lumina-(reasoning|summary|file|patch|command)(?:\s+name=["']?([^"'>\s]+)["']?)?(?:\s+type=["']?([^"'>\s]+)["']?)?\s*>/;
+            const tagRegex = /<lumina-([a-z]+)\s*([^>]*?)(\/?)>/;
             const match = buffer.match(tagRegex);
             
             if (match && match.index !== undefined) {
                 const tagName = match[1];
-                const attrName = match[2];
-
-                if (tagName === 'reasoning') mode = 'REASONING';
-                else if (tagName === 'summary') mode = 'SUMMARY';
-                else if (tagName === 'file') {
-                    mode = 'FILE';
-                    currentFileName = attrName || 'unknown.txt';
-                    fileStatuses = { ...fileStatuses, [currentFileName]: 'pending' };
-                }
-                else if (tagName === 'patch') {
-                    mode = 'PATCH';
-                    currentFileName = attrName || 'unknown.txt';
-                    fileStatuses = { ...fileStatuses, [currentFileName]: 'pending' };
-                }
-                else if (tagName === 'command') mode = 'COMMAND';
+                const attrs = parseAttributes(match[2]);
+                const isSelfClosing = match[3] === '/';
 
                 buffer = buffer.substring(match.index + match[0].length);
-                processed = true;
+                processed = true; // Loop again to process content after tag
+
+                if (tagName === 'dependency') {
+                    if (attrs.name && attrs.version) {
+                        dependencies = { ...dependencies, [attrs.name]: attrs.version };
+                    }
+                } else if (tagName === 'reasoning') {
+                    mode = 'REASONING';
+                } else if (tagName === 'summary') {
+                    mode = 'SUMMARY';
+                } else if (tagName === 'file') {
+                    mode = 'FILE';
+                    currentFileName = attrs.name || 'unknown.txt';
+                    fileStatuses = { ...fileStatuses, [currentFileName]: 'pending' };
+                } else if (tagName === 'patch') {
+                    mode = 'PATCH';
+                    currentFileName = attrs.name || 'unknown.txt';
+                    fileStatuses = { ...fileStatuses, [currentFileName]: 'pending' };
+                } else if (tagName === 'command') {
+                    mode = 'COMMAND';
+                }
             }
         }
-        // Detect Closing Tags
+        // Mode: INSIDE A TAG (Looking for Close Tag)
         else {
-            let closeTag = '';
-            if (mode === 'REASONING') closeTag = '</lumina-reasoning>';
-            if (mode === 'SUMMARY') closeTag = '</lumina-summary>';
-            if (mode === 'FILE') closeTag = '</lumina-file>';
-            if (mode === 'PATCH') closeTag = '</lumina-patch>';
-            if (mode === 'COMMAND') closeTag = '</lumina-command>';
-            if (mode === 'SEARCH' || mode === 'REPLACE') closeTag = '</lumina-patch>'; // Failsafe
-
+            const closeTag = `</lumina-${mode.toLowerCase()}>`;
             const closeIdx = buffer.indexOf(closeTag);
 
             if (closeIdx !== -1) {
@@ -171,89 +129,36 @@ export const parseStreamChunk = (chunk: string, state: StreamState): StreamState
                 
                 if (mode === 'REASONING') reasoningBuffer += content;
                 else if (mode === 'SUMMARY') textBuffer += content;
+                else if (mode === 'COMMAND') commands = [...commands, content.trim()];
                 else if (mode === 'FILE') {
                     state = updateFile({ ...state, workingFiles, fileStatuses }, currentFileName, content);
                     workingFiles = state.workingFiles;
                     fileStatuses = state.fileStatuses;
                 }
-                else if (mode === 'COMMAND') {
-                    commands = [...commands, content.trim()];
-                }
-                else if (mode === 'PATCH' || mode === 'REPLACE') {
-                    // Patch logic flushed on completion or handled internally
+                else if (mode === 'PATCH') {
+                    const fIndex = workingFiles.findIndex(f => f.name === currentFileName);
+                    if (fIndex >= 0) {
+                        const original = workingFiles[fIndex].content;
+                        const patched = applyDiff(original, content);
+                        if (patched !== original) {
+                            workingFiles = workingFiles.map((f, i) => i === fIndex ? { ...f, content: patched } : f);
+                            fileStatuses = { ...fileStatuses, [currentFileName]: 'success' };
+                        } else {
+                            fileStatuses = { ...fileStatuses, [currentFileName]: 'error' };
+                        }
+                    } else {
+                        fileStatuses = { ...fileStatuses, [currentFileName]: 'error' };
+                    }
                 }
 
                 buffer = buffer.substring(closeIdx + closeTag.length);
                 mode = 'TEXT';
-                processed = true;
-            } else {
-                // INNER PATCH LOGIC (Search/Replace blocks)
-                if (mode === 'PATCH') {
-                    if (buffer.includes('<<<< SEARCH')) {
-                        const parts = buffer.split('<<<< SEARCH');
-                        buffer = parts[1];
-                        mode = 'SEARCH';
-                        processed = true;
-                    }
-                }
-                else if (mode === 'SEARCH') {
-                    if (buffer.includes('==== REPLACE')) {
-                        const parts = buffer.split('==== REPLACE');
-                        searchBuffer = parts[0]; 
-                        buffer = parts[1];
-                        mode = 'REPLACE';
-                        processed = true;
-                    }
-                }
-                else if (mode === 'REPLACE') {
-                    if (buffer.includes('>>>> END')) {
-                        const parts = buffer.split('>>>> END');
-                        replaceBuffer = parts[0];
-                        
-                        const fIndex = workingFiles.findIndex(f => f.name === currentFileName);
-                        if (fIndex >= 0) {
-                            const original = workingFiles[fIndex].content;
-                            const patched = applyPatch(original, searchBuffer, replaceBuffer);
-                            
-                            if (patched !== original) {
-                                workingFiles = workingFiles.map((f, i) => i === fIndex ? { ...f, content: patched } : f);
-                                fileStatuses = { ...fileStatuses, [currentFileName]: 'success' };
-                            } else {
-                                fileStatuses = { ...fileStatuses, [currentFileName]: 'error' };
-                            }
-                        } else {
-                            fileStatuses = { ...fileStatuses, [currentFileName]: 'error' };
-                        }
-
-                        searchBuffer = '';
-                        replaceBuffer = '';
-                        buffer = parts[1];
-                        mode = 'PATCH'; 
-                        processed = true;
-                    }
-                }
+                processed = true; // Loop again to process next tag
             }
         }
     }
 
-    return {
-        buffer,
-        mode,
-        currentFileName,
-        searchBuffer,
-        replaceBuffer,
-        reasoningBuffer,
-        textBuffer,
-        fileStatuses,
-        workingFiles,
-        commands
-    };
+    return { buffer, mode, currentFileName, reasoningBuffer, textBuffer, fileStatuses, workingFiles, commands, dependencies };
 };
 
-export const finalizeStream = (state: StreamState): StreamState => {
-    return {
-        ...state,
-        buffer: '',
-        mode: 'TEXT'
-    };
-};
+export const finalizeStream = (state: StreamState): StreamState => ({ ...state, buffer: '', mode: 'TEXT' });

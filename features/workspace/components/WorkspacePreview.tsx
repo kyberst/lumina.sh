@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface WorkspacePreviewProps {
@@ -7,13 +8,14 @@ interface WorkspacePreviewProps {
   setDeviceMode: (m: 'desktop' | 'tablet' | 'mobile') => void;
   showConsole: boolean;
   setShowConsole: (v: boolean) => void;
-  consoleLogs: { type: string, msg: string, time: string }[];
+  consoleLogs: { type: string, msg: string, time: string, source?: { file: string, line: number } }[];
   errorCount: number;
   onClearLogs: () => void;
+  onNavigateError?: (file: string, line: number) => void;
 }
 
 export const WorkspacePreview: React.FC<WorkspacePreviewProps> = ({
-  iframeSrc, iframeKey, deviceMode, setDeviceMode, showConsole, setShowConsole, consoleLogs, errorCount, onClearLogs
+  iframeSrc, iframeKey, deviceMode, setDeviceMode, showConsole, setShowConsole, consoleLogs, errorCount, onClearLogs, onNavigateError
 }) => {
   return (
     <div className="w-full h-full flex flex-col relative bg-slate-100">
@@ -58,9 +60,20 @@ export const WorkspacePreview: React.FC<WorkspacePreviewProps> = ({
                 <div className="flex-1 overflow-y-auto p-2 font-mono text-xs space-y-1">
                     {consoleLogs.length === 0 && <div className="text-slate-500 italic p-2">No logs yet...</div>}
                     {consoleLogs.map((log, i) => (
-                        <div key={i} className={`flex gap-2 p-1 border-b border-slate-800/50 ${log.type === 'error' ? 'text-red-400 bg-red-900/10' : log.type === 'warn' ? 'text-yellow-400' : 'text-slate-300'}`}>
-                            <span className="opacity-50 select-none text-[10px]">{log.time}</span>
-                            <span className="break-all">{log.msg}</span>
+                        <div key={i} className={`flex flex-col p-1.5 border-b border-slate-800/50 ${log.type === 'error' ? 'bg-red-900/10' : ''}`}>
+                            <div className={`flex gap-2 ${log.type === 'error' ? 'text-red-400' : log.type === 'warn' ? 'text-yellow-400' : 'text-slate-300'}`}>
+                                <span className="opacity-50 select-none text-[10px] whitespace-nowrap">{log.time}</span>
+                                <span className="break-all">{log.msg}</span>
+                            </div>
+                            {log.source && onNavigateError && (
+                                <button 
+                                    onClick={() => onNavigateError(log.source!.file, log.source!.line)}
+                                    className="self-end mt-1 text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 hover:underline"
+                                >
+                                    <span>at {log.source.file}:{log.source.line}</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                                </button>
+                            )}
                         </div>
                     ))}
                 </div>

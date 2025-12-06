@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { GeneratedFile } from '../../../types';
 import { CodeEditor } from '../../../components/ui/CodeEditor';
@@ -11,10 +12,11 @@ interface WorkspaceCodeProps {
   onFileSelect: (f: GeneratedFile) => void;
   onCodeChange: (v: string) => void;
   onSave: () => void;
+  scrollToLine?: number | null;
 }
 
 export const WorkspaceCode: React.FC<WorkspaceCodeProps> = ({
-  files, selectedFile, editorContent, hasChanges, onFileSelect, onCodeChange, onSave
+  files, selectedFile, editorContent, hasChanges, onFileSelect, onCodeChange, onSave, scrollToLine
 }) => {
   return (
     <div className="w-full h-full flex">
@@ -39,6 +41,7 @@ export const WorkspaceCode: React.FC<WorkspaceCodeProps> = ({
                     value={editorContent} 
                     language={selectedFile.language} 
                     onChange={onCodeChange} 
+                    scrollToLine={scrollToLine}
                 />
             ) : (
                 <div className="flex items-center justify-center h-full text-slate-500 text-sm">Select a file to edit</div>

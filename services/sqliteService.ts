@@ -1,10 +1,13 @@
-
 import { AppError, AppModule, JournalEntry, ChatMessage, User, Transaction } from '../types';
 import { logger } from './logger';
 import { runMigrations } from './db/migrations';
 
 const DB_NAME = 'umbra_dyad.sqlite';
 
+/**
+ * Service to handle client-side persistence using SQL.js (WASM).
+ * Data is persisted to IndexedDB to survive page reloads.
+ */
 class SqliteService {
   private db: any = null;
   private static instance: SqliteService;
@@ -12,6 +15,7 @@ class SqliteService {
 
   public static getInstance(): SqliteService { if (!SqliteService.instance) SqliteService.instance = new SqliteService(); return SqliteService.instance; }
 
+  /** Initialize the WASM database and load data from IndexedDB */
   public async init(): Promise<void> {
     if (this.isReady) return;
     try {
@@ -25,6 +29,7 @@ class SqliteService {
     } catch (e: any) { logger.error(AppModule.CORE, 'Init Failed', e); }
   }
 
+  // --- IndexedDB Persistence Helpers ---
   private loadFromIDB(): Promise<ArrayBuffer | null> {
       return new Promise((res) => {
           const r = indexedDB.open(DB_NAME, 1);
@@ -40,6 +45,7 @@ class SqliteService {
       r.onsuccess = (e: any) => e.target.result.transaction('store', 'readwrite').objectStore('store').put(d, 'db_file');
   }
 
+  // --- User Operations ---
   public async getUser(email: string): Promise<User | null> {
       const r = this.db?.exec("SELECT * FROM users WHERE email = ?", [email]);
       if (!r?.length) return null;
@@ -64,22 +70,33 @@ class SqliteService {
       this.saveToIDB();
   }
 
+  // --- Project / Journal Operations ---
   public async getAllProjects(): Promise<JournalEntry[]> {
     const r = this.db?.exec("SELECT * FROM projects ORDER BY timestamp DESC");
     if (!r?.length) return [];
     return r[0].values.map((v: any[]) => {
         const o = this.mapRow(r[0].columns, v);
-        return { ...o, files: JSON.parse(o.files), tags: JSON.parse(o.tags), envVars: o.envVars ? JSON.parse(o.envVars) : {} };
+        return { 
+          ...o, 
+          files: JSON.parse(o.files), 
+          tags: JSON.parse(o.tags), 
+          envVars: o.envVars ? JSON.parse(o.envVars) : {},
+          dependencies: o.dependencies ? JSON.parse(o.dependencies) : {}
+        };
     });
   }
 
   public async saveProject(e: JournalEntry) {
-      this.db.run(`INSERT OR REPLACE INTO projects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [e.id, e.prompt, e.timestamp, e.description, JSON.stringify(e.files), JSON.stringify(e.tags), e.mood, e.sentimentScore, e.project, e.contextSource, JSON.stringify(e.envVars)]);
+      this.db.run(
+        `INSERT OR REPLACE INTO projects VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+        [e.id, e.prompt, e.timestamp, e.description, JSON.stringify(e.files), JSON.stringify(e.tags), e.mood, e.sentimentScore, e.project, e.contextSource, JSON.stringify(e.envVars), JSON.stringify(e.dependencies || {})]
+      );
       this.saveToIDB();
   }
 
   public async deleteProject(id: string) { this.db.run('DELETE FROM projects WHERE id=?', [id]); this.saveToIDB(); }
 
+  // --- Chat History Operations ---
   public async getRefactorHistory(pid: string): Promise<ChatMessage[]> {
       const r = this.db?.exec("SELECT * FROM refactor_history WHERE project_id = ? ORDER BY timestamp ASC", [pid]);
       if (!r?.length) return [];
@@ -94,7 +111,7 @@ class SqliteService {
       this.saveToIDB();
   }
   
-  // Helpers
+  // --- Misc Helpers ---
   public async getChatHistory(): Promise<ChatMessage[]> {
       const r = this.db?.exec("SELECT * FROM chat_history ORDER BY timestamp ASC");
       if (!r?.length) return [];
@@ -106,7 +123,7 @@ class SqliteService {
   public async deleteConfig(k: string) { this.db.run("DELETE FROM app_config WHERE key=?", [k]); this.saveToIDB(); }
   public async getUserTransactions(uid: string): Promise<Transaction[]> { const r = this.db?.exec("SELECT * FROM transactions WHERE userId=?", [uid]); return r?.length ? r[0].values.map((v: any[]) => this.mapRow(r[0].columns, v)) : []; }
   public async addTransaction(t: Transaction) { this.db.run("INSERT INTO transactions VALUES (?,?,?,?,?,?,?)", [t.id, t.userId, t.amount, t.credits, t.type, t.description, t.timestamp]); this.saveToIDB(); }
-  public async exportChatData(pid?: string) { return "[]"; } // Simplified
+  public async exportChatData(pid?: string) { return "[]"; } 
   public async importChatData(j: string, pid?: string) { }
   public async resetDatabase() { indexedDB.deleteDatabase(DB_NAME); window.location.reload(); }
 

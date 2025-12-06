@@ -1,4 +1,7 @@
-
+/**
+ * Global TypeScript definitions for Lumina Studio.
+ * Organized by functional module.
+ */
 
 export enum AppModule {
   AUTH = 'auth',
@@ -18,38 +21,42 @@ export enum LogLevel {
 
 export type ViewMode = 'builder' | 'projects' | 'graph' | 'chat' | 'settings' | 'profile';
 
+/** Represents an authenticated user in the local system. */
 export interface User {
   id: string;
   email: string;
   name: string;
-  passwordHash: string; // In a real app, use bcrypt. Here we simulate.
-  avatar?: string; // URL or identifier
+  passwordHash: string; // Simulated auth
+  avatar?: string; 
   credits: number;
   twoFactorEnabled: boolean;
   createdAt: number;
 }
 
+/** Represents a transaction or usage history. */
 export interface Transaction {
   id: string;
   userId: string;
-  amount: number; // Cost in USD
-  credits: number; // Credits added
+  amount: number; 
+  credits: number; 
   type: 'purchase' | 'usage' | 'bonus';
   description: string;
   timestamp: number;
 }
 
+/** A single code file in the virtual file system. */
 export interface GeneratedFile {
   name: string;
   content: string;
   language: 'javascript' | 'typescript' | 'html' | 'css' | 'json' | 'markdown';
 }
 
+/** Request from AI for runtime environment variables. */
 export interface EnvVarRequest {
   key: string;
   description: string;
   type?: 'text' | 'password' | 'select';
-  options?: string[]; // Used if type is 'select'
+  options?: string[]; 
   defaultValue?: string;
 }
 
@@ -59,39 +66,45 @@ export interface CommandLog {
     status: 'pending' | 'approved' | 'executed' | 'skipped';
 }
 
+/** 
+ * Main Project entity. 
+ * Represents a "Memory" or "App" in the system. 
+ */
 export interface JournalEntry {
   id: string;
-  prompt: string; // The user's idea
+  prompt: string;
   timestamp: number;
-  description?: string; // AI generated summary
-  files: GeneratedFile[]; // The generated code files
+  description?: string;
+  files: GeneratedFile[]; 
   tags: string[]; 
-  mood: number; // Retained for graph physics (Complexity/Creativity)
-  sentimentScore?: number;
+  mood: number; // Used for Graph Visualization (Physics size)
+  sentimentScore?: number; // Used for Graph Color
   project?: string;
-  previewUrl?: string; // If we supported deployment
+  previewUrl?: string; 
   contextSource?: string;
-  envVars?: Record<string, string>; // Environment variables
+  envVars?: Record<string, string>;
+  dependencies?: Record<string, string>; // ImportMap dependencies
   installCommand?: string;
   startCommand?: string;
-  requiredEnvVars?: EnvVarRequest[]; // AI requests for env vars
-  pendingGeneration?: boolean; // Flag to trigger live generation in Workspace
+  requiredEnvVars?: EnvVarRequest[];
+  pendingGeneration?: boolean; 
 }
 
+/** Chat history for the Refactor/Workspace view. */
 export interface ChatMessage {
   id: string;
   role: 'user' | 'model';
   text: string;
   timestamp: number;
-  snapshot?: GeneratedFile[]; // For version control / restoration points
-  reasoning?: string; // The internal thought process/technical plan
-  modifiedFiles?: string[]; // List of files modified in this turn
-  pendingFile?: string; // File currently being streamed/generated
-  commands?: CommandLog[]; // Terminal commands generated
-  attachments?: { name: string; type: string; data: string }[]; // Base64 data
-  requiredEnvVars?: EnvVarRequest[]; // AI requests for env vars
-  envVarsSaved?: boolean; // UI state to show if they were saved
-  isStreaming?: boolean; // UI state for active stream
+  snapshot?: GeneratedFile[]; // Snapshot of files before this turn (for rollback)
+  reasoning?: string; // <lumina-reasoning> content
+  modifiedFiles?: string[]; 
+  pendingFile?: string; 
+  commands?: CommandLog[]; 
+  attachments?: { name: string; type: string; data: string }[];
+  requiredEnvVars?: EnvVarRequest[];
+  envVarsSaved?: boolean; 
+  isStreaming?: boolean;
   usage?: {
       inputTokens: number;
       outputTokens: number;
@@ -119,7 +132,7 @@ export interface AIProvider {
   id: string;
   name: string;
   baseUrl: string;
-  apiKeyConfigKey: string; // The key used in sqlite app_config to store the actual secret
+  apiKeyConfigKey: string; 
   models: AIModel[];
 }
 
@@ -129,28 +142,16 @@ export interface AppSettings {
   githubToken?: string;
   githubUsername?: string;
   theme: 'dark' | 'matrix';
-  
-  // Appearance
-  zoomLevel: number; // 0.8 to 1.2 default 1.0
-
-  // Automation
+  zoomLevel: number; 
   compilerDir?: string;
   autoApprove: boolean;
   autoFix: boolean;
-
-  // AI Config
   thinkingBudget: 'low' | 'medium' | 'high';
   contextSize: 'economy' | 'default' | 'plus' | 'high' | 'max';
-  
-  // Custom AI
   customProviders: AIProvider[];
-  activeProviderId?: string; // 'gemini' or custom ID
+  activeProviderId?: string;
   activeModelId?: string;
-
-  // MCP
   mcpServers: MCPServer[];
-
-  // Telemetry
   telemetryId: string;
 }
 
@@ -204,9 +205,9 @@ export interface ValidationSchema {
 }
 
 export interface RefineAppResult {
-  reasoning: string; // Technical plan or thought process
-  commentary: string; // User facing explanation
+  reasoning: string; 
+  commentary: string; 
   files: GeneratedFile[];
-  modifiedFileNames: string[]; // List of files that were actually changed
-  requiredEnvVars?: EnvVarRequest[]; // Variables needed by the code
+  modifiedFileNames: string[];
+  requiredEnvVars?: EnvVarRequest[];
 }

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 
 interface CodeEditorProps {
@@ -5,11 +6,13 @@ interface CodeEditorProps {
   language: string;
   onChange: (value: string) => void;
   className?: string;
+  scrollToLine?: number | null;
 }
 
-export const CodeEditor: React.FC<CodeEditorProps> = ({ value, language, onChange, className = '' }) => {
+export const CodeEditor: React.FC<CodeEditorProps> = ({ value, language, onChange, className = '', scrollToLine }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<any>(null);
+  const decorationRef = useRef<any[]>([]);
 
   useEffect(() => {
     const initMonaco = async () => {
@@ -76,6 +79,31 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({ value, language, onChang
        (window as any).monaco.editor.setModelLanguage(editorRef.current.getModel(), monacoLang);
     }
   }, [language]);
+
+  // Handle Scroll To Line
+  useEffect(() => {
+      if (editorRef.current && scrollToLine && (window as any).monaco) {
+          editorRef.current.revealLineInCenter(scrollToLine);
+          
+          // Add a temporary decoration highlight
+          decorationRef.current = editorRef.current.deltaDecorations(decorationRef.current, [
+              {
+                  range: new (window as any).monaco.Range(scrollToLine, 1, scrollToLine, 1),
+                  options: {
+                      isWholeLine: true,
+                      className: 'bg-red-500/20 border-l-2 border-red-500' // Custom class needs to be global or injected style
+                  }
+              }
+          ]);
+          
+          // Clear decoration after 2s
+          setTimeout(() => {
+              if (editorRef.current) {
+                  decorationRef.current = editorRef.current.deltaDecorations(decorationRef.current, []);
+              }
+          }, 2000);
+      }
+  }, [scrollToLine]);
 
   return <div ref={containerRef} className={`w-full h-full ${className}`} />;
 };

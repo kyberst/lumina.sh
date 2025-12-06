@@ -20,18 +20,20 @@ You MUST use the following XML-like tags. Do not add conversational text outside
 
 3. **File Operations**:
    
-   - To CREATE/OVERWRITE a file:
+   - To CREATE/OVERWRITE a file (Use this for new files or very large changes):
      <lumina-file name="filename.ext">
      ...full content...
      </lumina-file>
    
    - To PATCH a file (Preferred for small changes):
      <lumina-patch name="filename.ext">
-     <<<< SEARCH
-     <exact lines to find>
-     ==== REPLACE
-     <new lines>
-     >>>> END
+     --- a/filename.ext
+     +++ b/filename.ext
+     @@ -10,4 +10,5 @@
+      context line 1
+     -line to remove
+     +line to add
+      context line 2
      </lumina-patch>
 
 4. **Commands** (Optional):
@@ -41,5 +43,6 @@ You MUST use the following XML-like tags. Do not add conversational text outside
 
 **Rules:**
 - Always start with <lumina-reasoning>.
-- The SEARCH block in patches must match existing code EXACTLY (whitespace sensitive).
+- For PATCH, use standard Unified Diff format.
+- Ensure the context lines in chunks match the original file exactly.
 - Language: {{LANG}}

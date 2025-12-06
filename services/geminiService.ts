@@ -1,3 +1,5 @@
+
+
 import { generateAppCode as genApp } from "./ai/generator";
 import { GoogleGenAI } from "@google/genai";
 import { AppError, AppModule, ChatMessage, GeneratedFile, AIProvider } from "../types";
@@ -29,7 +31,7 @@ export async function* streamChatRefactor(
         // Protocol matching services/ai/streamParser.ts
         const protocol = `
 **Protocol & Output Format (Strictly Enforced):**
-You MUST use the following XML tags for your response. Do not use Markdown headers (###) or markdown code blocks (\`\`\`) for these sections.
+You MUST use the following XML tags for your response.
 
 1. **Reasoning**:
    <lumina-reasoning>
@@ -41,30 +43,37 @@ You MUST use the following XML tags for your response. Do not use Markdown heade
    Message to the user explaining what you did...
    </lumina-summary>
 
-3. **Files**:
+3. **Dependencies (Import Map)**:
+   To add external packages (React ecosystem) to the runtime:
+   <lumina-dependency name="package-name" version="x.y.z" />
+
+4. **Files**:
    To create or overwrite a file:
    <lumina-file name="filename.ext">
    ...full file content...
    </lumina-file>
    
-   To patch an existing file (preferred for small changes):
-   <lumina-patch name="filename.ext">
-   <<<< SEARCH
-   ...exact original lines to find...
-   ==== REPLACE
-   ...new lines...
-   >>>> END
+   To patch an existing file:
+   <lumina-patch name="filename.ext" format="diff">
+   --- a/filename.ext
+   +++ b/filename.ext
+   @@ -start,count +start,count @@
+    context line
+   -removed line
+   +added line
+    context line
    </lumina-patch>
 
-4. **Commands**:
+5. **Commands**:
    <lumina-command type="shell">
    npm install ...
    </lumina-command>
 
 IMPORTANT: 
-- Do not output plain text outside of these tags. 
-- Ensure closing tags (e.g., </lumina-file>) are present.
-- For <lumina-file>, the content must be the COMPLETE file code.
+- Use **Unified Diff** format for patches.
+- Use <lumina-dependency> for React libraries (e.g., framer-motion, recharts, lucide-react).
+- Ensure the context lines in diffs match the original file EXACTLY.
+- If the file is small, prefer rewriting it with <lumina-file> to avoid patch errors.
 `;
 
         const sysPrompt = `
@@ -75,9 +84,10 @@ ${protocol}
 
 **Rules:**
 - **Reasoning First**: Always start with <lumina-reasoning>.
-- **Smart Patching**: Use PATCH for small changes. SEARCH block must match EXACTLY (whitespace sensitive).
+- **Smart Patching**: Use <lumina-patch> for small changes.
+- **Dependencies**: Request external libs using <lumina-dependency>.
+- **Accuracy**: When patching, the context lines must exist in the original file.
 - **Language**: Respond in ${lang === 'es' ? 'Spanish' : 'English'} for the reasoning/summary.
-- **Dependencies**: If new packages are needed, use <lumina-command>.
 
 Current Codebase:
 ${fileContext}
