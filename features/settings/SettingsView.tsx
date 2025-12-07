@@ -3,6 +3,7 @@ import React from 'react';
 import { AppSettings } from '../../types';
 import { t } from '../../services/i18n';
 import { AIProviderSettings } from './components/AIProviderSettings';
+import { MCPSettings } from './components/MCPSettings';
 
 interface SettingsViewProps { settings: AppSettings; onSave: (s: AppSettings) => void; entries: any[]; }
 
@@ -48,7 +49,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSave }) 
             </p>
         </section>
 
-        <AIProviderSettings settings={settings} onChange={handleChange} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <AIProviderSettings settings={settings} onChange={handleChange} />
+            <MCPSettings settings={settings} onChange={handleChange} />
+        </div>
+        
+        <div className="pt-8 border-t">
+             <h3 className="text-sm font-medium text-red-500 mb-4">Danger Zone</h3>
+             <button onClick={() => { if(confirm("Reset all settings?")) onSave({...settings, customProviders: [], mcpServers: []}); }} className="shadcn-btn border-red-200 text-red-600 hover:bg-red-50">
+                Factory Reset Settings
+             </button>
+        </div>
       </div>
     </div>
   );

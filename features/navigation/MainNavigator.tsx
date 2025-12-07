@@ -39,32 +39,45 @@ export const MainNavigator: React.FC<Props> = ({ view, entries, settings, action
     }
 
     if (view === 'projects') {
-        const filtered = entries.filter(e => 
-            e.project?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-            e.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))
-        );
+        const query = searchQuery.toLowerCase().trim();
+        const filtered = entries.filter(e => {
+            const name = (e.project || 'Untitled App').toLowerCase();
+            const tags = (e.tags || []).join(' ').toLowerCase();
+            return !query || name.includes(query) || tags.includes(query);
+        });
+
         return (
-            <div className="max-w-6xl mx-auto">
-                <div className="flex justify-between items-center mb-8">
+            <div className="max-w-6xl mx-auto pb-20">
+                <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
                     <h2 className="text-2xl font-bold">Projects ({filtered.length})</h2>
                     <input 
-                        className="shadcn-input w-64" 
-                        placeholder="Search..." 
+                        className="shadcn-input w-full sm:w-64" 
+                        placeholder="Search projects..." 
                         value={searchQuery} 
                         onChange={e => actions.setSearch(e.target.value)} 
                     />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {filtered.map(e => (
-                        <EntryCard 
-                            key={e.id} entry={e} 
-                            onDelete={actions.deleteEntry} 
-                            onSelect={() => actions.selectProject(e)} 
-                            onTagClick={actions.setSearch} 
-                            onUpdate={actions.updateEntry} 
-                        />
-                    ))}
-                </div>
+                
+                {filtered.length === 0 ? (
+                    <div className="text-center py-20 text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+                        <p>No projects found matching "{searchQuery}"</p>
+                        <button onClick={() => actions.setSearch('')} className="text-indigo-600 font-bold mt-2 hover:underline">Clear Search</button>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {filtered.map(e => (
+                            <div key={e.id} className="h-64">
+                                <EntryCard 
+                                    entry={e} 
+                                    onDelete={actions.deleteEntry} 
+                                    onSelect={() => actions.selectProject(e)} 
+                                    onTagClick={actions.setSearch} 
+                                    onUpdate={actions.updateEntry} 
+                                />
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         );
     }

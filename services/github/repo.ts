@@ -1,3 +1,4 @@
+
 import { AppError, AppModule, GitHubRepo, GeneratedFile } from '../../types';
 import { logger } from '../logger';
 import { getHeaders, handleResponse } from './api';
@@ -13,34 +14,57 @@ export const getUserRepos = async (token: string): Promise<GitHubRepo[]> => {
     }
 };
 
-export const importRepository = async (repoName: string, token: string): Promise<GeneratedFile[]> => {
-    if (!token) throw new AppError("GitHub Token missing", "GH_NO_TOKEN", AppModule.INTEGRATION);
-    const headers = getHeaders(token);
-
+const fetchRepoContent = async (repoName: string, headers: any, branch?: string): Promise<GeneratedFile[]> => {
     try {
-        const repoJson = await fetch(`https://api.github.com/repos/${repoName}`, { headers }).then(r => handleResponse(r, "Repo not found"));
-        const treeJson = await fetch(`https://api.github.com/repos/${repoName}/git/trees/${repoJson.default_branch}?recursive=1`, { headers }).then(r => handleResponse(r, "Failed to fetch tree"));
+        // Get Default Branch if not provided
+        let targetBranch = branch;
+        if (!targetBranch) {
+             const repoJson = await fetch(`https://api.github.com/repos/${repoName}`, { headers }).then(r => handleResponse(r, "Repo not found"));
+             targetBranch = repoJson.default_branch;
+        }
 
+        const treeJson = await fetch(`https://api.github.com/repos/${repoName}/git/trees/${targetBranch}?recursive=1`, { headers }).then(r => handleResponse(r, "Failed to fetch tree"));
+
+        // Heuristic: Limit file count and size
         const codeFiles = treeJson.tree.filter((node: any) => 
-            node.type === 'blob' && node.size < 100000 && 
-            ['js', 'ts', 'tsx', 'jsx', 'html', 'css', 'json', 'md'].some(ext => node.path.endsWith('.' + ext))
-        ).slice(0, 15);
+            node.type === 'blob' && node.size < 150000 && 
+            ['js', 'ts', 'tsx', 'jsx', 'html', 'css', 'json', 'md', 'py', 'go', 'rs', 'java'].some(ext => node.path.endsWith('.' + ext))
+        ).slice(0, 30); // Hard limit to prevent context overflow
 
         const files: GeneratedFile[] = [];
-        for(const node of codeFiles) {
-            const contentJson = await fetch(node.url, { headers }).then(r => r.json());
-            const decoded = atob(contentJson.content.replace(/\n/g, ''));
+        
+        // Parallel fetch for speed
+        const fetchPromises = codeFiles.map(async (node: any) => {
+            // Use raw.githubusercontent.com or API blob. API blob is safer with rate limits if authenticated.
+            // Using API blob content
+            const blobRes = await fetch(node.url, { headers }).then(r => r.json());
+            const decoded = atob(blobRes.content.replace(/\n/g, ''));
             
             let lang: any = 'javascript';
             if (node.path.endsWith('html')) lang = 'html';
             else if (node.path.endsWith('css')) lang = 'css';
-            else if (node.path.endsWith('ts')) lang = 'typescript';
+            else if (node.path.endsWith('ts') || node.path.endsWith('tsx')) lang = 'typescript';
+            else if (node.path.endsWith('json')) lang = 'json';
+            else if (node.path.endsWith('md')) lang = 'markdown';
 
-            files.push({ name: node.path, content: decoded, language: lang });
-        }
-        return files;
+            return { name: node.path, content: decoded, language: lang };
+        });
+
+        return await Promise.all(fetchPromises);
+
     } catch (error: any) {
         logger.error(AppModule.INTEGRATION, 'Repo import failed', error);
         throw new AppError(error.message, 'GH_IMPORT_FAIL', AppModule.INTEGRATION);
     }
+};
+
+export const importRepository = async (repoName: string, token: string): Promise<GeneratedFile[]> => {
+    if (!token) throw new AppError("GitHub Token missing", "GH_NO_TOKEN", AppModule.INTEGRATION);
+    return fetchRepoContent(repoName, getHeaders(token));
+};
+
+export const importPublicRepository = async (repoName: string): Promise<GeneratedFile[]> => {
+    // Public fetch uses generic Accept header without Authorization to avoid 401 on expired tokens
+    const headers = { 'Accept': 'application/vnd.github.v3+json' };
+    return fetchRepoContent(repoName, headers);
 };

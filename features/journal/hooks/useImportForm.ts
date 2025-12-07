@@ -1,12 +1,13 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AppSettings, GitHubRepo, JournalEntry } from '../../../types';
-import { getUserRepos, importRepository } from '../../../services/githubService';
+import { getUserRepos, importRepository, importPublicRepository } from '../../../services/githubService';
 import { readDirectoryFiles } from '../../../services/fileService';
 
 export const useImportForm = (settings: AppSettings, onImport: (e: JournalEntry) => void, setError: (v: string | null) => void, setIsProcessing: (v: boolean) => void) => {
   const [importType, setImportType] = useState<'folder' | 'repos' | 'url'>('folder');
   const [userRepos, setUserRepos] = useState<GitHubRepo[]>([]);
+  const [urlInput, setUrlInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -20,7 +21,7 @@ export const useImportForm = (settings: AppSettings, onImport: (e: JournalEntry)
         setIsProcessing(true);
         try {
             const files = await readDirectoryFiles(e.target.files);
-            onImport({ id: crypto.randomUUID(), prompt: 'Imported', timestamp: Date.now(), files, tags: ['Local'], mood: 50, project: 'Imported' });
+            onImport({ id: crypto.randomUUID(), prompt: 'Imported from Folder', timestamp: Date.now(), files, tags: ['Local'], mood: 50, project: 'Imported Project' });
         } catch (err: any) { setError(err.message); } finally { setIsProcessing(false); }
     }
   };
@@ -34,5 +35,39 @@ export const useImportForm = (settings: AppSettings, onImport: (e: JournalEntry)
      } catch (err: any) { setError(err.message); } finally { setIsProcessing(false); }
   };
 
-  return { importType, setImportType, userRepos, fileInputRef, handleFolderImport, handleRepoImport };
+  const handleUrlImport = async () => {
+      if (!urlInput) return;
+      setIsProcessing(true);
+      try {
+          // Extract owner/repo from URL
+          // Supports: https://github.com/owner/repo or https://github.com/owner/repo/tree/branch
+          const match = urlInput.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+          if (!match) throw new Error("Invalid GitHub URL");
+          
+          const repoFullName = `${match[1]}/${match[2]}`;
+          const files = await importPublicRepository(repoFullName);
+          
+          onImport({ 
+              id: crypto.randomUUID(), 
+              prompt: `Imported from ${urlInput}`, 
+              timestamp: Date.now(), 
+              files, 
+              tags: ['GitHub', 'Public'], 
+              mood: 50, 
+              project: match[2] 
+          });
+          setUrlInput('');
+      } catch (err: any) {
+          setError(err.message);
+      } finally {
+          setIsProcessing(false);
+      }
+  };
+
+  return { 
+      importType, setImportType, 
+      userRepos, fileInputRef, 
+      urlInput, setUrlInput,
+      handleFolderImport, handleRepoImport, handleUrlImport 
+  };
 };
