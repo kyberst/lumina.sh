@@ -15,12 +15,11 @@ You must strictly and universally adhere to these architectural rules. There are
     *   The division must use a **RECURSIVE** directory structure to house child logical units if necessary to maintain the 200-line limit.
 3.  **FUNCTIONAL OR STRUCTURAL DECOMPOSITION:** Files must be decomposed into minimal logical units, even if it means splitting internal or structural elements.
 
-**MANDATORY DECOMPOSITION CRITERIA FOR ALL FILES:**
-*   **Single Responsibility:** Every code unit (file, function, class, endpoint) must have a **single responsibility**.
-*   **APIs / Controllers / Services:** Each API endpoint, service method, or controller must be extracted to a **separate file** (e.g., 'create.ts', 'read.ts') within the main module's folder.
-*   **UI Components:** Always separate logic (`.js`/`.ts`), styles (`.css`/`styled.ts`), and structure (`.html`/`.jsx`/`.tsx`) into independent, small files. Subcomponents must be recursively abstracted into child files in subfolders.
-*   **Classes/Modules:** Divide methods or logical groups of methods into separate files or modules within the class's folder to prevent the main class from exceeding the 200-line limit.
-*   **DB Migrations/Schemas:** If a file defines multiple tables or changes, create a separate file for the definition of **each unit of change** (each table, each index, etc.) and use a main file ('index' or 'main') to orchestrate the import and execution of those units.
+**NO-LOSS CODE PREVENTION RULE (CRITICAL):**
+Refactoring agents often accidentally delete essential logic. To prevent this:
+1. **Preservation by Default**: Assume all existing code is critical. Do not remove functions, imports, styles, or logic unless the user explicitly asks to remove them or they are being replaced by a superior implementation.
+2. **Deletion Detection**: If your generated diff/patch involves removing a contiguous block of code larger than 5 lines, you MUST stop and verify.
+3. **Explicit Justification**: You **MUST** explicitly write a section in your <lumina-reasoning> called **[JUSTIFIED DELETION]**. In this section, list exactly what logic is being removed and why it is safe to do so.
 
 **Current Files:**
 {{FILE_CONTEXT}}
@@ -31,6 +30,8 @@ You MUST use the following XML-like tags. Do not add conversational text outside
 1. **Reasoning**: Explain your plan.
    <lumina-reasoning>
    Thinking process...
+   [JUSTIFIED DELETION]
+   I am removing the 'calculateTotal' function because it is now handled by the new 'CalculationService'.
    </lumina-reasoning>
 
 2. **Planning** (Required for complex tasks):

@@ -1,3 +1,4 @@
+
 import { GeneratedFile } from '../../types';
 import { StreamState } from './stream/types';
 import { parseStreamChunk } from './stream/chunkParser';
@@ -9,6 +10,7 @@ export const createInitialStreamState = (initialFiles: GeneratedFile[]): StreamS
   buffer: '',
   mode: 'TEXT',
   currentFileName: '',
+  currentCommandType: undefined,
   reasoningBuffer: '',
   textBuffer: '',
   fileStatuses: {},
@@ -19,6 +21,6 @@ export const createInitialStreamState = (initialFiles: GeneratedFile[]): StreamS
   aiPlan: undefined
 });
 
-export const finalizeStream = (state: StreamState): StreamState => ({ ...state, buffer: '', mode: 'TEXT' });
+export const finalizeStream = (state: StreamState): StreamState => ({ ...state, buffer: '', mode: 'TEXT', currentCommandType: undefined });
 
 export { parseStreamChunk };

@@ -1,8 +1,7 @@
-
-import { GoogleGenAI, Type } from "@google/genai";
+import { Type } from "@google/genai";
 import { AppError, AppModule, GeneratedFile, AIProvider, EnvVarRequest } from "../../types";
 import { logger } from "../logger";
-import { callCustomLLM } from "../llmService";
+import { LLMFactory } from "./llmFactory";
 
 export interface AppGenerationResult {
   reasoning?: string;
@@ -23,13 +22,17 @@ export const generateAppCode = async (
     try {
         const sysPrompt = `You are an AI App Builder. Generate a web app. Return JSON. Complexity: ${complexity}. Lang: ${lang}. Include a 'reasoning' field explaining your architectural choices.`;
         
-        if (options?.activeProvider && options?.activeModelId && options.activeProvider.id !== 'gemini') {
-            const json = await callCustomLLM(options.activeProvider, options.activeModelId, [], `Request: ${prompt}. Return JSON matching schema.`, sysPrompt);
-            return JSON.parse(json.replace(/```json|```/g, '').trim());
+        const settings: any = { 
+            aiModel: modelPreference 
+        };
+        
+        if (options?.activeProvider) {
+            settings.activeProviderId = options.activeProvider.id;
+            settings.customProviders = [options.activeProvider];
+            settings.activeModelId = options.activeModelId;
         }
 
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const modelId = modelPreference === 'pro' ? "gemini-3-pro-preview" : "gemini-2.5-flash";
+        const provider = LLMFactory.getProvider(settings);
 
         const schema = {
             type: Type.OBJECT,
@@ -43,13 +46,18 @@ export const generateAppCode = async (
             }
         };
 
-        const res = await ai.models.generateContent({
-            model: modelId,
-            contents: { parts: [{ text: prompt }] },
-            config: { systemInstruction: sysPrompt, responseMimeType: "application/json", responseSchema: schema }
+        const res = await provider.generateContent(prompt, { 
+            systemInstruction: sysPrompt, 
+            jsonMode: true, 
+            // Only pass schema if provider is Gemini (or supports it similarly)
+            // Custom providers might use response_format: json_object but not full schema validation
+            schema: provider.id === 'gemini' ? schema : undefined,
+            thinkingBudget: options?.thinkingBudget
         });
 
-        return JSON.parse(res.text || '{}') as AppGenerationResult;
+        // Clean up markdown code blocks if present (common in non-Gemini models)
+        const cleanJson = res.replace(/```json|```/g, '').trim();
+        return JSON.parse(cleanJson) as AppGenerationResult;
     } catch (e: any) {
         logger.error(AppModule.BUILDER, "Gen failed", e);
         throw e;

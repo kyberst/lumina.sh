@@ -1,4 +1,5 @@
-import { GeneratedFile } from '../../../types';
+
+import { GeneratedFile, DependencyDetails } from '../../../types';
 
 export const getLanguageFromFilename = (filename: string): string => {
     if(filename.endsWith('html')) return 'html';
@@ -25,4 +26,14 @@ export const updateFile = (files: GeneratedFile[], name: string, content: string
     const newFiles = [...files];
     if (existingIdx >= 0) newFiles[existingIdx] = newFile; else newFiles.push(newFile);
     return { updatedFiles: newFiles, status: 'success' };
+};
+
+export const detectRuntime = (deps: Record<string, DependencyDetails>, files: GeneratedFile[]): 'node' | 'python' => {
+   const runtimes = Object.values(deps).map(d => d.runtime);
+   if (runtimes.includes('python')) return 'python';
+   if (runtimes.includes('node')) return 'node';
+   
+   if (files.some(f => f.name.endsWith('.py'))) return 'python';
+   
+   return 'node';
 };

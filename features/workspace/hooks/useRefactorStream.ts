@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { JournalEntry, ChatMessage, AppSettings, EditorContext } from '../../../types';
+import { JournalEntry, ChatMessage, AppSettings, EditorContext, DependencyDetails } from '../../../types';
 import { streamChatRefactor } from '../../../services/geminiService';
 import { createInitialStreamState, parseStreamChunk, finalizeStream, StreamState } from '../../../services/ai/streamParser';
 import { dbFacade } from '../../../services/dbFacade';
@@ -51,7 +51,15 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
         abortControllerRef.current = new AbortController();
 
         let currentState = createInitialStreamState(entry.files);
-        if (entry.dependencies) currentState.dependencies = { ...entry.dependencies };
+        // Normalize dependencies to ensure they match StreamState's strict DependencyDetails type
+        if (entry.dependencies) {
+            const normalizedDeps: Record<string, DependencyDetails> = {};
+            for (const [key, val] of Object.entries(entry.dependencies)) {
+                normalizedDeps[key] = typeof val === 'string' ? { version: val, runtime: 'node' } : val;
+            }
+            currentState.dependencies = normalizedDeps;
+        }
+
         let finalUsage = { inputTokens: 0, outputTokens: 0 };
 
         try {
@@ -59,7 +67,8 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
                 entry.files, promptText, isInitial ? [] : history, getLanguage(), 
                 attachments, { 
                     thinkingBudget: settings.thinkingBudget,
-                    systemPromptType: isInitial ? 'builder' : 'refactor'
+                    systemPromptType: isInitial ? 'builder' : 'refactor',
+                    settings: settings // Pass full settings to use correct AI provider
                 }, 
                 abortControllerRef.current.signal
             );
@@ -93,13 +102,12 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
             };
 
             // 5. ATOMIC UPDATE: Save Project State + Refactor History (Diffs) + User Message in one Transaction
-            // This ensures we never have code changes without the undo history.
             await dbFacade.atomicUpdateProjectWithHistory(
                 finalEntry, 
                 modelMsg, 
                 previousFiles, 
                 finalFiles,
-                !isInitial ? msg : undefined // Save user message in the same transaction if not initial build
+                !isInitial ? msg : undefined
             );
             
             // Update React State (UI)

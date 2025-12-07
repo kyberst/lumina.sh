@@ -1,5 +1,5 @@
 
-import { GeneratedFile } from "../../../types";
+import { GeneratedFile, DependencyDetails } from "../../../types";
 import { ERROR_HANDLER_SCRIPT, DEPENDENCY_VALIDATOR_SCRIPT, ENV_HANDLING_SCRIPT } from "./previewScripts";
 
 interface SourceMapEntry {
@@ -14,7 +14,7 @@ interface SourceMapEntry {
  */
 export const generateIframeHtml = (
     files: GeneratedFile[], 
-    dependencies: Record<string, string> | undefined
+    dependencies: Record<string, string | DependencyDetails> | undefined
 ): { html: string; sourceMap: Record<string, SourceMapEntry> } => {
     
     const indexFile = files.find(x => x.name === 'index.html'); 
@@ -23,13 +23,24 @@ export const generateIframeHtml = (
     let finalHtml = indexFile.content;
     const newSourceMap: Record<string, SourceMapEntry> = {};
 
-    // 1. Build Import Map
+    // 1. Build Import Map (Filter for Node/JS runtime)
     const imports: Record<string, string> = {
        "react": "https://esm.sh/react@18.2.0",
        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
        "lucide-react": "https://esm.sh/lucide-react@0.263.1",
-       ...Object.entries(dependencies || {}).reduce((acc, [k,v]) => ({...acc, [k]: `https://esm.sh/${k}@${v}`}), {})
     };
+
+    if (dependencies) {
+        Object.entries(dependencies).forEach(([k, v]) => {
+            // Handle legacy string format or new object format
+            const version = typeof v === 'string' ? v : v.version;
+            const runtime = typeof v === 'string' ? 'node' : v.runtime;
+
+            if (runtime === 'node') {
+                imports[k] = `https://esm.sh/${k}@${version}`;
+            }
+        });
+    }
 
     const importMapScript = `<script type="importmap">\n${JSON.stringify({ imports }, null, 2)}\n</script>`;
     const validatorScript = DEPENDENCY_VALIDATOR_SCRIPT(imports);

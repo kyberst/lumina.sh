@@ -1,3 +1,4 @@
+
 export const SYSTEM_PROTOCOL = `
 **Protocol & Output Format (Strictly Enforced):**
 You MUST use the following XML tags for your response.
@@ -44,6 +45,18 @@ You MUST use the following XML tags for your response.
 7. **Commands**:
    <lumina-command type="shell">
    npm install ...
+   </lumina-command>
+   
+   <lumina-command type="package_install">
+   package_name
+   </lumina-command>
+   
+   <lumina-command type="db_migration">
+   run
+   </lumina-command>
+
+   <lumina-command type="build">
+   go build
    </lumina-command>
 
 **IMPORTANT Rules:**

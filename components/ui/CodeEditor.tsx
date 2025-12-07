@@ -1,6 +1,6 @@
-
 import React, { useEffect, useRef } from 'react';
 import { CodeAnnotation } from '../../types';
+import { PluginFactory } from '../../features/editor/pluginFactory';
 
 /** API exposed by the CodeEditor component */
 export interface CodeEditorApi {
@@ -21,8 +21,7 @@ interface CodeEditorProps {
 
 /**
  * Wrapper for Monaco Editor.
- * Handles lazy loading, language mapping, and API exposure.
- * NOW INCLUDES: Quick Fix Action Provider for AI Suggestions.
+ * Now uses the Plugin Architecture for modular language support and Quick Fixes.
  */
 export const CodeEditor: React.FC<CodeEditorProps> = ({ 
     value, language, onChange, className = '', 
@@ -31,10 +30,13 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<any>(null);
   const decorationRef = useRef<any[]>([]);
+  
+  // Refs to hold state for callbacks without re-triggering effects
   const annotationsRef = useRef<CodeAnnotation[]>(annotations);
   const providerDisposableRef = useRef<any>(null);
+  const currentPluginRef = useRef<any>(null);
 
-  // Keep annotations ref synced for the callback closure
+  // Keep annotations ref synced for the callback closure inside Plugins
   useEffect(() => { annotationsRef.current = annotations; }, [annotations]);
 
   useEffect(() => {
@@ -53,6 +55,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             let monacoLang = language === 'js' ? 'javascript' : language === 'ts' ? 'typescript' : language;
             const monaco = (window as any).monaco;
 
+            // 1. Initialize Editor Instance
             if (!editorRef.current && containerRef.current) {
               editorRef.current = monaco.editor.create(containerRef.current, {
                 value: value,
@@ -73,44 +76,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
                 }
               });
 
-              // Register Quick Fix Provider (Global registry, so we handle it carefully)
-              // This allows the Lightbulb to appear when there is an AI Suggestion
-              if (!providerDisposableRef.current) {
-                  providerDisposableRef.current = monaco.languages.registerCodeActionProvider(monacoLang, {
-                      provideCodeActions: (model: any, range: any, context: any) => {
-                          const actions: any[] = [];
-                          
-                          // Check all markers intersecting the range
-                          for (const marker of context.markers) {
-                              // Find corresponding annotation
-                              const anno = annotationsRef.current.find(a => 
-                                  a.line === marker.startLineNumber && a.message === marker.message
-                              );
-
-                              // If annotation has a suggestion, create a Quick Fix action
-                              if (anno && anno.suggestion) {
-                                  actions.push({
-                                      title: `Fix: Replace with "${anno.suggestion}"`,
-                                      kind: "quickfix",
-                                      isPreferred: true,
-                                      edit: {
-                                          edits: [{
-                                              resource: model.uri,
-                                              edit: {
-                                                  range: marker, // Replace the error range
-                                                  text: anno.suggestion
-                                              }
-                                          }]
-                                      }
-                                  });
-                              }
-                          }
-                          return { actions: actions, dispose: () => {} };
-                      }
-                  });
-              }
-
-              // API Exposure for Parent Components
+              // API Exposure
               if (onMount) {
                   onMount({
                       getSelection: () => {
@@ -121,51 +87,80 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
                   });
               }
             }
+            
+            // 2. Load Plugin for the specific language
+            if (editorRef.current) {
+                // Dispose previous plugin resources
+                if (providerDisposableRef.current) {
+                    providerDisposableRef.current.dispose();
+                }
+
+                // Initialize New Plugin
+                const plugin = PluginFactory.getPlugin(monacoLang);
+                plugin.onMount(monaco, editorRef.current);
+                
+                // Register Quick Fixes (Linter logic abstracted in plugin)
+                const disposable = plugin.registerProviders(monaco, () => annotationsRef.current);
+                
+                providerDisposableRef.current = disposable;
+                currentPluginRef.current = plugin;
+                
+                // Ensure model language is correct (handling prop updates)
+                monaco.editor.setModelLanguage(editorRef.current.getModel(), monacoLang);
+            }
           });
         }
     };
     initMonaco();
     
-    // Cleanup provider on unmount to avoid duplicates
     return () => {
         editorRef.current?.dispose();
         if (providerDisposableRef.current) {
             providerDisposableRef.current.dispose();
-            providerDisposableRef.current = null;
         }
     };
-  }, []);
+  }, []); // Run once on mount, language updates handled below
 
-  // Update value from props
+  // Handle Value Updates
   useEffect(() => {
     if (editorRef.current && value !== editorRef.current.getValue()) {
        editorRef.current.setValue(value);
     }
   }, [value]);
 
-  // Update language
+  // Handle Language/Plugin Updates
   useEffect(() => {
     if (editorRef.current && (window as any).monaco) {
        let monacoLang = language === 'js' ? 'javascript' : language === 'ts' ? 'typescript' : language;
-       (window as any).monaco.editor.setModelLanguage(editorRef.current.getModel(), monacoLang);
+       const monaco = (window as any).monaco;
+
+       // Switch Language
+       monaco.editor.setModelLanguage(editorRef.current.getModel(), monacoLang);
+
+       // Switch Plugin Logic
+       if (providerDisposableRef.current) providerDisposableRef.current.dispose();
+       const plugin = PluginFactory.getPlugin(monacoLang);
+       plugin.onMount(monaco, editorRef.current);
+       providerDisposableRef.current = plugin.registerProviders(monaco, () => annotationsRef.current);
+       currentPluginRef.current = plugin;
     }
   }, [language]);
 
-  // Update ReadOnly State
+  // Handle ReadOnly State
   useEffect(() => {
       if (editorRef.current) {
           editorRef.current.updateOptions({ readOnly: readOnly });
       }
   }, [readOnly]);
 
-  // Update Annotations (Markers)
+  // Handle Annotations Visualization (Rendering Markers)
   useEffect(() => {
       if (editorRef.current && (window as any).monaco) {
           const monaco = (window as any).monaco;
           const model = editorRef.current.getModel();
           
           if (!annotations.length) {
-              monaco.editor.setModelMarkers(model, "owner", []);
+              monaco.editor.setModelMarkers(model, "lumina-linter", []);
               return;
           }
 
@@ -174,13 +169,13 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
                         a.type === 'warning' ? monaco.MarkerSeverity.Warning : 
                         monaco.MarkerSeverity.Info,
               startLineNumber: a.line,
-              startColumn: 1, // Start of line
+              startColumn: 1, 
               endLineNumber: a.line,
-              endColumn: 1000, // End of line (assuming < 1000 cols)
+              endColumn: 1000, 
               message: a.message
           }));
 
-          monaco.editor.setModelMarkers(model, "owner", markers);
+          monaco.editor.setModelMarkers(model, "lumina-linter", markers);
       }
   }, [annotations]);
 

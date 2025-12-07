@@ -1,19 +1,16 @@
-
-import { GoogleGenAI } from "@google/genai";
-import { AppModule, ChatMessage, GeneratedFile, JournalEntry } from "../types";
+import { AppModule, ChatMessage, GeneratedFile, JournalEntry, AppSettings } from "../types";
 import { logger } from "./logger";
 import { generateAppCode as genApp } from "./ai/generator";
 import { getSystemPrompt, PromptType } from "./promptService";
 import { MemoryOrchestrator } from "./memory/index";
 import { dbFacade } from "./dbFacade";
 import { getRefactorSystemPrompt } from "./ai/prompts/refactor";
+import { LLMFactory } from "./ai/llmFactory";
+import { StreamChunk } from "./ai/providers/interface";
 
 export const generateAppCode = genApp;
 
-export interface StreamChunk {
-    text: string;
-    usage?: { inputTokens: number; outputTokens: number; };
-}
+export { StreamChunk };
 
 export async function* streamChatRefactor(
   currentFiles: GeneratedFile[],
@@ -21,7 +18,7 @@ export async function* streamChatRefactor(
   history: ChatMessage[],
   lang: 'en' | 'es',
   attachments?: any[],
-  options?: { thinkingBudget?: 'low' | 'medium' | 'high', systemPromptType?: PromptType },
+  options?: { thinkingBudget?: 'low' | 'medium' | 'high', systemPromptType?: PromptType, settings?: AppSettings },
   signal?: AbortSignal
 ): AsyncGenerator<StreamChunk, void, unknown> {
     try {
@@ -34,12 +31,14 @@ export async function* streamChatRefactor(
         let memoryContext = "";
         let memory: MemoryOrchestrator | null = null;
         let contextSize = 'default';
+        let currentSettings: Partial<AppSettings> = options?.settings || {};
         
         if (settingsJson) {
-            const settings = JSON.parse(settingsJson);
-            contextSize = settings.contextSize || 'default';
-            if (settings.memory?.enabled) {
-                memory = new MemoryOrchestrator(settings);
+            const parsed = JSON.parse(settingsJson);
+            currentSettings = { ...parsed, ...currentSettings };
+            contextSize = parsed.contextSize || 'default';
+            if (parsed.memory?.enabled) {
+                memory = new MemoryOrchestrator(parsed);
                 // Retrieve semantic context for the refactor task
                 memoryContext = await memory.retrieveContext(userMessage);
             }
@@ -69,37 +68,20 @@ export async function* streamChatRefactor(
             sysPrompt += `\n\nCurrent Codebase:\n${fileContext}`;
         }
 
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        // Use Factory to get the correct provider (Gemini, OpenAI, etc.)
+        const provider = LLMFactory.getProvider(currentSettings);
         
-        const historyContent = history
-            .filter(h => !h.isStreaming && h.text && h.text.trim().length > 0) 
-            .map(h => ({
-                role: h.role === 'user' ? 'user' : 'model',
-                parts: [{ text: h.text }]
-            }));
-
-        const thinkingBudget = options?.thinkingBudget === 'high' ? 16384 : 
-                               options?.thinkingBudget === 'medium' ? 8192 : 2048;
-
-        const chat = ai.chats.create({
-            model: "gemini-2.5-flash",
-            config: { 
-                systemInstruction: sysPrompt,
-                temperature: 0.2, 
-                thinkingConfig: { thinkingBudget }
-            },
-            history: historyContent
-        });
-
-        const parts: any[] = [{ text: userMessage }];
+        let promptWithAttachments = userMessage;
+        // Basic attachment handling for non-multimodal providers
+        // Real implementation would handle parts/attachments more robustly in the interface if provider supports it
         if (attachments && attachments.length > 0) {
-            attachments.forEach(att => {
-                const base64Data = att.data.split(',')[1];
-                parts.push({ inlineData: { mimeType: att.type, data: base64Data } });
-            });
+             promptWithAttachments += `\n\n[Attached Images/Files: ${attachments.length} provided]`;
         }
 
-        const stream = await chat.sendMessageStream({ message: parts });
+        const stream = provider.generateStream(promptWithAttachments, history, {
+            systemInstruction: sysPrompt,
+            thinkingBudget: options?.thinkingBudget
+        });
 
         let fullResponse = "";
 
@@ -107,13 +89,7 @@ export async function* streamChatRefactor(
             if (signal?.aborted) throw new Error("Aborted");
             if (chunk.text) fullResponse += chunk.text;
             
-            yield {
-                text: chunk.text,
-                usage: chunk.usageMetadata ? {
-                    inputTokens: chunk.usageMetadata.promptTokenCount || 0,
-                    outputTokens: chunk.usageMetadata.candidatesTokenCount || 0
-                } : undefined
-            };
+            yield chunk;
         }
 
         // Async save to memory (fire and forget)
@@ -144,17 +120,14 @@ export async function* streamChatRefactor(
 }
 
 export const analyzeSecurity = async (files: GeneratedFile[], prompt: string): Promise<string> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const res = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: `Analyze:\n${files.map(f => f.content).join('\n')}\nRequest: ${prompt}`
-    });
-    return res.text || "No issues.";
+    // Basic Security analysis
+    const provider = LLMFactory.getProvider({ aiModel: 'flash' });
+    const text = await provider.generateContent(`Analyze:\n${files.map(f => f.content).join('\n')}\nRequest: ${prompt}`);
+    return text || "No issues.";
 };
 
 export const chatWithDyad = async (history: ChatMessage[], msg: string, entries: JournalEntry[], lang: 'en' | 'es'): Promise<string> => {
     try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const entriesContext = entries.map(e => 
           `- Project: ${e.project || 'Untitled'}\n  Description: ${e.description || 'No description'}\n  Tags: ${e.tags.join(', ')}\n  Complexity: ${e.mood}`
         ).join('\n\n');
@@ -165,24 +138,20 @@ export const chatWithDyad = async (history: ChatMessage[], msg: string, entries:
         // 1. Try to load from Cache first (Latency Optimization)
         const cached = dbFacade.sessions.getCachedDyadContext();
         
-        // Heuristic: Use cache if it's a follow-up or simple confirmation
-        // Expanded regex to catch more conversational flow
         const isFollowUp = msg.length < 80 || /^(yes|no|ok|sure|and|but|then|now|make|change|translate|in|en|es|what|how)/i.test(msg);
-        
+        let settingsJson = await dbFacade.getConfig('app_settings');
+        let settings: AppSettings = settingsJson ? JSON.parse(settingsJson) : {};
+
         if (isFollowUp && cached) {
             memoryContext = cached;
         } else {
             // 2. If not cached or complex query, retrieve from SurrealDB (WASM)
-            const settingsJson = await dbFacade.getConfig('app_settings');
-            if (settingsJson) {
-                const settings = JSON.parse(settingsJson);
-                if (settings.memory?.enabled) {
-                    const memory = new MemoryOrchestrator(settings);
-                    memoryContext = await memory.retrieveContext(msg);
-                    
-                    // 3. Update Cache with new context
-                    if (memoryContext) dbFacade.sessions.setCachedDyadContext(memoryContext);
-                }
+            if (settings.memory?.enabled) {
+                const memory = new MemoryOrchestrator(settings);
+                memoryContext = await memory.retrieveContext(msg);
+                
+                // 3. Update Cache with new context
+                if (memoryContext) dbFacade.sessions.setCachedDyadContext(memoryContext);
             }
         }
         // -----------------------------------
@@ -198,16 +167,11 @@ export const chatWithDyad = async (history: ChatMessage[], msg: string, entries:
         
         systemPrompt += `\nLanguage: ${langInst}`;
 
-        const chatHistory = history.map(h => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.text }] }));
+        // Use Factory with current settings
+        const provider = LLMFactory.getProvider(settings);
 
-        const chat = ai.chats.create({
-            model: "gemini-2.5-flash",
-            config: { systemInstruction: systemPrompt },
-            history: chatHistory
-        });
-
-        const response = await chat.sendMessage({ message: msg });
-        return response.text || "No response generated.";
+        const response = await provider.generateContent(msg, { systemInstruction: systemPrompt });
+        return response || "No response generated.";
 
     } catch (e: any) {
         logger.error(AppModule.INSIGHT, "Dyad Chat failed", e);

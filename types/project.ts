@@ -1,3 +1,4 @@
+
 export interface GeneratedFile {
   readonly name: string;
   readonly content: string;
@@ -10,6 +11,11 @@ export interface EnvVarRequest {
   type?: 'text' | 'password' | 'select';
   options?: string[]; 
   defaultValue?: string;
+}
+
+export interface DependencyDetails {
+  version: string;
+  runtime: 'node' | 'python' | 'unknown';
 }
 
 export interface CommandLog {
@@ -31,7 +37,7 @@ export interface JournalEntry {
   previewUrl?: string; 
   contextSource?: string;
   envVars?: Record<string, string>;
-  dependencies?: Record<string, string>;
+  dependencies?: Record<string, string | DependencyDetails>;
   installCommand?: string;
   startCommand?: string;
   requiredEnvVars?: EnvVarRequest[];

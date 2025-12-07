@@ -1,13 +1,13 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { GeneratedFile, EnvVarRequest } from '../../../types';
+import { GeneratedFile, EnvVarRequest, DependencyDetails } from '../../../types';
 import { generateIframeHtml } from '../utils/iframeBuilder';
 
 interface SourceMapEntry { start: number; end: number; file: string; }
 
 export const usePreviewSystem = (
     files: GeneratedFile[], 
-    dependencies: Record<string, string> | undefined, 
+    dependencies: Record<string, string | DependencyDetails> | undefined, 
     iframeKey: number,
     envVars?: Record<string, string>,
     requiredRequests?: EnvVarRequest[]
