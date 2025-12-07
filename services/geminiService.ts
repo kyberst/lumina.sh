@@ -160,25 +160,29 @@ export const chatWithDyad = async (history: ChatMessage[], msg: string, entries:
         ).join('\n\n');
         
         // --- Memory Integration for Dyad ---
-        const settingsJson = await dbFacade.getConfig('app_settings');
         let memoryContext = "";
         
-        // Heuristic: Check if this is a follow-up to reuse cached context
-        const isFollowUp = msg.length < 50 || /^(yes|no|ok|sure|and|but|then|now|make|change|translate|in|en|es)/i.test(msg);
+        // 1. Try to load from Cache first (Latency Optimization)
+        const cached = dbFacade.sessions.getCachedDyadContext();
         
-        if (isFollowUp) {
-            const cached = dbFacade.sessions.getCachedDyadContext();
-            if (cached) memoryContext = cached;
-        }
-
-        if (!memoryContext && settingsJson) {
-            const settings = JSON.parse(settingsJson);
-            if (settings.memory?.enabled) {
-                const memory = new MemoryOrchestrator(settings);
-                memoryContext = await memory.retrieveContext(msg);
-                
-                // Cache context for potential follow-ups
-                if (memoryContext) dbFacade.sessions.setCachedDyadContext(memoryContext);
+        // Heuristic: Use cache if it's a follow-up or simple confirmation
+        // Expanded regex to catch more conversational flow
+        const isFollowUp = msg.length < 80 || /^(yes|no|ok|sure|and|but|then|now|make|change|translate|in|en|es|what|how)/i.test(msg);
+        
+        if (isFollowUp && cached) {
+            memoryContext = cached;
+        } else {
+            // 2. If not cached or complex query, retrieve from SurrealDB (WASM)
+            const settingsJson = await dbFacade.getConfig('app_settings');
+            if (settingsJson) {
+                const settings = JSON.parse(settingsJson);
+                if (settings.memory?.enabled) {
+                    const memory = new MemoryOrchestrator(settings);
+                    memoryContext = await memory.retrieveContext(msg);
+                    
+                    // 3. Update Cache with new context
+                    if (memoryContext) dbFacade.sessions.setCachedDyadContext(memoryContext);
+                }
             }
         }
         // -----------------------------------
@@ -189,7 +193,7 @@ export const chatWithDyad = async (history: ChatMessage[], msg: string, entries:
         let systemPrompt = rawPrompt.replace('{{CONTEXT}}', entriesContext.slice(0, 10000));
         
         if (memoryContext) {
-            systemPrompt += `\n\n${memoryContext}`;
+            systemPrompt += `\n\n[Memory Context]:\n${memoryContext}`;
         }
         
         systemPrompt += `\nLanguage: ${langInst}`;

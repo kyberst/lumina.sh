@@ -83,9 +83,6 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
                 pendingGeneration: false, tags: isInitial ? [...entry.tags, "Generated"] : entry.tags 
             };
             
-            onUpdate(finalEntry);
-            setTotalUsage(prev => ({ input: prev.input + finalUsage.inputTokens, output: prev.output + finalUsage.outputTokens }));
-            
             const modelMsg: ChatMessage = { 
                 id: crypto.randomUUID(), role: 'model', 
                 text: currentState.textBuffer.trim() || (isInitial ? "App generated." : "Updates applied."), 
@@ -95,10 +92,19 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
                 plan: currentState.aiPlan 
             };
 
-            // 5. Save Model Message with DIFF (Passing T and T+1)
-            await dbFacade.saveRefactorMessage(entry.id, modelMsg, previousFiles, finalFiles);
+            // 5. ATOMIC UPDATE: Save Project State + Refactor History (Diffs) + User Message in one Transaction
+            // This ensures we never have code changes without the undo history.
+            await dbFacade.atomicUpdateProjectWithHistory(
+                finalEntry, 
+                modelMsg, 
+                previousFiles, 
+                finalFiles,
+                !isInitial ? msg : undefined // Save user message in the same transaction if not initial build
+            );
             
-            if (!isInitial) await dbFacade.saveRefactorMessage(entry.id, msg);
+            // Update React State (UI)
+            onUpdate(finalEntry);
+            setTotalUsage(prev => ({ input: prev.input + finalUsage.inputTokens, output: prev.output + finalUsage.outputTokens }));
 
             setHistory(p => isInitial ? [modelMsg] : [...p, modelMsg]);
             setIframeKey(k => k+1);

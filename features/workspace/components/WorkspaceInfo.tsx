@@ -9,6 +9,7 @@ interface WorkspaceInfoProps {
 
 export const WorkspaceInfo: React.FC<WorkspaceInfoProps> = ({ entry, onUpdate }) => {
   const [tagInput, setTagInput] = useState('');
+  const [showSecrets, setShowSecrets] = useState(false);
 
   return (
     <div className="w-full h-full bg-slate-50 overflow-y-auto p-4 sm:p-8">
@@ -55,13 +56,19 @@ export const WorkspaceInfo: React.FC<WorkspaceInfoProps> = ({ entry, onUpdate })
             
             {entry.envVars && (
                <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 block">Environment Variables</label>
+                    <div className="flex justify-between items-center mb-4">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Environment Variables</label>
+                        <button onClick={() => setShowSecrets(!showSecrets)} className="text-[10px] text-indigo-600 font-bold hover:underline uppercase">
+                            {showSecrets ? 'Hide Secrets' : 'Show Secrets'}
+                        </button>
+                    </div>
                     <div className="space-y-3">
                         {Object.entries(entry.envVars).map(([key, val]) => (
                             <div key={key} className="flex flex-col gap-1">
                                 <span className="text-xs font-mono font-bold text-slate-600">{key}</span>
                                 <input 
-                                  className="shadcn-input font-mono text-xs bg-slate-50" 
+                                  type={showSecrets ? 'text' : 'password'}
+                                  className="shadcn-input font-mono text-xs bg-slate-50 border-slate-200 text-indigo-800" 
                                   value={val as string}
                                   onChange={(e) => {
                                       const newVars = { ...entry.envVars, [key]: e.target.value };
@@ -71,6 +78,9 @@ export const WorkspaceInfo: React.FC<WorkspaceInfoProps> = ({ entry, onUpdate })
                             </div>
                         ))}
                     </div>
+                    <p className="text-[10px] text-slate-400 mt-4 italic">
+                        Values are stored securely in your local database. They are only injected into the preview sandbox when required by the code.
+                    </p>
                </div>
             )}
         </div>

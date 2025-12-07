@@ -11,6 +11,13 @@ export class ChatRepository extends BaseRepository {
         // Ensure complex objects are stored properly (Surreal handles JSON automatically)
         await dbCore.query("UPDATE type::thing('chat_history', $id) CONTENT $m", { id: m.id, m });
     }
+
+    public getSaveChatMessageOperation(m: ChatMessage) {
+        return {
+            query: "UPDATE type::thing('chat_history', $id) CONTENT $m",
+            params: { id: m.id, m }
+        };
+    }
     
     public async getChatHistory(): Promise<ChatMessage[]> {
         // Select explicit fields to avoid fetching unrelated data if schema expands
@@ -29,6 +36,24 @@ export class ChatRepository extends BaseRepository {
 
         const msgToSave = { ...m, snapshot: snapshotData, project_id: pid };
         await dbCore.query("UPDATE type::thing('refactor_history', $id) CONTENT $msg", { id: m.id, msg: msgToSave });
+    }
+
+    /**
+     * Prepares the save operation including Reverse Diff calculation for atomic transactions.
+     */
+    public getSaveRefactorMessageOperation(pid: string, m: ChatMessage, prevFiles?: GeneratedFile[], newFiles?: GeneratedFile[]) {
+        let snapshotData = m.snapshot;
+        
+        // Calculate Reverse Diff if we have previous and new state
+        if (prevFiles && newFiles) {
+            snapshotData = calculateReverseDiff(prevFiles, newFiles) as any;
+        }
+
+        const msgToSave = { ...m, snapshot: snapshotData, project_id: pid };
+        return {
+            query: "UPDATE type::thing('refactor_history', $id) CONTENT $msg",
+            params: { id: m.id, msg: msgToSave }
+        };
     }
 
     public async getRefactorHistory(pid: string, projectRepo: ProjectRepository): Promise<ChatMessage[]> {

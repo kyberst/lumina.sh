@@ -38,7 +38,15 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, o
       try { await onUpdate(updatedEntry); return true; } catch (e: any) { toast.error(e.message); return false; }
   };
 
-  const preview = usePreviewSystem(entry.files, entry.dependencies, layout.iframeKey);
+  // Secure Env Var Injection: Pass envVars and requirements to the hook
+  const preview = usePreviewSystem(
+    entry.files, 
+    entry.dependencies, 
+    layout.iframeKey, 
+    entry.envVars, 
+    entry.requiredEnvVars
+  );
+  
   const editor = useEditorSystem(entry, handleUpdate, layout.refreshPreview);
   const voice = useVoiceInput();
   

@@ -1,3 +1,4 @@
+
 import { Surreal } from 'surrealdb';
 import { surrealdbWasmEngines } from '@surrealdb/wasm';
 import { logger } from '../logger';
@@ -40,7 +41,8 @@ class DBCore {
       // Select Namespace/Database
       await this.db.use({ namespace: 'lumina', database: 'lumina' });
 
-      // Run Schema Migrations (Define Tables/Indexes)
+      // Run Versioned Schema Migrations
+      logger.info(AppModule.CORE, 'Checking DB Schema Versions...');
       await runMigrations(this);
       
       this.isReady = true;
@@ -68,6 +70,45 @@ class DBCore {
         return result as any;
     } catch (e: any) {
         logger.error(AppModule.CORE, `Query Failed: ${sql}`, e);
+        throw e;
+    }
+  }
+
+  /**
+   * Execute a batch of queries as an atomic ACID transaction.
+   * Handles parameter scoping to prevent collisions between batched operations.
+   */
+  public async executeTransaction(ops: { query: string, params?: Record<string, any> }[]) {
+    if (!this.db) throw new Error("DB not initialized");
+
+    const statements: string[] = ["BEGIN TRANSACTION"];
+    const globalParams: Record<string, any> = {};
+
+    ops.forEach((op, i) => {
+      let sql = op.query;
+      if (op.params) {
+        for (const [key, val] of Object.entries(op.params)) {
+          // Create unique parameter name for this operation in the batch
+          const uniqueKey = `${key}_tx${i}`;
+          
+          // Replace $param with $param_txI ensuring word boundary to avoid partial replacements
+          sql = sql.replace(new RegExp(`\\$${key}\\b`, 'g'), `$${uniqueKey}`);
+          globalParams[uniqueKey] = val;
+        }
+      }
+      statements.push(sql);
+    });
+
+    statements.push("COMMIT TRANSACTION");
+    const finalSql = statements.join(';\n');
+
+    try {
+        const res = await this.db.query(finalSql, globalParams);
+        return res;
+    } catch (e: any) {
+        logger.error(AppModule.CORE, `Transaction Failed`, e);
+        // Attempt rollback (Surreal handles rollback on error automatically within transaction block usually, 
+        // but explicit CANCEL might be needed if using sessions. Here we rely on atomic block execution)
         throw e;
     }
   }

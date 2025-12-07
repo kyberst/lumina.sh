@@ -1,15 +1,22 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { GeneratedFile } from '../../../types';
+import { GeneratedFile, EnvVarRequest } from '../../../types';
 import { generateIframeHtml } from '../utils/iframeBuilder';
 
 interface SourceMapEntry { start: number; end: number; file: string; }
 
-export const usePreviewSystem = (files: GeneratedFile[], dependencies: Record<string, string> | undefined, iframeKey: number) => {
+export const usePreviewSystem = (
+    files: GeneratedFile[], 
+    dependencies: Record<string, string> | undefined, 
+    iframeKey: number,
+    envVars?: Record<string, string>,
+    requiredRequests?: EnvVarRequest[]
+) => {
     const [showConsole, setShowConsole] = useState(false);
     const [consoleLogs, setConsoleLogs] = useState<any[]>([]);
     const [errorCount, setErrorCount] = useState(0);
     const sourceMapRef = useRef<Record<string, SourceMapEntry>>({});
+    const iframeRef = useRef<HTMLIFrameElement>(null);
 
     const iframeSrc = useMemo(() => {
         const { html, sourceMap } = generateIframeHtml(files, dependencies);
@@ -19,7 +26,27 @@ export const usePreviewSystem = (files: GeneratedFile[], dependencies: Record<st
 
     useEffect(() => {
         const handler = (e: MessageEvent) => {
-            if (e.data?.type === 'CONSOLE_LOG') {
+            // 1. Secure Env Injection Handshake
+            if (e.data?.type === 'PREVIEW_READY') {
+                if (envVars && requiredRequests) {
+                    // Filter: Only inject keys that were explicitly requested by the AI
+                    const allowedKeys = requiredRequests.map(r => r.key);
+                    const safeEnv: Record<string, string> = {};
+                    
+                    Object.entries(envVars).forEach(([k, v]) => {
+                        if (allowedKeys.includes(k) || k.startsWith('VITE_') || k.startsWith('PUBLIC_')) {
+                            safeEnv[k] = v;
+                        }
+                    });
+
+                    // Send to specific iframe window
+                    const target = iframeRef.current?.contentWindow || (e.source as Window);
+                    target.postMessage({ type: 'ENV_INJECTION', env: safeEnv }, '*');
+                }
+            }
+            
+            // 2. Console Logs
+            else if (e.data?.type === 'CONSOLE_LOG') {
                 const rawLine = e.data.line || 0;
                 let mappedSource: any = undefined;
                 if (rawLine > 0) {
@@ -35,10 +62,19 @@ export const usePreviewSystem = (files: GeneratedFile[], dependencies: Record<st
                 if (e.data.level === 'error') setErrorCount(c => c + 1);
             }
         };
+        
         setConsoleLogs([]); setErrorCount(0);
         window.addEventListener('message', handler);
         return () => window.removeEventListener('message', handler);
-    }, [iframeKey]);
+    }, [iframeKey, envVars, requiredRequests]);
 
-    return { iframeSrc, consoleLogs, errorCount, showConsole, setShowConsole, clearLogs: () => setConsoleLogs([]) };
+    return { 
+        iframeSrc, 
+        consoleLogs, 
+        errorCount, 
+        showConsole, 
+        setShowConsole, 
+        clearLogs: () => setConsoleLogs([]),
+        iframeRef // Expose ref to bind to iframe element
+    };
 };

@@ -20,6 +20,16 @@ export class ProjectRepository extends BaseRepository {
         await dbCore.query("UPDATE type::thing('projects', $id) CONTENT $e", { id: e.id, e });
     }
 
+    /**
+     * Returns the operation object for a save action, to be used in transactions.
+     */
+    public getSaveOperation(e: JournalEntry) {
+        return {
+            query: "UPDATE type::thing('projects', $id) CONTENT $e",
+            params: { id: e.id, e }
+        };
+    }
+
     public async delete(id: string): Promise<void> {
         await dbCore.query("DELETE type::thing('projects', $id)", { id });
     }

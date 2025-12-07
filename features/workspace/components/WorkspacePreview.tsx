@@ -2,9 +2,10 @@
 import React, { useEffect, useState } from 'react';
 import { PreviewToolbar } from './preview/PreviewToolbar';
 import { ConsolePanel } from './preview/ConsolePanel';
+import { EnvVarRequest } from '../../../types';
 
 interface WorkspacePreviewProps {
-  iframeSrc: string;
+  iframeSrc: string; // Deprecated, managed by hook now but kept for sig compat if needed
   iframeKey: number;
   deviceMode: 'desktop' | 'tablet' | 'mobile';
   setDeviceMode: (m: 'desktop' | 'tablet' | 'mobile') => void;
@@ -14,12 +15,24 @@ interface WorkspacePreviewProps {
   errorCount: number;
   onClearLogs: () => void;
   onNavigateError?: (file: string, line: number) => void;
+  // New Props
+  envVars?: Record<string, string>;
+  requiredEnvVars?: EnvVarRequest[];
+  entryFiles?: any[]; // Passed to re-generate iframe within this component if we refactor completely, but we use the parent's hook mostly.
 }
 
-/**
- * WorkspacePreview: Contenedor principal de la vista previa (Iframe).
- * Escucha eventos de carga de dependencias y renderiza el entorno.
- */
+// NOTE: We are moving logic INTO this component from parent to handle iframeRef correctly
+// But to minimize disruption, we accept the hook results or use the hook here. 
+// Ideally, the hook `usePreviewSystem` should be used inside the parent `WorkspaceView` and props passed down.
+// However, `iframeRef` needs to be bound here. 
+// Let's assume the parent `WorkspaceView` creates the logic, but we need to bind the ref here.
+// Actually, `iframeSrc` is passed from parent. The parent `WorkspaceView` calls `usePreviewSystem`.
+// We need to pass `iframeRef` UP or handle the `postMessage` from parent.
+// BETTER: Let `usePreviewSystem` reside in `WorkspaceView` (as it does now) and we just render.
+// BUT `iframeRef` in `usePreviewSystem` needs to attach to the element here.
+// Solution: We will attach the ref using a callback or ref forwarding, OR we just trust `e.source` in the event handler.
+// The updated `usePreviewSystem` uses `e.source` as fallback, so it works even if ref is null.
+
 export const WorkspacePreview: React.FC<WorkspacePreviewProps> = ({
   iframeSrc, iframeKey, deviceMode, setDeviceMode, showConsole, setShowConsole, consoleLogs, errorCount, onClearLogs, onNavigateError
 }) => {
@@ -50,7 +63,6 @@ export const WorkspacePreview: React.FC<WorkspacePreviewProps> = ({
     <div className="w-full h-full flex flex-col relative bg-slate-100">
         <PreviewToolbar deviceMode={deviceMode} setDeviceMode={setDeviceMode} depStatus={depStatus} />
 
-        {/* Iframe Container */}
         <div className="flex-1 flex items-center justify-center p-4 overflow-auto bg-slate-200/50 relative">
             <iframe 
                 key={iframeKey}
@@ -78,7 +90,6 @@ export const WorkspacePreview: React.FC<WorkspacePreviewProps> = ({
             )}
         </div>
         
-        {/* Toggle & Panel de Consola */}
         <div className="absolute bottom-4 right-4 z-50">
             <button onClick={() => setShowConsole(!showConsole)} className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg flex items-center gap-2 border transition-all ${errorCount > 0 ? 'bg-red-500 text-white border-red-600 animate-pulse' : 'bg-slate-900 text-slate-300 border-slate-800'}`}>
                 <div className={`w-2 h-2 rounded-full ${errorCount > 0 ? 'bg-white' : 'bg-emerald-500'}`}></div>

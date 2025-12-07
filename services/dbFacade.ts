@@ -1,3 +1,4 @@
+
 import { AppError, AppModule, JournalEntry, ChatMessage, User, GeneratedFile, Session, Transaction } from '../types';
 import { dbCore } from './db/dbCore';
 import { taskService } from './taskService';
@@ -55,6 +56,36 @@ class DatabaseFacade {
     public async deleteProject(id: string) {
         if (this.locks.has(id)) throw new AppError("Project Locked", "LOCKED", AppModule.CORE);
         return this.projects.delete(id);
+    }
+
+    /**
+     * Atomically updates a project and saves the refactor history message.
+     * Uses ACID transactions to ensure data consistency (Files + History).
+     */
+    public async atomicUpdateProjectWithHistory(
+        entry: JournalEntry, 
+        message: ChatMessage, 
+        prevFiles?: GeneratedFile[], 
+        newFiles?: GeneratedFile[],
+        auxMessage?: ChatMessage // Optional user message to save in same transaction
+    ) {
+        if (this.locks.has(entry.id)) throw new AppError("Project is locked during atomic update.", "LOCKED", AppModule.CORE);
+
+        const ops = [];
+        
+        // 1. Update Project Content
+        ops.push(this.projects.getSaveOperation(entry));
+        
+        // 2. Save Refactor Message (with calculated Diff)
+        ops.push(this.chats.getSaveRefactorMessageOperation(entry.id, message, prevFiles, newFiles));
+        
+        // 3. Save User Message (if provided, e.g. the prompt that triggered this)
+        if (auxMessage) {
+            ops.push(this.chats.getSaveChatMessageOperation(auxMessage));
+        }
+
+        // Execute in single transaction
+        return dbCore.executeTransaction(ops);
     }
 
     // Sessions & Transactions
