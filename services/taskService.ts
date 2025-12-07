@@ -5,6 +5,7 @@ interface Task {
     id: string;
     description: string;
     fn: () => Promise<any>;
+    silent?: boolean;
 }
 
 /**
@@ -26,8 +27,8 @@ class TaskService {
         return TaskService.instance;
     }
 
-    /** Add a task to the queue and trigger processing */
-    public addTask<T>(description: string, fn: () => Promise<T>): Promise<T> {
+    /** Add a task to the queue and trigger processing. Optional silent flag suppresses UI toast. */
+    public addTask<T>(description: string, fn: () => Promise<T>, silent: boolean = false): Promise<T> {
         return new Promise((resolve, reject) => {
             const task: Task = {
                 id: crypto.randomUUID(),
@@ -39,7 +40,8 @@ class TaskService {
                     } catch (e) {
                         reject(e);
                     }
-                }
+                },
+                silent
             };
             this.queue.push(task);
             this.processQueue();
@@ -54,20 +56,26 @@ class TaskService {
         const task = this.queue.shift();
 
         if (task) {
-            // Display loading toast
-            const toastId = toast.loading(task.description);
+            let toastId: string | null = null;
+            
+            // Display loading toast only if not silent
+            if (!task.silent) {
+                toastId = toast.loading(task.description);
+            }
             
             try {
-                // Yield to allow React to render the toast
+                // Yield to allow React to render the toast/ui updates
                 await new Promise(r => setTimeout(r, 50));
                 
                 // Execute
                 await task.fn();
             } catch (e) {
                 console.error("Task failed", e);
-                toast.error(`Task failed: ${task.description}`);
+                if (!task.silent) {
+                    toast.error(`Task failed: ${task.description}`);
+                }
             } finally {
-                toast.dismiss(toastId);
+                if (toastId) toast.dismiss(toastId);
                 this.isProcessing = false;
                 
                 // Yield again before next task

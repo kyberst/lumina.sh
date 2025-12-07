@@ -4,7 +4,8 @@ import { dbCore } from '../db/dbCore';
 import { BaseRepository } from './baseRepository';
 
 export class SessionRepository extends BaseRepository {
-    
+    private readonly CACHE_KEY = 'dyad_context_cache';
+
     public async create(s: Session) {
         // Upsert session
         await dbCore.query("UPDATE type::thing('sessions', $id) CONTENT $s", { id: s.id, s });
@@ -27,5 +28,14 @@ export class SessionRepository extends BaseRepository {
     public async getUserTransactions(userId: string): Promise<Transaction[]> {
         const r = await dbCore.query<Transaction>("SELECT id, userId, amount, credits, type, description, timestamp FROM transactions WHERE userId = $userId ORDER BY timestamp DESC", { userId });
         return this.mapResults(r);
+    }
+
+    // --- Client Side Caching for Dyad ---
+    public getCachedDyadContext(): string | null {
+        try { return sessionStorage.getItem(this.CACHE_KEY); } catch { return null; }
+    }
+
+    public setCachedDyadContext(ctx: string) {
+        try { sessionStorage.setItem(this.CACHE_KEY, ctx); } catch {}
     }
 }

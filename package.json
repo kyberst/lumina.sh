@@ -14,7 +14,8 @@
     "@google/genai": "^1.30.0",
     "jszip": "^3.10.1",
     "surrealdb": "1.0.0",
-    "@surrealdb/wasm": "1.0.0"
+    "@surrealdb/wasm": "1.0.0",
+    "vitest": "^4.0.15"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

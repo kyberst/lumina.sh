@@ -6,6 +6,7 @@ import { generateAppCode as genApp } from "./ai/generator";
 import { getSystemPrompt, PromptType } from "./promptService";
 import { MemoryOrchestrator } from "./memory/index";
 import { dbFacade } from "./dbFacade";
+import { getRefactorSystemPrompt } from "./ai/prompts/refactor";
 
 export const generateAppCode = genApp;
 
@@ -27,18 +28,16 @@ export async function* streamChatRefactor(
         const fileContext = currentFiles.map(f => `<file name="${f.name}">\n${f.content}\n</file>`).join('\n\n');
         
         const promptType = options?.systemPromptType || 'refactor';
-        const [basePrompt, protocol] = await Promise.all([
-            getSystemPrompt(promptType),
-            getSystemPrompt('protocol')
-        ]);
 
         // --- Memory Integration Start ---
         const settingsJson = await dbFacade.getConfig('app_settings');
         let memoryContext = "";
         let memory: MemoryOrchestrator | null = null;
+        let contextSize = 'default';
         
         if (settingsJson) {
             const settings = JSON.parse(settingsJson);
+            contextSize = settings.contextSize || 'default';
             if (settings.memory?.enabled) {
                 memory = new MemoryOrchestrator(settings);
                 // Retrieve semantic context for the refactor task
@@ -47,8 +46,18 @@ export async function* streamChatRefactor(
         }
         // --- Memory Integration End ---
 
-        const langInst = lang === 'es' ? 'Respond in Spanish.' : 'Respond in English.';
-        let sysPrompt = `${basePrompt}\n\n${protocol}\n\nLanguage: ${langInst}`;
+        let sysPrompt = "";
+
+        if (promptType === 'refactor') {
+            sysPrompt = getRefactorSystemPrompt(lang, contextSize);
+        } else {
+            const [basePrompt, protocol] = await Promise.all([
+                getSystemPrompt(promptType),
+                getSystemPrompt('protocol')
+            ]);
+            const langInst = lang === 'es' ? 'Respond in Spanish.' : 'Respond in English.';
+            sysPrompt = `${basePrompt}\n\n${protocol}\n\nLanguage: ${langInst}`;
+        }
         
         if (memoryContext) {
             sysPrompt += `\n\n${memoryContext}`;
@@ -154,11 +163,22 @@ export const chatWithDyad = async (history: ChatMessage[], msg: string, entries:
         const settingsJson = await dbFacade.getConfig('app_settings');
         let memoryContext = "";
         
-        if (settingsJson) {
+        // Heuristic: Check if this is a follow-up to reuse cached context
+        const isFollowUp = msg.length < 50 || /^(yes|no|ok|sure|and|but|then|now|make|change|translate|in|en|es)/i.test(msg);
+        
+        if (isFollowUp) {
+            const cached = dbFacade.sessions.getCachedDyadContext();
+            if (cached) memoryContext = cached;
+        }
+
+        if (!memoryContext && settingsJson) {
             const settings = JSON.parse(settingsJson);
             if (settings.memory?.enabled) {
                 const memory = new MemoryOrchestrator(settings);
                 memoryContext = await memory.retrieveContext(msg);
+                
+                // Cache context for potential follow-ups
+                if (memoryContext) dbFacade.sessions.setCachedDyadContext(memoryContext);
             }
         }
         // -----------------------------------

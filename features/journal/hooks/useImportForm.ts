@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+
+import React, { useState, useRef, useEffect } from 'react';
 import { AppSettings, GitHubRepo, JournalEntry } from '../../../types';
 import { getUserRepos, importRepository } from '../../../services/githubService';
 import { readDirectoryFiles } from '../../../services/fileService';

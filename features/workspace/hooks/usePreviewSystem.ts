@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { GeneratedFile } from '../../../types';
 import { generateIframeHtml } from '../utils/iframeBuilder';
@@ -23,8 +24,9 @@ export const usePreviewSystem = (files: GeneratedFile[], dependencies: Record<st
                 let mappedSource: any = undefined;
                 if (rawLine > 0) {
                     for (const [_, range] of Object.entries(sourceMapRef.current)) {
-                        if (rawLine >= range.start && rawLine <= range.end) {
-                            mappedSource = { file: range.file, line: rawLine - range.start + 1 };
+                        const entry = range as SourceMapEntry;
+                        if (rawLine >= entry.start && rawLine <= entry.end) {
+                            mappedSource = { file: entry.file, line: rawLine - entry.start + 1 };
                             break;
                         }
                     }

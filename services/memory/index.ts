@@ -1,8 +1,16 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { AppSettings, ChatMessage, GeneratedFile } from "../../types";
 import { dbCore } from "../db/dbCore";
 import { logger } from "../logger";
 import { AppModule } from "../../types";
+
+interface CodeSymbol {
+    name: string;
+    type: string;
+    doc: string;
+    signature: string;
+}
 
 export class MemoryOrchestrator {
 
@@ -10,31 +18,98 @@ export class MemoryOrchestrator {
 
     private async getEmbedding(text: string): Promise<number[]> {
         if (!process.env.API_KEY) return [];
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const res = await ai.models.embedContent({
-            model: "text-embedding-004",
-            contents: { parts: [{ text }] }
-        });
-        return res.embeddings?.[0]?.values || [];
+        try {
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const res = await ai.models.embedContent({
+                model: "text-embedding-004",
+                contents: { parts: [{ text }] }
+            });
+            return res.embeddings?.[0]?.values || [];
+        } catch (e) {
+            logger.warn(AppModule.CORE, "Embedding failed", e);
+            return [];
+        }
     }
 
     /**
-     * Index the codebase to build the Knowledge Graph (Files + Dependencies).
-     * This allows the RAG system to understand file relationships.
+     * Extracts high-level code symbols (Functions, Classes, Interfaces) and their JSDocs.
+     * Uses regex heuristics for lightweight extraction in the browser.
+     */
+    private extractSymbols(content: string): CodeSymbol[] {
+        const symbols: CodeSymbol[] = [];
+        // Regex captures JSDoc (Group 1), Type (Group 2), and Name (Group 3)
+        // Matches: /** doc */ export async function myFunc
+        const regex = /(?:\/\*\*([\s\S]*?)\*\/[\s\n]*)?(?:export\s+)?(?:async\s+)?(function|class|const|let|var|interface|type)\s+([a-zA-Z0-9_]+)/gm;
+        
+        let match;
+        // Limit iterations to prevent potential regex DoS on large files
+        let limit = 0;
+        while ((match = regex.exec(content)) !== null && limit < 100) {
+            limit++;
+            const jsdoc = match[1] ? match[1].replace(/^\s*\*+/gm, '').trim() : '';
+            const type = match[2];
+            const name = match[3];
+            
+            // Only index significant symbols (Functions/Classes or documented Variables)
+            if (jsdoc.length > 0 || ['function', 'class', 'interface'].includes(type)) {
+                symbols.push({
+                    name,
+                    type,
+                    doc: jsdoc,
+                    signature: match[0].trim().split('\n').pop() || match[0].trim() // Try to get just the declaration line
+                });
+            }
+        }
+        return symbols;
+    }
+
+    /**
+     * Index the codebase to build the Knowledge Graph and Vector Store.
+     * 1. Updates File nodes.
+     * 2. Extracts and embeds Symbols for fine-grained RAG.
+     * 3. Maps dependencies via imports.
      */
     public async syncCodebase(files: GeneratedFile[]) {
         if (!this.settings.memory.enabled) return;
         
         try {
             for (const file of files) {
-                // Upsert File Node with Content for RAG Context
+                // 1. Upsert File Node
                 await dbCore.query(`UPDATE type::thing('files', $name) CONTENT { name: $name, content: $content }`, { name: file.name, content: file.content });
                 
-                // Parse Imports (Simple Regex for JS/TS/CSS)
+                // 2. Smart Indexing: Extract and Embed Symbols
+                const symbols = this.extractSymbols(file.content);
+                for (const sym of symbols) {
+                    const textToEmbed = `File: ${file.name}\nSymbol: ${sym.name} (${sym.type})\nDoc: ${sym.doc}\nSignature: ${sym.signature}`;
+                    const embedding = await this.getEmbedding(textToEmbed);
+                    
+                    if (embedding.length > 0) {
+                         const symbolId = `sym_${file.name.replace(/\W/g, '_')}_${sym.name}`;
+                         await dbCore.query(`
+                            UPDATE type::thing('symbols', $id) CONTENT {
+                                name: $name,
+                                file: $file,
+                                type: $type,
+                                doc: $doc,
+                                signature: $signature,
+                                embedding: $embedding
+                            };
+                            RELATE type::thing('files', $file)->defines->type::thing('symbols', $id);
+                        `, { 
+                            id: symbolId,
+                            name: sym.name,
+                            file: file.name,
+                            type: sym.type,
+                            doc: sym.doc,
+                            signature: sym.signature,
+                            embedding
+                        });
+                    }
+                }
+
+                // 3. Graph: Parse Imports
                 const imports = this.extractImports(file);
                 for (const imp of imports) {
-                     // Create 'imports' edge: file -> imports -> imported_file
-                     // We use RELATE which handles idempotency well in SurrealDB
                      await dbCore.query(`
                         RELATE type::thing('files', $src)->imports->type::thing('files', $target)
                      `, { src: file.name, target: imp });
@@ -47,19 +122,15 @@ export class MemoryOrchestrator {
 
     private extractImports(file: GeneratedFile): string[] {
         const imports: Set<string> = new Set();
-        // Regex for ES6 imports and CSS imports
         const regex = /import\s+(?:[\s\S]*?from\s+)?['"]([^'"]+)['"]|@import\s+['"]([^'"]+)['"]/g;
         
         let match;
         while ((match = regex.exec(file.content)) !== null) {
             let path = match[1] || match[2];
             if (!path) continue;
-            // Normalize path (simple version)
             path = path.replace(/^\.\//, ''); 
-            // Filter out external libraries (crudely, if it doesn't look like a local file path)
             if (path.startsWith('.') || path.includes('/')) {
-                // Try to match extension if missing (guess .ts, .tsx, .js)
-                if (!path.includes('.')) path = path + '.tsx'; // Guessing
+                if (!path.includes('.')) path = path + '.tsx';
                 imports.add(path);
             }
         }
@@ -68,62 +139,80 @@ export class MemoryOrchestrator {
 
     /**
      * High Precision Context Extraction.
-     * Executes a composite query to fetch Semantic Memory (Vectors) + Structural Context (Graph).
+     * Searches both Code Symbols (Metadata) and Past Interactions (Memories).
      */
     async retrieveContext(query: string): Promise<string> {
         if (!this.settings.memory.enabled) return "";
 
+        const startTime = performance.now();
         const vector = await this.getEmbedding(query);
         if (vector.length === 0) return "";
 
         try {
-            // Composite Query:
-            // 1. Find relevant memories by Vector Similarity
-            // 2. Traverse to modified files
-            // 3. From those files, traverse graph to find Dependencies (imports) and Dependents (imported_by)
-            const results = await dbCore.query<any>(`
-                SELECT 
-                    content,
-                    vector::similarity::cosine(embedding, $vector) as score,
-                    (
-                        SELECT 
-                            name,
-                            content,
-                            (SELECT value->imports->files.name FROM $parent) as imports,
-                            (SELECT value<-imports<-files.name FROM $parent) as imported_by
-                        FROM ->modified->files
-                    ) as related_code
-                FROM memories 
-                WHERE embedding IS NOT NONE
-                ORDER BY score DESC
-                LIMIT 3
-            `, { vector });
+            // Dual Query: 
+            // 1. Search specific code symbols (Functions/Classes)
+            // 2. Search past interactions/memories
+            const [symbolResults, memoryResults] = await Promise.all([
+                dbCore.query<any>(`
+                    SELECT 
+                        name, file, doc, signature,
+                        vector::similarity::cosine(embedding, $vector) as score
+                    FROM symbols
+                    WHERE embedding IS NOT NONE
+                    ORDER BY score DESC
+                    LIMIT 3
+                `, { vector }),
+                dbCore.query<any>(`
+                    SELECT 
+                        content,
+                        vector::similarity::cosine(embedding, $vector) as score,
+                        (
+                            SELECT name, content FROM ->modified->files
+                        ) as related_code
+                    FROM memories 
+                    WHERE embedding IS NOT NONE
+                    ORDER BY score DESC
+                    LIMIT 2
+                `, { vector })
+            ]);
             
-            if (results.length === 0) return "";
+            const endTime = performance.now();
+            
+            // Telemetry: Log RAG Performance
+            logger.info(AppModule.CORE, `RAG Retrieval Perf: ${Math.round(endTime - startTime)}ms`, {
+                telemetryId: this.settings.telemetryId,
+                latencyMs: endTime - startTime,
+                queryLength: query.length,
+                symbolsFound: symbolResults.length,
+                memoriesFound: memoryResults.length
+            });
+            
+            if (symbolResults.length === 0 && memoryResults.length === 0) return "";
 
-            // Format Output as structured JSON for the LLM
-            const structuredContext = results.map(r => {
-                const file = r.related_code?.[0]; // Get first related file from graph traversal
-                if (!file) return null;
+            const contextParts: string[] = [];
 
-                const importsList = (file.imports || []).flat().filter((x:any)=>x).join(', ');
-                const importedByList = (file.imported_by || []).flat().filter((x:any)=>x).join(', ');
-                
-                let dependencyText = "";
-                if (importsList) dependencyText += `Imports: [${importsList}]. `;
-                if (importedByList) dependencyText += `Imported by: [${importedByList}].`;
-                if (!dependencyText) dependencyText = "No immediate dependencies found.";
+            // Format Symbols
+            if (symbolResults.length > 0) {
+                const symbols = symbolResults.map(s => ({
+                    symbol: s.name,
+                    file: s.file,
+                    type: s.type,
+                    description: s.doc || "No docstring",
+                    signature: s.signature
+                }));
+                contextParts.push(`[Codebase Symbols (Smart Index)]:\n${JSON.stringify(symbols, null, 2)}`);
+            }
 
-                return {
-                    semantic_match_file: file.name,
-                    semantic_match_code: file.content ? `// ...snippet from ${file.name}\n${file.content.slice(0, 500)}...` : r.content.slice(0, 300),
-                    dependency_relations: dependencyText
-                };
-            }).filter(Boolean);
+            // Format Memories
+            if (memoryResults.length > 0) {
+                 const memories = memoryResults.map(m => ({
+                    memory: m.content,
+                    related_files: m.related_code?.map((f:any) => f.name) || []
+                 }));
+                 contextParts.push(`[Past Interactions]:\n${JSON.stringify(memories, null, 2)}`);
+            }
 
-            if (structuredContext.length === 0) return "";
-
-            return `\n[Architectural Context (RAG)]:\n${JSON.stringify(structuredContext, null, 2)}\n`;
+            return contextParts.join("\n\n");
 
         } catch (e) {
             logger.error(AppModule.CORE, "Memory retrieval failed", e);
@@ -149,8 +238,6 @@ export class MemoryOrchestrator {
                 `, { id: memoryId, vector, content });
 
                 for (const file of modifiedFiles) {
-                    // Create graph edge: memory -> modified -> file
-                    // Ensure file node exists (idempotent update)
                     await dbCore.query(`
                         UPDATE type::thing('files', $fid) SET name = $fid;
                         RELATE type::thing('memories', $mid)->modified->type::thing('files', $fid);

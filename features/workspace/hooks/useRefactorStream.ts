@@ -1,5 +1,5 @@
 
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { JournalEntry, ChatMessage, AppSettings, EditorContext } from '../../../types';
 import { streamChatRefactor } from '../../../services/geminiService';
 import { createInitialStreamState, parseStreamChunk, finalizeStream, StreamState } from '../../../services/ai/streamParser';
