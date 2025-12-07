@@ -1,12 +1,18 @@
+
 import { AIProvider, MCPServer } from './ai';
 
 export type ViewMode = 'builder' | 'projects' | 'graph' | 'chat' | 'settings' | 'profile';
 
 export interface MemorySettings {
   enabled: boolean;
-  qdrantUrl: string;
+  // SurrealDB Embedded handles vector and graph internally
+  // No external configuration needed
+  
+  // Legacy fields kept optional for migration compatibility if needed, 
+  // but strictly we don't need them for the new architecture.
+  qdrantUrl?: string;
   qdrantKey?: string;
-  neo4jUrl: string; // HTTP endpoint, e.g. http://localhost:7474/db/neo4j/tx/commit
+  neo4jUrl?: string;
   neo4jUser?: string;
   neo4jPass?: string;
 }

@@ -1,6 +1,7 @@
+
 import { AIProvider, AppError, AppModule, ChatMessage } from '../types';
 import { logger } from './logger';
-import { sqliteService } from './sqliteService';
+import { dbFacade } from './dbFacade';
 
 export const testAIConnection = async (provider: AIProvider, modelId: string, apiKey: string): Promise<boolean> => {
     try {
@@ -39,7 +40,7 @@ export const callCustomLLM = async (
     systemInstruction?: string
 ): Promise<string> => {
     try {
-        const apiKey = await sqliteService.getConfig(provider.apiKeyConfigKey);
+        const apiKey = await dbFacade.getConfig(provider.apiKeyConfigKey);
         if (!apiKey) throw new AppError("API Key not found for provider", "NO_KEY", AppModule.INSIGHT);
 
         const url = `${provider.baseUrl.replace(/\/$/, '')}/chat/completions`;

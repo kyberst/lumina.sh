@@ -12,7 +12,9 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "@google/genai": "^1.30.0",
-    "jszip": "^3.10.1"
+    "jszip": "^3.10.1",
+    "surrealdb": "1.0.0",
+    "@surrealdb/wasm": "1.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChatMessage, JournalEntry, AppSettings } from '../../types';
 import { chatWithDyad } from '../../services/geminiService';
-import { sqliteService } from '../../services/sqliteService';
+import { dbFacade } from '../../services/dbFacade';
 import { ChatList } from './components/ChatList';
 import { getLanguage } from '../../services/i18n';
 
@@ -13,17 +13,17 @@ export const DyadChat: React.FC<DyadChatProps> = ({ entries, settings }) => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { sqliteService.getChatHistory().then(setMessages); }, []);
+  useEffect(() => { dbFacade.getChatHistory().then(setMessages); }, []);
 
   const handleSend = async () => {
     if (!input.trim() || loading) return;
     const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', text: input, timestamp: Date.now() };
-    setMessages(p => [...p, userMsg]); setInput(''); setLoading(true); await sqliteService.saveChatMessage(userMsg);
+    setMessages(p => [...p, userMsg]); setInput(''); setLoading(true); await dbFacade.saveChatMessage(userMsg);
 
     try {
         const txt = await chatWithDyad(messages, userMsg.text, entries, getLanguage());
         const modelMsg: ChatMessage = { id: crypto.randomUUID(), role: 'model', text: txt, timestamp: Date.now() };
-        setMessages(p => [...p, modelMsg]); await sqliteService.saveChatMessage(modelMsg);
+        setMessages(p => [...p, modelMsg]); await dbFacade.saveChatMessage(modelMsg);
     } catch (e: any) { console.error(e); } finally { setLoading(false); }
   };
 

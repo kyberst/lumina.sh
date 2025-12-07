@@ -1,42 +1,34 @@
 
-import { ChatMessage, GeneratedFile, JournalEntry } from '../../types';
+import { ChatMessage, GeneratedFile } from '../../types';
 import { dbCore } from '../db/dbCore';
 import { BaseRepository } from './baseRepository';
 import { calculateReverseDiff, applyReverseSnapshotDiff, SnapshotDiff } from '../diffService';
 import { ProjectRepository } from './projectRepository';
 
-/**
- * Chat Repository.
- * Maneja el historial de chat y la lógica compleja de reconstrucción de Diffs.
- */
 export class ChatRepository extends BaseRepository {
 
     public async saveChatMessage(m: ChatMessage) {
-        dbCore.run("INSERT OR REPLACE INTO chat_history VALUES (?,?,?,?)", [m.id, m.role, m.text, m.timestamp]);
+        // Ensure complex objects are stored properly (Surreal handles JSON automatically)
+        await dbCore.query("UPDATE type::thing('chat_history', $id) CONTENT $m", { id: m.id, m });
     }
     
     public async getChatHistory(): Promise<ChatMessage[]> {
-        const r = dbCore.exec("SELECT * FROM chat_history ORDER BY timestamp ASC");
-        if(!r.length) return [];
-        return this.mapRows(r[0]);
+        // Select explicit fields to avoid fetching unrelated data if schema expands
+        const r = await dbCore.query<ChatMessage>("SELECT id, role, text, timestamp, snapshot, reasoning, plan, modifiedFiles, pendingFile, commands, attachments, requiredEnvVars, envVarsSaved, editorContext, annotations, usage FROM chat_history ORDER BY timestamp ASC");
+        return this.mapResults(r);
     }
 
     public async saveRefactorMessage(pid: string, m: ChatMessage, prevFiles?: GeneratedFile[], newFiles?: GeneratedFile[]) {
-        let snapshotData: string | null = null;
-        // Calcular Reverse Diff si tenemos estado previo y nuevo
+        let snapshotData = m.snapshot;
+        
+        // Calculate Reverse Diff if we have previous and new state
         if (prevFiles && newFiles) {
-            snapshotData = JSON.stringify(calculateReverseDiff(prevFiles, newFiles));
-        } else if (m.snapshot && Array.isArray(m.snapshot)) {
-            snapshotData = JSON.stringify(m.snapshot);
+            // We store the diff object directly as Surreal handles JSON
+            snapshotData = calculateReverseDiff(prevFiles, newFiles) as any;
         }
 
-        dbCore.run(`INSERT OR REPLACE INTO refactor_history VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            m.id, pid, m.role, m.text, m.timestamp, snapshotData, m.reasoning,
-            m.requiredEnvVars ? JSON.stringify(m.requiredEnvVars) : null, 
-            m.modifiedFiles ? JSON.stringify(m.modifiedFiles) : null
-          ]
-        );
+        const msgToSave = { ...m, snapshot: snapshotData, project_id: pid };
+        await dbCore.query("UPDATE type::thing('refactor_history', $id) CONTENT $msg", { id: m.id, msg: msgToSave });
     }
 
     public async getRefactorHistory(pid: string, projectRepo: ProjectRepository): Promise<ChatMessage[]> {
@@ -44,26 +36,25 @@ export class ChatRepository extends BaseRepository {
         if (!project) return [];
         
         let currentFiles = project.files;
-        const r = dbCore.exec("SELECT * FROM refactor_history WHERE project_id = ? ORDER BY timestamp DESC", [pid]);
-        if (!r.length) return [];
         
-        const rows = this.mapRows(r[0]);
+        // Fetch history with explicit fields
+        const r = await dbCore.query<any>("SELECT id, role, text, timestamp, snapshot, project_id, usage, reasoning, plan, modifiedFiles, requiredEnvVars FROM refactor_history WHERE project_id = $pid ORDER BY timestamp DESC", { pid });
+        const rows = this.mapResults<any>(r);
+        
         const messages: ChatMessage[] = [];
         
-        // Reconstrucción de estado histórico aplicando diffs inversos
+        // Reconstruct historical state by applying reverse diffs
         for (const row of rows) {
-          let diff: any = null;
-          try { diff = row.snapshot ? JSON.parse(row.snapshot) : null; } catch (e) {}
+          const diff = row.snapshot;
           
           const msg: ChatMessage = {
             ...row, 
-            snapshot: currentFiles, 
-            requiredEnvVars: row.requiredEnvVars ? JSON.parse(row.requiredEnvVars) : undefined,
-            modifiedFiles: row.modifiedFiles ? JSON.parse(row.modifiedFiles) : undefined
+            snapshot: currentFiles // The snapshot in the message object for UI is the *current* state at that time
           };
           messages.push(msg);
           
           if (diff) {
+              // Check if it's a full snapshot (array) or a diff object
               currentFiles = Array.isArray(diff) 
                 ? diff 
                 : applyReverseSnapshotDiff(currentFiles, diff as SnapshotDiff);

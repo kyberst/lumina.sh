@@ -1,17 +1,15 @@
-
+import { Surreal } from 'surrealdb';
+import { surrealdbWasmEngines } from '@surrealdb/wasm';
 import { logger } from '../logger';
 import { AppModule } from '../../types';
 import { runMigrations } from './migrations';
-import { taskService } from '../taskService';
-
-const DB_NAME = 'umbra_dyad.sqlite';
 
 /**
- * DBCore: Low-level wrapper for SQL.js (WASM) and IndexedDB.
- * Handles database initialization, raw query execution, and binary persistence.
+ * DBCore: Wrapper for SurrealDB Embedded (WASM/IndexedDB).
+ * Handles database connection and raw query execution.
  */
 class DBCore {
-  private db: any = null;
+  private db: Surreal | null = null;
   private static instance: DBCore;
   public isReady = false;
 
@@ -20,27 +18,32 @@ class DBCore {
     return DBCore.instance;
   }
 
-  /**
-   * Initialize SQL.js and load binary from IndexedDB.
-   */
   public async init(): Promise<void> {
     if (this.isReady) return;
     try {
-      if (!(window as any).initSqlJs) throw new Error("SQL.js not loaded");
-
-      // Load SQL.js WASM from CDN
-      const SQL = await (window as any).initSqlJs({
-        locateFile: (f: string) => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${f}`
+      // Initialize Surreal with WebAssembly Engines to support embedded protocols (indb, mem)
+      this.db = new Surreal({
+        engines: surrealdbWasmEngines(),
       });
+      
+      try {
+          // Try persistence via IndexedDB
+          await this.db.connect('indb://lumina');
+          logger.info(AppModule.CORE, 'SurrealDB Connected (IndexedDB)');
+      } catch (indbError) {
+          console.warn("IndexedDB persistence failed, falling back to Memory", indbError);
+          // Fallback to in-memory if IndexedDB fails (common in some iframe/sandboxed envs)
+          await this.db.connect('mem://lumina');
+          logger.info(AppModule.CORE, 'SurrealDB Connected (Memory)');
+      }
+      
+      // Select Namespace/Database
+      await this.db.use({ namespace: 'lumina', database: 'lumina' });
 
-      // Retrieve persisted binary
-      const data = await this.loadFromIDB();
-      this.db = data ? new SQL.Database(new Uint8Array(data)) : new SQL.Database();
-
-      // Run Schema Migrations
-      runMigrations(this.db, !!data);
+      // Run Schema Migrations (Define Tables/Indexes)
+      await runMigrations(this);
+      
       this.isReady = true;
-      this.persist(); // Ensure initial structure is saved
     } catch (e: any) {
       logger.error(AppModule.CORE, 'DB Init Failed', e);
       throw e;
@@ -48,58 +51,25 @@ class DBCore {
   }
 
   /**
-   * Execute a SQL query and return formatted results.
+   * Execute a SurrealQL query.
    */
-  public exec(sql: string, params: any[] = []): any[] {
-    if (!this.db) return [];
-    return this.db.exec(sql, params);
-  }
-
-  /**
-   * Run a SQL command (Insert/Update/Delete) and trigger persistence.
-   */
-  public run(sql: string, params: any[] = []) {
-    if (!this.db) return;
-    this.db.run(sql, params);
-    this.persist();
-  }
-
-  /**
-   * Load binary buffer from browser's IndexedDB.
-   */
-  private loadFromIDB(): Promise<ArrayBuffer | null> {
-    return new Promise((res) => {
-      const r = indexedDB.open(DB_NAME, 1);
-      r.onupgradeneeded = (e: any) => e.target.result.createObjectStore('store');
-      r.onsuccess = (e: any) => {
-        const tx = e.target.result.transaction('store', 'readonly');
-        const req = tx.objectStore('store').get('db_file');
-        req.onsuccess = () => res(req.result || null);
-        req.onerror = () => res(null);
-      };
-    });
-  }
-
-  /**
-   * Queue a background task to save the DB binary to IndexedDB.
-   */
-  private persist() {
-    if (!this.db) return;
-    
-    // Offload to TaskService to prevent UI blocking
-    taskService.addTask("Saving DB", async () => {
-      const data = this.db.export();
-      return new Promise((resolve, reject) => {
-        const r = indexedDB.open(DB_NAME, 1);
-        r.onerror = (e) => reject(e);
-        r.onsuccess = (e: any) => {
-          const tx = e.target.result.transaction('store', 'readwrite');
-          const req = tx.objectStore('store').put(data, 'db_file');
-          req.onsuccess = () => resolve(true);
-          req.onerror = (err: any) => reject(err);
-        };
-      });
-    });
+  public async query<T = any>(sql: string, params?: Record<string, unknown>): Promise<T[]> {
+    if (!this.db) throw new Error("DB not initialized");
+    try {
+        const result = await this.db.query(sql, params);
+        // SurrealDB returns an array of results, one for each statement.
+        if (Array.isArray(result) && result[0]) {
+             // Handle different result formats from different SDK versions
+             if (typeof result[0] === 'object' && result[0] !== null && 'result' in result[0]) {
+                 return (result[0] as any).result || [];
+             }
+             return result[0] as any; 
+        }
+        return result as any;
+    } catch (e: any) {
+        logger.error(AppModule.CORE, `Query Failed: ${sql}`, e);
+        throw e;
+    }
   }
 }
 

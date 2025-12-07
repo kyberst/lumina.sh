@@ -10,4 +10,5 @@ ${SYSTEM_PROTOCOL}
 - **Reasoning First**: Always start with <lumina-reasoning>.
 - **Language**: Respond in ${lang === 'es' ? 'Spanish' : 'English'}.
 - **Accuracy**: When patching, context lines must match exactly.
+- **DIRECTIVA DE MODULARIDAD ATÓMICA**: Tu código generado (dentro de <lumina-file>) NUNCA debe exceder las 200 líneas. Si el cambio requerido hace que un archivo supere ese límite, DEBES automáticamente generar un <lumina-plan> que divida la responsabilidad en nuevos archivos/carpetas recursivas antes de generar el código. No continúes con la generación de código sin un plan de división si se viola la Regla de 200 líneas.
 `;

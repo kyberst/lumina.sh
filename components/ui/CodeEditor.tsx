@@ -1,5 +1,4 @@
 
-
 import React, { useEffect, useRef } from 'react';
 import { CodeAnnotation } from '../../types';
 
@@ -17,6 +16,7 @@ interface CodeEditorProps {
   scrollToLine?: number | null;
   onMount?: (api: CodeEditorApi) => void;
   annotations?: CodeAnnotation[];
+  readOnly?: boolean;
 }
 
 /**
@@ -26,7 +26,7 @@ interface CodeEditorProps {
  */
 export const CodeEditor: React.FC<CodeEditorProps> = ({ 
     value, language, onChange, className = '', 
-    scrollToLine, onMount, annotations = [] 
+    scrollToLine, onMount, annotations = [], readOnly = false
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<any>(null);
@@ -63,11 +63,14 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
                 fontSize: 13,
                 fontFamily: 'JetBrains Mono, monospace',
                 scrollBeyondLastLine: false,
-                padding: { top: 16 }
+                padding: { top: 16 },
+                readOnly: readOnly
               });
     
               editorRef.current.onDidChangeModelContent(() => {
-                onChange(editorRef.current.getValue());
+                if (!readOnly) {
+                   onChange(editorRef.current.getValue());
+                }
               });
 
               // Register Quick Fix Provider (Global registry, so we handle it carefully)
@@ -148,6 +151,13 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
     }
   }, [language]);
 
+  // Update ReadOnly State
+  useEffect(() => {
+      if (editorRef.current) {
+          editorRef.current.updateOptions({ readOnly: readOnly });
+      }
+  }, [readOnly]);
+
   // Update Annotations (Markers)
   useEffect(() => {
       if (editorRef.current && (window as any).monaco) {
@@ -186,5 +196,5 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
       }
   }, [scrollToLine]);
 
-  return <div ref={containerRef} className={`w-full h-full ${className}`} />;
+  return <div ref={containerRef} className={`w-full h-full ${className} ${readOnly ? 'opacity-90' : ''}`} />;
 };

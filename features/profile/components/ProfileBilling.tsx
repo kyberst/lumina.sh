@@ -1,13 +1,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { Transaction } from '../../../types';
-import { sqliteService } from '../../../services/sqliteService';
+import { dbFacade } from '../../../services/dbFacade';
 
 export const ProfileBilling: React.FC<{ userId: string }> = ({ userId }) => {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
 
     useEffect(() => {
-        sqliteService.getUserTransactions(userId).then(setTransactions);
+        dbFacade.getUserTransactions(userId).then(setTransactions);
     }, [userId]);
 
     return (

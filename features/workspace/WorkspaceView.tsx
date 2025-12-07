@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { JournalEntry, ChatMessage, AppSettings } from '../../types';
 import { analyzeSecurity } from '../../services/geminiService';
 import { publishToGitHub } from '../../services/githubService';
-import { sqliteService } from '../../services/sqliteService';
+import { dbFacade } from '../../services/dbFacade';
 import { toast } from '../../services/toastService';
 import { dialogService } from '../../services/dialogService';
 import { MarkdownRenderer } from '../../components/ui/MarkdownRenderer';
@@ -47,7 +48,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, o
 
   useEffect(() => { if(voice.transcript) { setChatInput(p => p + ' ' + voice.transcript); voice.resetTranscript(); } }, [voice.transcript]);
   useEffect(() => {
-    sqliteService.getRefactorHistory(entry.id).then(msgs => {
+    dbFacade.getRefactorHistory(entry.id).then(msgs => {
         setHistory(msgs);
         if(entry.pendingGeneration && msgs.length === 0) handleStreamingBuild(); 
     });
@@ -84,6 +85,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, o
                       files={entry.files} selectedFile={editor.selectedFile} editorContent={editor.editorContent} hasChanges={editor.hasChanges} 
                       onFileSelect={editor.selectFile} onCodeChange={editor.handleContentChange} onSave={editor.saveChanges} scrollToLine={editor.scrollToLine}
                       onEditorMount={(api) => editor.editorApiRef.current = api} annotations={streamState.annotations}
+                      readOnly={isProcessing}
                   />
               )}
           </div>

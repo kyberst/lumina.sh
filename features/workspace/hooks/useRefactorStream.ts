@@ -1,10 +1,9 @@
 
-
 import { useState, useRef } from 'react';
 import { JournalEntry, ChatMessage, AppSettings, EditorContext } from '../../../types';
 import { streamChatRefactor } from '../../../services/geminiService';
 import { createInitialStreamState, parseStreamChunk, finalizeStream, StreamState } from '../../../services/ai/streamParser';
-import { sqliteService } from '../../../services/sqliteService';
+import { dbFacade } from '../../../services/dbFacade';
 import { getLanguage } from '../../../services/i18n';
 import { toast } from '../../../services/toastService';
 
@@ -97,9 +96,9 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
             };
 
             // 5. Save Model Message with DIFF (Passing T and T+1)
-            await sqliteService.saveRefactorMessage(entry.id, modelMsg, previousFiles, finalFiles);
+            await dbFacade.saveRefactorMessage(entry.id, modelMsg, previousFiles, finalFiles);
             
-            if (!isInitial) await sqliteService.saveRefactorMessage(entry.id, msg);
+            if (!isInitial) await dbFacade.saveRefactorMessage(entry.id, msg);
 
             setHistory(p => isInitial ? [modelMsg] : [...p, modelMsg]);
             setIframeKey(k => k+1);

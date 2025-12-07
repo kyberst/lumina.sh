@@ -5,7 +5,7 @@ import { logger } from "./logger";
 import { generateAppCode as genApp } from "./ai/generator";
 import { getSystemPrompt, PromptType } from "./promptService";
 import { MemoryOrchestrator } from "./memory/index";
-import { sqliteService } from "./sqliteService";
+import { dbFacade } from "./dbFacade";
 
 export const generateAppCode = genApp;
 
@@ -33,7 +33,7 @@ export async function* streamChatRefactor(
         ]);
 
         // --- Memory Integration Start ---
-        const settingsJson = await sqliteService.getConfig('app_settings');
+        const settingsJson = await dbFacade.getConfig('app_settings');
         let memoryContext = "";
         let memory: MemoryOrchestrator | null = null;
         
@@ -41,6 +41,7 @@ export async function* streamChatRefactor(
             const settings = JSON.parse(settingsJson);
             if (settings.memory?.enabled) {
                 memory = new MemoryOrchestrator(settings);
+                // Retrieve semantic context for the refactor task
                 memoryContext = await memory.retrieveContext(userMessage);
             }
         }
@@ -108,15 +109,23 @@ export async function* streamChatRefactor(
 
         // Async save to memory (fire and forget)
         if (memory) {
-            // We need to parse which files were modified from the response XML if possible, 
-            // but for now we will just pass empty array or extract lazily. 
-            // In a real scenario, we'd pass the parsed result from `useRefactorStream`.
-            // Here we just save the interaction.
-            memory.saveInteraction(
-                { id: crypto.randomUUID(), role: 'user', text: userMessage, timestamp: Date.now() },
-                fullResponse,
-                [] // Modified files would need to be extracted from response
-            ).catch(err => console.error("Memory save failed", err));
+            // Extract modified files from response to link in graph
+            const modifiedFiles: string[] = [];
+            const regex = /<lumina-(?:file|patch)\s+name=["']([^"']+)["']/g;
+            let match;
+            while ((match = regex.exec(fullResponse)) !== null) {
+                if (match[1]) modifiedFiles.push(match[1]);
+            }
+
+            Promise.all([
+                memory.saveInteraction(
+                    { id: crypto.randomUUID(), role: 'user', text: userMessage, timestamp: Date.now() },
+                    fullResponse,
+                    modifiedFiles
+                ),
+                // Sync the codebase graph with the input files (best effort to keep graph updated)
+                memory.syncCodebase(currentFiles)
+            ]).catch(err => console.error("Memory sync failed", err));
         }
 
     } catch (e: any) {
@@ -141,9 +150,29 @@ export const chatWithDyad = async (history: ChatMessage[], msg: string, entries:
           `- Project: ${e.project || 'Untitled'}\n  Description: ${e.description || 'No description'}\n  Tags: ${e.tags.join(', ')}\n  Complexity: ${e.mood}`
         ).join('\n\n');
         
+        // --- Memory Integration for Dyad ---
+        const settingsJson = await dbFacade.getConfig('app_settings');
+        let memoryContext = "";
+        
+        if (settingsJson) {
+            const settings = JSON.parse(settingsJson);
+            if (settings.memory?.enabled) {
+                const memory = new MemoryOrchestrator(settings);
+                memoryContext = await memory.retrieveContext(msg);
+            }
+        }
+        // -----------------------------------
+
         const rawPrompt = await getSystemPrompt('dyad');
         const langInst = lang === 'es' ? 'Spanish' : 'English';
-        const systemPrompt = rawPrompt.replace('{{CONTEXT}}', entriesContext.slice(0, 10000)) + `\nLanguage: ${langInst}`;
+        
+        let systemPrompt = rawPrompt.replace('{{CONTEXT}}', entriesContext.slice(0, 10000));
+        
+        if (memoryContext) {
+            systemPrompt += `\n\n${memoryContext}`;
+        }
+        
+        systemPrompt += `\nLanguage: ${langInst}`;
 
         const chatHistory = history.map(h => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.text }] }));
 

@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Session } from '../../../types';
-import { sqliteService } from '../../../services/sqliteService';
+import { dbFacade } from '../../../services/dbFacade';
 import { toast } from '../../../services/toastService';
 
 export const ProfileSessions: React.FC<{ userId: string }> = ({ userId }) => {
@@ -9,7 +9,7 @@ export const ProfileSessions: React.FC<{ userId: string }> = ({ userId }) => {
     const currentSessionId = localStorage.getItem('dyad_session_id');
 
     const load = async () => {
-        const list = await sqliteService.getUserSessions(userId);
+        const list = await dbFacade.getUserSessions(userId);
         setSessions(list.map(s => ({ ...s, isCurrent: s.id === currentSessionId })));
     };
 
@@ -20,7 +20,7 @@ export const ProfileSessions: React.FC<{ userId: string }> = ({ userId }) => {
             toast.error("Cannot revoke current session. Use logout.");
             return;
         }
-        await sqliteService.revokeSession(id);
+        await dbFacade.revokeSession(id);
         toast.success("Session revoked");
         load();
     };

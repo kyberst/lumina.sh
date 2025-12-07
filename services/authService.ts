@@ -1,5 +1,5 @@
 
-import { sqliteService } from './sqliteService';
+import { dbFacade } from './dbFacade';
 import { User, Session, Transaction } from '../types';
 import { toast } from './toastService';
 
@@ -10,7 +10,7 @@ export const authService = {
     async getCurrentUser(): Promise<User | null> {
         const userId = localStorage.getItem(SESSION_KEY);
         if (!userId) return null;
-        try { return await sqliteService.getUserById(userId); } catch (e) { return null; }
+        try { return await dbFacade.getUserById(userId); } catch (e) { return null; }
     },
 
     async register(name: string, email: string, password: string): Promise<string> {
@@ -29,21 +29,21 @@ export const authService = {
             createdAt: Date.now(),
             avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(name)}&backgroundColor=ffdfbf,c0aede,b6e3f4`
         };
-        await sqliteService.createUser(user);
+        await dbFacade.createUser(user);
         
         // Record Welcome Transaction
         const bonus: Transaction = {
             id: crypto.randomUUID(), userId: user.id, amount: 0, credits: 50, 
             type: 'bonus', description: 'Welcome Bonus', timestamp: Date.now()
         };
-        await sqliteService.addTransaction(bonus);
+        await dbFacade.addTransaction(bonus);
 
         await this.startSession(user.id);
         return user;
     },
 
     async login(email: string, password: string): Promise<{ user: User | null, require2FA: boolean }> {
-        const user = await sqliteService.getUser(email);
+        const user = await dbFacade.getUser(email);
         if (!user) throw new Error("User not found");
         if (user.passwordHash !== btoa(password)) throw new Error("Invalid credentials");
         if (user.twoFactorEnabled) return { user: null, require2FA: true };
@@ -57,7 +57,7 @@ export const authService = {
         const tempId = sessionStorage.getItem('temp_2fa_user');
         if (!tempId) throw new Error("Session expired");
         
-        const user = await sqliteService.getUserById(tempId);
+        const user = await dbFacade.getUserById(tempId);
         if (!user) throw new Error("User error");
         
         await this.startSession(user.id);
@@ -77,7 +77,7 @@ export const authService = {
             ip: '127.0.0.1', // Mocked for local-first
             lastActive: Date.now()
         };
-        await sqliteService.createSession(session);
+        await dbFacade.createSession(session);
         localStorage.setItem(SESSION_ID_KEY, sessionId);
     },
 
@@ -87,7 +87,7 @@ export const authService = {
     },
 
     async sendRecoveryCode(email: string): Promise<string> {
-        const user = await sqliteService.getUser(email);
+        const user = await dbFacade.getUser(email);
         if (!user) throw new Error("Email not found");
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         toast.info(`Recovery Code: ${code} (Simulated)`);
@@ -95,15 +95,15 @@ export const authService = {
     },
 
     async resetPassword(email: string, newPass: string): Promise<void> {
-        const user = await sqliteService.getUser(email);
+        const user = await dbFacade.getUser(email);
         if (!user) throw new Error("User error");
         user.passwordHash = btoa(newPass);
-        await sqliteService.updateUser(user);
+        await dbFacade.updateUser(user);
     },
 
     async logout() {
         const sid = localStorage.getItem(SESSION_ID_KEY);
-        if(sid) await sqliteService.revokeSession(sid);
+        if(sid) await dbFacade.revokeSession(sid);
         localStorage.removeItem(SESSION_KEY);
         localStorage.removeItem(SESSION_ID_KEY);
     }

@@ -3,34 +3,29 @@ import { Session, Transaction } from '../../types';
 import { dbCore } from '../db/dbCore';
 import { BaseRepository } from './baseRepository';
 
-/**
- * Session & Transaction Repository.
- * Maneja datos volátiles de sesión y registros financieros.
- */
 export class SessionRepository extends BaseRepository {
     
-    // --- Sessions ---
     public async create(s: Session) {
-        dbCore.run("INSERT INTO sessions VALUES (?, ?, ?, ?, ?)", [s.id, s.userId, s.device, s.ip, s.lastActive]);
+        // Upsert session
+        await dbCore.query("UPDATE type::thing('sessions', $id) CONTENT $s", { id: s.id, s });
     }
 
     public async getByUser(userId: string): Promise<Session[]> {
-        const r = dbCore.exec("SELECT * FROM sessions WHERE userId = ? ORDER BY lastActive DESC", [userId]);
-        return r.length ? this.mapRows(r[0]) : [];
+        const r = await dbCore.query<Session>("SELECT id, userId, device, ip, lastActive FROM sessions WHERE userId = $userId ORDER BY lastActive DESC", { userId });
+        return this.mapResults(r);
     }
 
     public async revoke(sessionId: string) {
-        dbCore.run("DELETE FROM sessions WHERE id = ?", [sessionId]);
+        await dbCore.query("DELETE type::thing('sessions', $id)", { id: sessionId });
     }
 
-    // --- Transactions ---
     public async addTransaction(t: Transaction) {
-        dbCore.run("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?)", 
-          [t.id, t.userId, t.amount, t.credits, t.type, t.description, t.timestamp]);
+        // Upsert transaction
+        await dbCore.query("UPDATE type::thing('transactions', $id) CONTENT $t", { id: t.id, t });
     }
 
     public async getUserTransactions(userId: string): Promise<Transaction[]> {
-        const r = dbCore.exec("SELECT * FROM transactions WHERE userId = ? ORDER BY timestamp DESC", [userId]);
-        return r.length ? this.mapRows(r[0]) : [];
+        const r = await dbCore.query<Transaction>("SELECT id, userId, amount, credits, type, description, timestamp FROM transactions WHERE userId = $userId ORDER BY timestamp DESC", { userId });
+        return this.mapResults(r);
     }
 }
