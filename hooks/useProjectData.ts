@@ -23,7 +23,12 @@ export const useProjectData = () => {
         autoFix: false, 
         mcpServers: [], 
         customProviders: [], 
-        telemetryId: '' 
+        telemetryId: '',
+        memory: {
+            enabled: false,
+            qdrantUrl: 'http://localhost:6333',
+            neo4jUrl: 'http://localhost:7474'
+        }
     });
 
     useEffect(() => {
@@ -42,7 +47,12 @@ export const useProjectData = () => {
                 if (savedSettingsStr) {
                     try {
                         const savedSettings = JSON.parse(savedSettingsStr);
-                        setSettings(prev => ({ ...prev, ...savedSettings }));
+                        // Deep merge for nested memory settings
+                        setSettings(prev => ({ 
+                            ...prev, 
+                            ...savedSettings,
+                            memory: { ...prev.memory, ...(savedSettings.memory || {}) }
+                        }));
                         if (savedSettings.language) setLanguage(savedSettings.language);
                     } catch (e) {
                         console.error("Failed to parse settings", e);

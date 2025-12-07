@@ -1,11 +1,13 @@
-
 # Lumina Studio - AI Architect & App Builder
 
 Lumina Studio is a sophisticated Progressive Web App (PWA) that acts as an AI-powered Integrated Development Environment (IDE). It transforms natural language into functional web applications using a Client-Side architecture.
 
 ## 🏗 Architecture
 
-The application follows a **Local-First, Client-Side** architecture to ensure privacy and speed.
+The application follows a **Local-First, Client-Side** architecture to ensure privacy and speed. It adheres to strict modularity rules:
+- **Atomic File Structure**: No file exceeds 200 lines of code.
+- **Recursive Directory Layout**: Features and services are decomposed into granular sub-modules.
+- **Single Responsibility**: Each component, hook, and service handles a specific domain.
 
 ### Core Stack
 *   **Runtime**: React 19, TypeScript, Vite.
@@ -15,62 +17,183 @@ The application follows a **Local-First, Client-Side** architecture to ensure pr
 *   **Editor**: Monaco Editor (VS Code engine).
 *   **Sandboxing**: Code execution via `iframe` with `srcDoc` and `importmap` injection.
 
-### Key Modules
+---
 
-| Module | Description | Path |
-| :--- | :--- | :--- |
-| **Auth** | Simulated Authentication & 2FA. | `features/auth/` |
-| **Journal** | Project creation wizard and prompt engineering. | `features/journal/` |
-| **Workspace** | The main IDE (Chat, Code Editor, Preview). | `features/workspace/` |
-| **Core Services** | Singleton services for DB, AI, and GitHub. | `services/` |
+## 📂 Project Structure
+
+### Root
+- `index.html` - Entry point.
+- `index.tsx` - React bootstrap.
+- `App.tsx` - Main routing and layout orchestration.
+- `metadata.json` - PWA capabilities configuration.
+- `types.ts` - Legacy bridge (re-exports `types/index.ts`).
+
+### 🪝 Global Hooks (`hooks/`)
+- `useProjectData.ts` - Global state container (User, Projects, Settings).
+- `useVoiceInput.ts` - Speech recognition logic.
+
+### 🧩 Features (UI Modules)
+
+#### Auth (`features/auth/`)
+- `AuthViews.tsx` - Auth flow orchestrator.
+- `AuthLayout.tsx` - Split-screen layout.
+- `components/`
+  - `LoginForm.tsx`
+  - `RegisterForm.tsx`
+  - `RecoverForm.tsx`
+
+#### Journal / Builder (`features/journal/`)
+- `JournalInput.tsx` - Main wizard container.
+- `EntryCard.tsx` - Project list item.
+- `hooks/`
+  - `useCreationForm.ts` - Wizard logic.
+  - `useImportForm.ts` - GitHub/File import logic.
+- `components/`
+  - `CreationForm.tsx`
+  - `ImportForm.tsx`
+  - `BuildTerminal.tsx`
+  - `creation/`
+    - `TechStackSelector.tsx`
+    - `ComplexityControl.tsx`
+  - `import/`
+    - `RepoImport.tsx`
+
+#### Workspace IDE (`features/workspace/`)
+- `WorkspaceView.tsx` - Main IDE container.
+- `hooks/`
+  - `useWorkspaceLayout.ts` - UI state (Tabs, Sidebar).
+  - `useRefactorStream.ts` - AI Chat Loop & State Machine.
+  - `usePreviewSystem.ts` - Iframe management.
+  - `useEditorSystem.ts` - Monaco logic & saving.
+- `components/`
+  - `WorkspaceHeader.tsx`
+  - `WorkspaceChat.tsx` - Chat container.
+  - `WorkspaceCode.tsx` - Editor container.
+  - `WorkspacePreview.tsx` - Live preview container.
+  - `WorkspaceInfo.tsx` - Metadata editor.
+  - `ChatMessageItem.tsx`
+  - `EnvVarRequestMessage.tsx`
+  - `chat/`
+    - `ThinkingCard.tsx` - AI reasoning visualizer.
+    - `ChatInputArea.tsx`
+  - `preview/`
+    - `PreviewToolbar.tsx`
+    - `ConsolePanel.tsx`
+- `utils/`
+  - `iframeBuilder.ts` - HTML injection engine.
+
+#### Navigation (`features/navigation/`)
+- `MainNavigator.tsx` - Route switcher.
+
+#### Profile (`features/profile/`)
+- `ProfileView.tsx`
+- `components/`
+  - `ProfileHeader.tsx`
+  - `ProfileDetails.tsx`
+  - `ProfileSessions.tsx`
+  - `ProfileBilling.tsx`
+
+#### Settings (`features/settings/`)
+- `SettingsView.tsx`
+- `components/`
+  - `AIProviderSettings.tsx` - Custom LLM configuration.
+
+#### Graph (`features/graph/`)
+- `DyadGraph.tsx` - Canvas-based neural visualization.
+
+#### Insight (`features/insight/`)
+- `DyadChat.tsx` - Global assistant.
+- `components/`
+  - `ChatList.tsx`
 
 ---
 
-## 🚀 Features & Protocols
+### ⚙️ Services (Business Logic)
 
-### 1. AI Streaming Protocol (`services/ai/streamParser.ts`)
-Lumina uses a custom XML protocol to parse AI responses in real-time:
-*   `<lumina-reasoning>`: Internal thought process visualization.
-*   `<lumina-plan>`: Structured progress updates (Step X/Y).
-*   `<lumina-file>` / `<lumina-patch>`: File creation and unified diff patching.
-*   `<lumina-dependency>`: Dynamic `importmap` injection for React libraries.
-*   `<lumina-annotation>`: Visual linter errors and quick-fix suggestions.
+#### AI Core (`services/ai/`)
+- `generator.ts` - One-shot generation.
+- `protocol.ts` - System prompt configuration.
+- `diffUtils.ts` - Unified Diff algorithms.
+- `streamParser.ts` - Stream parser barrel.
+- `prompts/`
+  - `protocol.ts` - XML Protocol definition.
+  - `refactor.ts` - Refactoring prompt.
+  - `dyad.ts` - Architect prompt.
+- `stream/`
+  - `chunkParser.ts` - XML Chunk state machine.
+  - `types.ts` - Stream interfaces.
+  - `utils.ts` - Stream helpers.
 
-### 2. Intelligent History (Reverse Diffs)
-To optimize local storage:
-*   **Storage**: Only the **Reverse Diff** (delta to go back in time) is saved for each chat turn.
-*   **Reconstruction**: The app applies diffs in reverse order from the current state to view history.
-*   **Files**: `services/diffService.ts`, `services/ai/diffUtils.ts`.
+#### Database (`services/db/`)
+- `dbCore.ts` - `sql.js` wrapper & persistence.
+- `migrations.ts` - Schema orchestrator.
+- `schema/`
+  - `authSchema.ts`
+  - `appSchema.ts`
+  - `historySchema.ts`
 
-### 3. Concurrency & Locking
-*   **Project Locking**: Prevents race conditions between AI generation and manual user edits.
-*   **Task Queue**: Heavy operations (DB saves, Security Scans) are queued in `services/taskService.ts` to prevent UI freezing.
+#### GitHub Integration (`services/github/`)
+- `api.ts` - Base fetch wrappers.
+- `context.ts` - Token validation.
+- `repo.ts` - Repository fetching/importing.
+- `publish.ts` - Commit & Push logic.
 
-### 4. Visual Feedback
-*   **Linter**: AI annotations appear as red/yellow squiggles in the editor.
-*   **Quick Fixes**: "Lightbulb" actions in Monaco Editor apply AI-suggested patches.
-*   **Dependency Status**: The preview iframe reports loading status of external ESM modules back to the main thread.
+#### Repositories (Data Access) (`services/repositories/`)
+- `baseRepository.ts`
+- `userRepository.ts`
+- `projectRepository.ts`
+- `sessionRepository.ts`
+- `chatRepository.ts` - Handles Chat & Reverse Diffs.
+
+#### Localization (`services/i18n/`)
+- `locales/`
+  - `en.ts` - English Dictionary.
+  - `es.ts` - Spanish Dictionary.
+
+#### Utilities
+- `authService.ts` - Auth logic facade.
+- `dialogService.ts` - Modal manager.
+- `diffService.ts` - Snapshot/Restore logic.
+- `fileService.ts` - FileSystem API wrapper.
+- `geminiService.ts` - Google GenAI SDK wrapper.
+- `llmService.ts` - Generic LLM client for custom providers.
+- `logger.ts` - Structured logging.
+- `promptService.ts` - External prompt loader.
+- `sqliteService.ts` - DB Facade.
+- `taskService.ts` - Async queue manager.
+- `toastService.ts` - Notification manager.
+- `translations.ts` - i18n wrapper.
+- `validator.ts` - Schema validation.
 
 ---
 
-## 📂 File Manifest & Logic Separation
-
-### Data Layer (`services/db/`)
-*   `dbCore.ts`: Low-level wrapper for `sql.js` WASM and `IndexedDB` persistence.
-*   `migrations.ts`: Schema definitions.
-
-### AI Layer (`services/ai/`)
-*   `protocol.ts`: Defines the System Prompt and XML tags.
-*   `generator.ts`: Non-streaming app generation logic.
-*   `streamParser.ts`: State machine for parsing XML chunks.
-*   `diffUtils.ts`: LCS (Longest Common Subsequence) algorithms for patching.
-
-### Workspace Logic (`features/workspace/`)
-*   `hooks/useRefactorStream.ts`: Manages the AI chat loop, context injection, and state updates.
-*   `utils/iframeBuilder.ts`: Constructs the preview HTML, injecting error handlers and source maps.
+### 🎨 Shared Components (`components/ui/`)
+- `Layout.tsx`
+- `CodeEditor.tsx` (Monaco Wrapper)
+- `MarkdownRenderer.tsx`
+- `SyntaxHighlighter.tsx` (PrismJS Wrapper)
+- `ToastContainer.tsx`
+- `DialogContainer.tsx`
 
 ---
 
-## 🌍 Internationalization (i18n)
-*   User-facing strings are stored in `assets/locales/{lang}/{module}.json`.
-*   Supported: English (`en`), Spanish (`es`).
+### 📦 Assets
+
+#### Prompts (`assets/prompts/`)
+- `builder_system.md`
+- `refactor_system.md`
+- `protocol.md`
+- `dyad.md`
+
+#### Locales (`assets/locales/`)
+- `en/`, `es/` (Legacy JSON modules, references).
+
+---
+
+### 📚 Type Definitions (`types/`)
+- `index.ts` - Main export.
+- `core.ts` - Enums & Errors.
+- `auth.ts` - User & Session models.
+- `project.ts` - File & Project models.
+- `ai.ts` - Chat & Protocol models.
+- `settings.ts` - Configuration models.

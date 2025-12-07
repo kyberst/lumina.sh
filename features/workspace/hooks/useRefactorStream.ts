@@ -58,7 +58,11 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
         try {
             const stream = streamChatRefactor(
                 entry.files, promptText, isInitial ? [] : history, getLanguage(), 
-                attachments, { thinkingBudget: settings.thinkingBudget }, abortControllerRef.current.signal
+                attachments, { 
+                    thinkingBudget: settings.thinkingBudget,
+                    systemPromptType: isInitial ? 'builder' : 'refactor'
+                }, 
+                abortControllerRef.current.signal
             );
 
             // 3. Process Stream
