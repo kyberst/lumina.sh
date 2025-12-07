@@ -1,3 +1,4 @@
+
 import { Type } from "@google/genai";
 import { AppError, AppModule, GeneratedFile, AIProvider, EnvVarRequest } from "../../types";
 import { logger } from "../logger";
@@ -20,7 +21,17 @@ export const generateAppCode = async (
   options?: { activeProvider?: AIProvider, activeModelId?: string, thinkingBudget?: 'low' | 'medium' | 'high' }
 ): Promise<AppGenerationResult> => {
     try {
-        const sysPrompt = `You are an AI App Builder. Generate a web app. Return JSON. Complexity: ${complexity}. Lang: ${lang}. Include a 'reasoning' field explaining your architectural choices.`;
+        const langName = lang === 'es' ? 'Spanish' : 'English';
+        const sysPrompt = `You are an AI App Builder. Generate a web app. Return JSON. Complexity: ${complexity}.
+        
+        IDIOMA_ACTUAL: ${langName}.
+        
+        Instructions:
+        1. Generate a 'reasoning' field explaining your architectural choices in ${langName}.
+        2. Generate a 'description' field in ${langName}.
+        3. Ensure comments in code are in ${langName} if appropriate, or standard English for code.
+        4. Do NOT output markdown code blocks for the JSON. Just return raw JSON.
+        `;
         
         const settings: any = { 
             aiModel: modelPreference 

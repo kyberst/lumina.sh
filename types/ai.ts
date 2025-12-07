@@ -37,6 +37,7 @@ export interface ChatMessage {
   isStreaming?: boolean;
   editorContext?: EditorContext;
   annotations?: CodeAnnotation[];
+  contextSize?: string;
   usage?: {
       inputTokens: number;
       outputTokens: number;

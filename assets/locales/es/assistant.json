@@ -1,4 +1,3 @@
-
 {
   "waiting": "Analizando estructura...",
   "title": "Arquitecto",
@@ -9,5 +8,12 @@
   "restore": "Restaurar versión",
   "listening": "Escuchando...",
   "dictate": "Dictar",
-  "sendCommand": "Enviar Comando"
+  "sendCommand": "Enviar Comando",
+  "suggestions": {
+    "makeGreen": "Hazlo Verde",
+    "addInput": "Añade un campo de texto",
+    "saveBtn": "Quiero un botón de guardar",
+    "fixLayout": "Arregla el diseño",
+    "darkMode": "Añade Modo Oscuro"
+  }
 }

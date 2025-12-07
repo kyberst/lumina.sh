@@ -9,6 +9,8 @@ import { dialogService } from '../../services/dialogService';
 import { MarkdownRenderer } from '../../components/ui/MarkdownRenderer';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
 import { useRefactorStream } from './hooks/useRefactorStream';
+import { useOnboarding } from '../../hooks/useOnboarding';
+import { OnboardingOverlay, Step } from '../../components/ui/OnboardingOverlay';
 
 import { WorkspaceHeader } from './components/WorkspaceHeader';
 import { WorkspaceChat } from './components/WorkspaceChat';
@@ -27,15 +29,33 @@ interface WorkspaceViewProps {
   settings: AppSettings;
 }
 
+const ONBOARDING_STEPS: Step[] = [
+    { target: '[data-tour="chat-input"]', titleKey: 'chatTitle', descKey: 'chatDesc', position: 'top' },
+    { target: '[data-tour="workspace-panel"]', titleKey: 'panelTitle', descKey: 'panelDesc', position: 'left' }
+];
+
 export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, onClose, settings }) => {
   const layout = useWorkspaceLayout();
   const [chatInput, setChatInput] = useState('');
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [chatAttachments, setChatAttachments] = useState<any[]>([]);
   const [totalUsage, setTotalUsage] = useState({ input: 0, output: 0 });
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
+
+  const { isActive, currentStep, next, finish, skip } = useOnboarding();
 
   const handleUpdate = async (updatedEntry: JournalEntry) => {
-      try { await onUpdate(updatedEntry); return true; } catch (e: any) { toast.error(e.message); return false; }
+      setSaveStatus('saving');
+      try { 
+          await onUpdate(updatedEntry); 
+          // Minimum visual duration for the "Saving..." state to avoid flicker
+          setTimeout(() => setSaveStatus('saved'), 800);
+          return true; 
+      } catch (e: any) { 
+          setSaveStatus('error');
+          toast.error(e.message); 
+          return false; 
+      }
   };
 
   // Secure Env Var Injection: Pass envVars and requirements to the hook
@@ -64,22 +84,37 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, o
 
   return (
     <div className="fixed inset-0 bg-white z-[100] flex flex-col animate-in fade-in duration-300">
+      
+      {isActive && (
+          <OnboardingOverlay 
+              steps={ONBOARDING_STEPS} 
+              currentStep={currentStep} 
+              onNext={next} 
+              onFinish={finish} 
+              onSkip={skip} 
+          />
+      )}
+
       <WorkspaceHeader 
         entry={entry} rightTab={layout.rightTab} setRightTab={layout.setRightTab} onClose={onClose} 
         onSecurityScan={async () => dialogService.alert("Report", <MarkdownRenderer content={await analyzeSecurity(entry.files, "Check")}/>)}
         onPublish={() => publishToGitHub(entry, 'app', settings.githubToken!, false).then(u => window.open(u))}
         onDownload={() => toast.success("Downloading...")} onRefresh={layout.refreshPreview} totalUsage={totalUsage}
+        saveStatus={saveStatus}
       />
       <div className="flex-1 flex overflow-hidden relative">
           <WorkspaceChat 
             history={history} chatInput={chatInput} setChatInput={setChatInput} isProcessing={isProcessing} thinkTime={0} 
             fileStatuses={streamState.fileStatuses} currentReasoning={streamState.reasoningBuffer} currentText={streamState.textBuffer}
-            onSend={() => { handleStreamingBuild(chatInput, chatAttachments, editor.getContext()); setChatInput(''); setChatAttachments([]); }} 
+            onSend={(mode) => { handleStreamingBuild(chatInput, chatAttachments, editor.getContext(), mode); setChatInput(''); setChatAttachments([]); }} 
             onStop={cancelStream} onRollback={async (snap) => { await handleUpdate({...entry, files: snap}); layout.refreshPreview(); }} 
             onEnvVarSave={(v) => handleUpdate({...entry, envVars: {...entry.envVars, ...v}})} isListening={voice.isListening} toggleListening={voice.toggleListening} 
             attachments={chatAttachments} setAttachments={setChatAttachments} isCollapsed={layout.isSidebarCollapsed} setCollapsed={layout.setIsSidebarCollapsed} aiPlan={streamState.aiPlan}
           />
-          <div className={`flex-1 flex flex-col bg-slate-100 overflow-hidden relative ${layout.isSidebarCollapsed ? 'w-full' : 'hidden md:flex'}`}>
+          <div 
+            className={`flex-1 flex flex-col bg-slate-100 overflow-hidden relative ${layout.isSidebarCollapsed ? 'w-full' : 'hidden md:flex'}`}
+            data-tour="workspace-panel"
+          >
               {layout.rightTab === 'info' && <WorkspaceInfo entry={entry} onUpdate={handleUpdate} />}
               {layout.rightTab === 'preview' && (
                   <WorkspacePreview 

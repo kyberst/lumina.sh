@@ -1,4 +1,3 @@
-
 {
   "prompt": "What app do you want to build?",
   "placeholder": "Describe a Node.js web app (e.g., \"A realtime chat with dark mode\" or \"A dashboard for crypto prices\")...",
@@ -24,5 +23,46 @@
   "repoName": "Repository Name",
   "privateRepo": "Private Repository",
   "publishBtn": "Push to GitHub",
-  "selectModel": "Select AI Model"
+  "selectModel": "Select AI Model",
+  "modeModify": "Modify",
+  "modeExplain": "Explore",
+  "placeholderModify": "Ask the app to... (e.g., 'Add a help button')",
+  "placeholderExplain": "Ask a question... (e.g., 'What does this button do?')",
+  "deletionWarningTitle": "Code Removal Required",
+  "deletionWarningDesc": "Lumina needs to remove some existing logic to apply this change. This is not an error, but please verify the reasoning below.",
+  "status": {
+    "saved": "Saved Locally",
+    "saving": "Saving..."
+  },
+  "proposal": {
+    "header": "Dyad Proposal",
+    "agent": "Architect Agent",
+    "changes": "Proposed Changes",
+    "files": "files",
+    "apply": "Apply Proposal",
+    "discard": "Discard",
+    "applied": "Changes Applied"
+  },
+  "thinking": {
+    "analyzing": "Analyzing your request...",
+    "generating": "Generating Proposal...",
+    "evaluating": "Evaluating App Changes...",
+    "details": "Technical Details"
+  },
+  "diff": {
+    "actual": "Actual (Before)",
+    "new": "New (After)"
+  },
+  "file": {
+    "modified": "Modified",
+    "deleted": "Deleted",
+    "splitReq": "Split Req",
+    "blockDiff": "Block Diff",
+    "code": "Code",
+    "copy": "Copy Content",
+    "copied": "Code copied to clipboard"
+  },
+  "error": {
+    "aiConnection": "Cannot connect to AI. The code editor is still functional."
+  }
 }

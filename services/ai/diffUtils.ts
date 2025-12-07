@@ -3,6 +3,17 @@
  * Utility functions for handling Unified Diff format updates.
  */
 
+export interface DiffLine {
+    type: 'eq' | 'add' | 'del' | 'gap';
+    content: string;
+    lineNum?: number;
+}
+
+export interface DiffBlock {
+    oldLines: DiffLine[];
+    newLines: DiffLine[];
+}
+
 /**
  * Applies a Unified Diff content to the original string.
  * Supports fuzzy matching for robustness.
@@ -74,19 +85,7 @@ export const createPatch = (fileName: string, oldStr: string, newStr: string): s
     const oldLines = oldStr.split('\n');
     const newLines = newStr.split('\n');
     
-    // LCS Matrix Calculation
-    const matrix: number[][] = [];
-    for (let i = 0; i <= oldLines.length; i++) matrix[i] = new Array(newLines.length + 1).fill(0);
-
-    for (let i = 1; i <= oldLines.length; i++) {
-        for (let j = 1; j <= newLines.length; j++) {
-            if (oldLines[i - 1] === newLines[j - 1]) {
-                matrix[i][j] = matrix[i - 1][j - 1] + 1;
-            } else {
-                matrix[i][j] = Math.max(matrix[i - 1][j], matrix[i][j - 1]);
-            }
-        }
-    }
+    const matrix = computeLCSMatrix(oldLines, newLines);
 
     // Backtrack to generate diff lines
     const changes: string[] = [];
@@ -114,3 +113,58 @@ export const createPatch = (fileName: string, oldStr: string, newStr: string): s
     }
     return hunks.join('\n');
 };
+
+/**
+ * Generates Side-by-Side Diff structure for UI rendering.
+ * Aligns unchanged lines and marks additions/deletions.
+ */
+export const computeSideBySideDiff = (oldStr: string, newStr: string): DiffBlock[] => {
+    const oldLines = oldStr.split('\n');
+    const newLines = newStr.split('\n');
+    const matrix = computeLCSMatrix(oldLines, newLines);
+    
+    let i = oldLines.length;
+    let j = newLines.length;
+    
+    const resultOld: DiffLine[] = [];
+    const resultNew: DiffLine[] = [];
+    
+    // Backtrack LCS
+    while (i > 0 || j > 0) {
+        if (i > 0 && j > 0 && oldLines[i-1] === newLines[j-1]) {
+            // Unchanged
+            resultOld.unshift({ type: 'eq', content: oldLines[i-1], lineNum: i });
+            resultNew.unshift({ type: 'eq', content: newLines[j-1], lineNum: j });
+            i--; j--;
+        } else if (j > 0 && (i === 0 || matrix[i][j-1] >= matrix[i-1][j])) {
+            // Added in New
+            resultOld.unshift({ type: 'gap', content: '' });
+            resultNew.unshift({ type: 'add', content: newLines[j-1], lineNum: j });
+            j--;
+        } else if (i > 0 && (j === 0 || matrix[i][j-1] < matrix[i-1][j])) {
+            // Deleted from Old
+            resultOld.unshift({ type: 'del', content: oldLines[i-1], lineNum: i });
+            resultNew.unshift({ type: 'gap', content: '' });
+            i--;
+        }
+    }
+
+    // Return single block for simplicity in this version
+    return [{ oldLines: resultOld, newLines: resultNew }];
+};
+
+const computeLCSMatrix = (oldLines: string[], newLines: string[]): number[][] => {
+    const matrix: number[][] = [];
+    for (let i = 0; i <= oldLines.length; i++) matrix[i] = new Array(newLines.length + 1).fill(0);
+
+    for (let i = 1; i <= oldLines.length; i++) {
+        for (let j = 1; j <= newLines.length; j++) {
+            if (oldLines[i - 1] === newLines[j - 1]) {
+                matrix[i][j] = matrix[i - 1][j - 1] + 1;
+            } else {
+                matrix[i][j] = Math.max(matrix[i - 1][j], matrix[i][j - 1]);
+            }
+        }
+    }
+    return matrix;
+}

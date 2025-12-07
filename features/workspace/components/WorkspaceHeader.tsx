@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { JournalEntry } from '../../../types';
+import { t } from '../../../services/i18n';
 
 interface WorkspaceHeaderProps {
   entry: JournalEntry;
@@ -12,10 +13,11 @@ interface WorkspaceHeaderProps {
   onDownload: () => void;
   onRefresh: () => void;
   totalUsage?: { input: number, output: number };
+  saveStatus?: 'saved' | 'saving' | 'error';
 }
 
 export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
-  entry, rightTab, setRightTab, onClose, onSecurityScan, onPublish, onDownload, onRefresh, totalUsage
+  entry, rightTab, setRightTab, onClose, onSecurityScan, onPublish, onDownload, onRefresh, totalUsage, saveStatus = 'saved'
 }) => {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -37,18 +39,26 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>
           </button>
           <div className="flex flex-col min-w-0">
-              <h1 className="text-base font-bold leading-none truncate text-slate-100">{entry.project || 'Untitled Project'}</h1>
+              <div className="flex items-center gap-3">
+                  <h1 className="text-base font-bold leading-none truncate text-slate-100">{entry.project || 'Untitled Project'}</h1>
+                  
+                  {/* Auto-Save Indicator */}
+                  {saveStatus === 'saving' ? (
+                      <span className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-indigo-400 animate-pulse bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
+                          <svg className="animate-spin h-2.5 w-2.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                          {t('saving', 'journal.status')}
+                      </span>
+                  ) : (
+                      <span className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-emerald-500/80 transition-all">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                          {t('saved', 'journal.status')}
+                      </span>
+                  )}
+              </div>
               <div className="flex items-center gap-2 mt-1 text-[10px] font-mono text-slate-400">
                   <span className="hidden sm:inline">{entry.files.length} Files</span>
-                  <span className="hidden sm:inline">•</span>
-                  
-                  {totalUsage && (
-                      <div className="flex items-center gap-2 bg-slate-800 px-2 py-0.5 rounded text-indigo-300 border border-slate-700">
-                          <span>In: {totalUsage.input.toLocaleString()}</span>
-                          <span className="text-slate-600">|</span>
-                          <span>Out: {totalUsage.output.toLocaleString()}</span>
-                      </div>
-                  )}
+                  <span className="text-slate-600">•</span>
+                  <span>{new Date(entry.timestamp).toLocaleDateString()}</span>
               </div>
           </div>
       </div>

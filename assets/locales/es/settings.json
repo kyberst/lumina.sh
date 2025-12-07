@@ -1,5 +1,3 @@
-
-
 {
   "title": "Preferencias",
   "language": "Idioma de Interfaz",
@@ -21,7 +19,13 @@
   "aiConfig": "Configuración IA",
   "aiProviders": "Proveedores IA",
   "thinkingBudget": "Presupuesto de Pensamiento",
-  "contextSize": "Tamaño de Contexto",
+  "contextSize": "Nivel de Atención",
+  "attentionFast": "Rápido",
+  "attentionFastDesc": "Modo ahorro. Menos tokens, mayor velocidad.",
+  "attentionNormal": "Normal",
+  "attentionNormalDesc": "Análisis equilibrado para la mayoría de tareas.",
+  "attentionDeep": "Profundo",
+  "attentionDeepDesc": "Contexto máximo. Analiza todo el proyecto (Lento).",
   "telemetry": "Telemetría",
   "telemetryDesc": "Registra datos anónimos para mejorar el producto.",
   "mcp": "Herramientas (MCP)",

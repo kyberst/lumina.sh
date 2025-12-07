@@ -9,7 +9,15 @@ export const es = {
     import: "Importar Chat",
     export: "Exportar Chat",
     cancel: "Cancelar",
-    confirm: "Confirmar"
+    confirm: "Confirmar",
+    dependencies: {
+      loading: "Vinculando Módulos...",
+      error: "Error de Dependencias",
+      resolve: "Resolviendo Dependencias..."
+    },
+    editor: {
+      quickFix: "Solución Rápida Disponible"
+    }
   },
   auth: {
       welcomeBack: "Bienvenido de nuevo",
@@ -50,6 +58,7 @@ export const es = {
   },
   assistant: {
     placeholder: "Pregunta sobre tu código...",
+    chatPlaceholder: "Pídele a la aplicación que... (Ej: 'Añade un botón de ayuda' o 'Haz que el texto sea más grande').",
     send: "Enviar",
     title: "Arquitecto Dyad"
   },
@@ -62,5 +71,14 @@ export const es = {
     general: "Ajustes Generales",
     language: "Idioma",
     zoom: "Nivel de Zoom"
+  },
+  onboarding: {
+    skip: "Saltar Tutorial",
+    next: "Siguiente",
+    finish: "Terminar",
+    chatTitle: "Asistente IA",
+    chatDesc: "Aquí está el chat: pídele a Lumina lo que quieres que tu aplicación haga.",
+    panelTitle: "Panel de Trabajo",
+    panelDesc: "Este es el panel donde puedes ver la vista previa y editar las propiedades del código de tu aplicación."
   }
 };

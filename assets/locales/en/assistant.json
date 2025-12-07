@@ -1,4 +1,3 @@
-
 {
   "waiting": "Analyzing code structure...",
   "title": "Architect",
@@ -9,5 +8,12 @@
   "restore": "Restore this version",
   "listening": "Listening...",
   "dictate": "Dictate",
-  "sendCommand": "Send Command"
+  "sendCommand": "Send Command",
+  "suggestions": {
+    "makeGreen": "Make it Green",
+    "addInput": "Add a text field",
+    "saveBtn": "Add a save button",
+    "fixLayout": "Fix the layout",
+    "darkMode": "Add Dark Mode"
+  }
 }

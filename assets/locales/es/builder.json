@@ -1,4 +1,3 @@
-
 {
   "prompt": "¿Qué app quieres construir?",
   "placeholder": "Describe una app web Node.js (ej: \"Chat en tiempo real oscuro\" o \"Dashboard de criptomonedas\")...",
@@ -24,5 +23,46 @@
   "repoName": "Nombre del Repositorio",
   "privateRepo": "Repositorio Privado",
   "publishBtn": "Subir a GitHub",
-  "selectModel": "Seleccionar Modelo IA"
+  "selectModel": "Seleccionar Modelo IA",
+  "modeModify": "Modificar",
+  "modeExplain": "Explorar",
+  "placeholderModify": "Pídele a la app que... (Ej: 'Añade un botón de ayuda')",
+  "placeholderExplain": "Pregunta algo... (Ej: '¿Qué hace este botón?')",
+  "deletionWarningTitle": "Eliminación de Código Requerida",
+  "deletionWarningDesc": "Lumina necesita eliminar lógica existente para aplicar este cambio. Esto no es un error, pero por favor revisa la justificación.",
+  "status": {
+    "saved": "Guardado Local",
+    "saving": "Guardando..."
+  },
+  "proposal": {
+    "header": "Propuesta de Dyad",
+    "agent": "Agente Arquitecto",
+    "changes": "Cambios Propuestos",
+    "files": "archivos",
+    "apply": "Aplicar Propuesta",
+    "discard": "Descartar",
+    "applied": "Cambios Aplicados"
+  },
+  "thinking": {
+    "analyzing": "Analizando tu solicitud...",
+    "generating": "Generando Propuesta...",
+    "evaluating": "Evaluando Cambios de la App...",
+    "details": "Detalles Técnicos"
+  },
+  "diff": {
+    "actual": "Actual (Antes)",
+    "new": "Nuevo (Después)"
+  },
+  "file": {
+    "modified": "Modificado",
+    "deleted": "Eliminado",
+    "splitReq": "Req. División",
+    "blockDiff": "Diff Visual",
+    "code": "Código",
+    "copy": "Copiar Contenido",
+    "copied": "Código copiado al portapapeles"
+  },
+  "error": {
+    "aiConnection": "No se puede conectar a la IA. El editor de código sigue funcionando."
+  }
 }

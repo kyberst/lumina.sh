@@ -1,3 +1,4 @@
+
 import { AppModule, ChatMessage, GeneratedFile, JournalEntry, AppSettings } from "../types";
 import { logger } from "./logger";
 import { generateAppCode as genApp } from "./ai/generator";
@@ -46,6 +47,7 @@ export async function* streamChatRefactor(
         // --- Memory Integration End ---
 
         let sysPrompt = "";
+        const langName = lang === 'es' ? 'Spanish' : 'English';
 
         if (promptType === 'refactor') {
             sysPrompt = getRefactorSystemPrompt(lang, contextSize);
@@ -54,8 +56,16 @@ export async function* streamChatRefactor(
                 getSystemPrompt(promptType),
                 getSystemPrompt('protocol')
             ]);
-            const langInst = lang === 'es' ? 'Respond in Spanish.' : 'Respond in English.';
-            sysPrompt = `${basePrompt}\n\n${protocol}\n\nLanguage: ${langInst}`;
+            
+            // Language Enforcement Logic
+            let processedPrompt = basePrompt.replace(/{{LANG}}/g, langName);
+            
+            // Append explicit instruction if not present
+            if (!processedPrompt.includes('IDIOMA_ACTUAL')) {
+                processedPrompt += `\n\nIDIOMA_ACTUAL: ${langName}.\nGenera todas las respuestas de razonamiento y texto en el IDIOMA_ACTUAL.`;
+            }
+
+            sysPrompt = `${processedPrompt}\n\n${protocol}`;
         }
         
         if (memoryContext) {

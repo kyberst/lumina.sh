@@ -1,5 +1,6 @@
 
 import React, { useRef } from 'react';
+import { t } from '../../../../services/i18n';
 
 interface Props {
     chatInput: string;
@@ -11,6 +12,8 @@ interface Props {
     onStop: () => void;
     attachments: any[];
     setAttachments: React.Dispatch<React.SetStateAction<any[]>>;
+    showSuggestions?: boolean;
+    mode?: 'modify' | 'explain';
 }
 
 /**
@@ -18,9 +21,10 @@ interface Props {
  * Maneja textarea auto-expandible, botón de adjuntar y grabación de voz.
  */
 export const ChatInputArea: React.FC<Props> = ({ 
-    chatInput, setChatInput, isProcessing, isListening, toggleListening, onSend, onStop, attachments, setAttachments 
+    chatInput, setChatInput, isProcessing, isListening, toggleListening, onSend, onStop, attachments, setAttachments, showSuggestions, mode = 'modify'
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const suggestions = ['makeGreen', 'addInput', 'saveBtn', 'fixLayout', 'darkMode'];
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -37,8 +41,26 @@ export const ChatInputArea: React.FC<Props> = ({
         }
     };
 
+    const placeholderText = mode === 'explain' 
+        ? t('placeholderExplain', 'builder') 
+        : t('placeholderModify', 'builder');
+
     return (
-        <div className="p-3 bg-white border-t space-y-2">
+        <div className="p-3 bg-white border-t space-y-2" data-tour="chat-input">
+            {showSuggestions && !isProcessing && !chatInput && mode === 'modify' && (
+                <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar px-1">
+                    {suggestions.map(key => (
+                        <button
+                            key={key}
+                            onClick={() => setChatInput(t(`suggestions.${key}`, 'assistant'))}
+                            className="text-[11px] font-medium px-3 py-1.5 bg-slate-50 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 border border-slate-200 hover:border-indigo-200 rounded-full transition-all whitespace-nowrap shadow-sm animate-in fade-in slide-in-from-bottom-1"
+                        >
+                            {t(`suggestions.${key}`, 'assistant')}
+                        </button>
+                    ))}
+                </div>
+            )}
+
             {attachments.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto pb-2">
                     {attachments.map((att, i) => (
@@ -60,7 +82,7 @@ export const ChatInputArea: React.FC<Props> = ({
                     value={chatInput} 
                     onChange={e => setChatInput(e.target.value)} 
                     onKeyDown={handleKeyDown} 
-                    placeholder={isProcessing ? "AI is working..." : "Type instructions... (Ctrl+Enter to send)"} 
+                    placeholder={isProcessing ? "AI is working..." : placeholderText} 
                     disabled={isProcessing} 
                     className="shadcn-input flex-1 min-h-[44px] max-h-[150px] py-2.5 resize-none overflow-y-auto" 
                     rows={1} 
@@ -70,7 +92,11 @@ export const ChatInputArea: React.FC<Props> = ({
                 {isProcessing ? (
                     <button onClick={onStop} className="shadcn-btn bg-red-500 text-white w-10 px-0 h-[44px] shrink-0">Stop</button>
                 ) : (
-                    <button onClick={onSend} disabled={!chatInput.trim()} className="shadcn-btn shadcn-btn-primary w-10 px-0 h-[44px] shrink-0">Send</button>
+                    <button onClick={onSend} disabled={!chatInput.trim()} className={`shadcn-btn w-10 px-0 h-[44px] shrink-0 ${mode === 'explain' ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'shadcn-btn-primary'}`}>
+                        {mode === 'explain' ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                        ) : 'Send'}
+                    </button>
                 )}
             </div>
         </div>

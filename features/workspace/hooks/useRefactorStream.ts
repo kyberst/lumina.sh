@@ -4,7 +4,7 @@ import { JournalEntry, ChatMessage, AppSettings, EditorContext, DependencyDetail
 import { streamChatRefactor } from '../../../services/geminiService';
 import { createInitialStreamState, parseStreamChunk, finalizeStream, StreamState } from '../../../services/ai/streamParser';
 import { dbFacade } from '../../../services/dbFacade';
-import { getLanguage } from '../../../services/i18n';
+import { getLanguage, t } from '../../../services/i18n';
 import { toast } from '../../../services/toastService';
 
 interface UseRefactorStreamProps {
@@ -23,7 +23,7 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
     const [streamState, setStreamState] = useState<StreamState>(createInitialStreamState(entry.files));
     const abortControllerRef = useRef<AbortController | null>(null);
 
-    const handleStreamingBuild = async (userMessage?: string, attachments: any[] = [], editorContext?: EditorContext) => {
+    const handleStreamingBuild = async (userMessage?: string, attachments: any[] = [], editorContext?: EditorContext, mode: 'modify' | 'explain' = 'modify') => {
         const isInitial = !userMessage && entry.pendingGeneration;
         let promptText = userMessage || entry.prompt;
         
@@ -63,11 +63,14 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
         let finalUsage = { inputTokens: 0, outputTokens: 0 };
 
         try {
+            // Determine system prompt based on mode
+            const promptType = isInitial ? 'builder' : (mode === 'explain' ? 'explain' : 'refactor');
+
             const stream = streamChatRefactor(
                 entry.files, promptText, isInitial ? [] : history, getLanguage(), 
                 attachments, { 
                     thinkingBudget: settings.thinkingBudget,
-                    systemPromptType: isInitial ? 'builder' : 'refactor',
+                    systemPromptType: promptType,
                     settings: settings // Pass full settings to use correct AI provider
                 }, 
                 abortControllerRef.current.signal
@@ -86,7 +89,9 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
             setStreamState({...currentState});
 
             // 4. Update Application State (Time T+1)
-            const finalFiles = currentState.workingFiles;
+            // Only update files if NOT in explain mode
+            const finalFiles = mode === 'explain' ? previousFiles : currentState.workingFiles;
+            
             const finalEntry = { 
                 ...entry, files: finalFiles, dependencies: currentState.dependencies,
                 pendingGeneration: false, tags: isInitial ? [...entry.tags, "Generated"] : entry.tags 
@@ -94,11 +99,13 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
             
             const modelMsg: ChatMessage = { 
                 id: crypto.randomUUID(), role: 'model', 
-                text: currentState.textBuffer.trim() || (isInitial ? "App generated." : "Updates applied."), 
+                text: currentState.textBuffer.trim() || (isInitial ? "App generated." : (mode === 'explain' ? "" : "Updates applied.")), 
                 reasoning: currentState.reasoningBuffer, timestamp: Date.now(),
-                modifiedFiles: Object.keys(currentState.fileStatuses), usage: finalUsage,
+                modifiedFiles: mode === 'explain' ? [] : Object.keys(currentState.fileStatuses), 
+                usage: finalUsage,
                 snapshot: finalFiles,
-                plan: currentState.aiPlan 
+                plan: currentState.aiPlan,
+                contextSize: settings.contextSize
             };
 
             // 5. ATOMIC UPDATE: Save Project State + Refactor History (Diffs) + User Message in one Transaction
@@ -111,14 +118,26 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
             );
             
             // Update React State (UI)
-            onUpdate(finalEntry);
+            if (mode !== 'explain') {
+                onUpdate(finalEntry);
+            }
             setTotalUsage(prev => ({ input: prev.input + finalUsage.inputTokens, output: prev.output + finalUsage.outputTokens }));
 
             setHistory(p => isInitial ? [modelMsg] : [...p, modelMsg]);
-            setIframeKey(k => k+1);
+            
+            // Only refresh preview if files changed
+            if (mode !== 'explain') {
+                setIframeKey(k => k+1);
+            }
 
         } catch (e: any) {
-            if (e.message !== 'Aborted') toast.error(e.message);
+            if (e.message !== 'Aborted') {
+                let msg = e.message;
+                if (msg.includes('fetch') || msg.includes('network') || msg.includes('connection')) {
+                    msg = t('error.aiConnection', 'builder');
+                }
+                toast.error(msg);
+            }
         } finally {
             setIsProcessing(false);
         }

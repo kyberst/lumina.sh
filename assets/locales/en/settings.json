@@ -1,5 +1,3 @@
-
-
 {
   "title": "Builder Preferences",
   "language": "Interface Language",
@@ -21,7 +19,13 @@
   "aiConfig": "AI Settings",
   "aiProviders": "AI Providers",
   "thinkingBudget": "Thinking Budget",
-  "contextSize": "Context Size",
+  "contextSize": "Attention Level",
+  "attentionFast": "Fast",
+  "attentionFastDesc": "Economy mode. Uses fewer tokens for speed.",
+  "attentionNormal": "Normal",
+  "attentionNormalDesc": "Balanced context window for most tasks.",
+  "attentionDeep": "Deep",
+  "attentionDeepDesc": "Maximum context. Analyzes everything (Slower).",
   "telemetry": "Telemetry",
   "telemetryDesc": "This records anonymous usage data to improve the product.",
   "mcp": "Tools (MCP)",

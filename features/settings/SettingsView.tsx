@@ -14,6 +14,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSave }) 
       onSave({ ...settings, memory: { ...settings.memory, [field]: value } });
   };
 
+  const attentionOptions = [
+    { value: 'economy', label: t('attentionFast', 'settings'), desc: t('attentionFastDesc', 'settings') },
+    { value: 'default', label: t('attentionNormal', 'settings'), desc: t('attentionNormalDesc', 'settings') },
+    { value: 'max', label: t('attentionDeep', 'settings'), desc: t('attentionDeepDesc', 'settings') }
+  ];
+
+  // Map legacy/intermediate values to the 3 main options for UI selection
+  const currentAttention = ['plus', 'high', 'max'].includes(settings.contextSize) ? 'max' : settings.contextSize;
+  const currentDesc = attentionOptions.find(o => o.value === currentAttention)?.desc || attentionOptions[1].desc;
+
   return (
     <div className="max-w-2xl mx-auto pb-20">
       <header className="mb-8 border-b pb-4"><h2 className="text-2xl font-bold">{t('title', 'settings')}</h2></header>
@@ -30,6 +40,29 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onSave }) 
              <div className="space-y-2">
                  <label className="text-sm font-medium">{t('zoom', 'settings')}</label>
                  <input type="range" min="0.8" max="1.2" step="0.1" value={settings.zoomLevel} onChange={e => handleChange('zoomLevel', parseFloat(e.target.value))} className="w-full accent-indigo-600" />
+             </div>
+             
+             {/* Simple Segmented Control for Attention Level */}
+             <div className="space-y-2 col-span-2 md:col-span-1">
+                 <label className="text-sm font-medium">{t('contextSize', 'settings')}</label>
+                 <div className="flex bg-slate-100 p-1 rounded-lg">
+                    {attentionOptions.map(opt => (
+                        <button
+                            key={opt.value}
+                            onClick={() => handleChange('contextSize', opt.value)}
+                            className={`flex-1 py-2 px-2 rounded-md text-xs font-bold transition-all ${
+                                currentAttention === opt.value
+                                ? 'bg-white text-indigo-600 shadow-sm' 
+                                : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >
+                            {opt.label}
+                        </button>
+                    ))}
+                 </div>
+                 <p className="text-[10px] text-slate-500 pt-1 min-h-[1.5em]">
+                    {currentDesc}
+                 </p>
              </div>
           </div>
         </section>

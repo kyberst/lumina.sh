@@ -9,7 +9,15 @@ export const en = {
     import: "Import Chat",
     export: "Export Chat",
     cancel: "Cancel",
-    confirm: "Confirm"
+    confirm: "Confirm",
+    dependencies: {
+      loading: "Linking Modules...",
+      error: "Dependency Load Failed",
+      resolve: "Resolving Dependencies..."
+    },
+    editor: {
+      quickFix: "Quick Fix Available"
+    }
   },
   auth: {
       welcomeBack: "Welcome Back",
@@ -50,6 +58,7 @@ export const en = {
   },
   assistant: {
     placeholder: "Ask about your code...",
+    chatPlaceholder: "Ask the app to... (e.g., 'Add a help button' or 'Make text bigger').",
     send: "Send",
     title: "Dyad Architect"
   },
@@ -62,5 +71,14 @@ export const en = {
     general: "General Settings",
     language: "Language",
     zoom: "Zoom Level"
+  },
+  onboarding: {
+    skip: "Skip Tutorial",
+    next: "Next",
+    finish: "Finish",
+    chatTitle: "AI Assistant",
+    chatDesc: "Here is the chat: ask Lumina what you want your app to do.",
+    panelTitle: "Workspace Panel",
+    panelDesc: "This is the panel where you can view your app's preview and edit the code properties directly."
   }
 };
