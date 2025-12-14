@@ -134,7 +134,7 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
             if (e.message !== 'Aborted') {
                 let msg = e.message;
                 if (msg.includes('fetch') || msg.includes('network') || msg.includes('connection')) {
-                    msg = t('error.aiConnection', 'builder');
+                    msg = t('error.aiConnection', 'journal');
                 }
                 toast.error(msg);
             }

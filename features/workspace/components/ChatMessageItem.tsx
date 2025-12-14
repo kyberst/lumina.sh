@@ -16,7 +16,7 @@ interface Props {
 export const ChatMessageItem: React.FC<Props> = ({ msg, prevSnapshot, onRollback, onEnvVarSave }) => {
     const [collapsed, setCollapsed] = useState(false);
     
-    // Logic for NO-LOSS Rule detection
+    // Logic for NO-LOSS Rule detection - Check for English or Spanish tag
     const justificationMatch = msg.reasoning?.match(/\[(?:JUSTIFIED DELETION|ELIMINACIÓN JUSTIFICADA)\]([\s\S]*?)(?:$|\[|<)/i);
     const hasJustifiedDeletion = !!justificationMatch;
     const justificationText = justificationMatch ? justificationMatch[1].trim() : '';
@@ -55,8 +55,8 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, prevSnapshot, onRollback
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
                                 </div>
                                 <div>
-                                    <h3 className="text-xs font-black uppercase tracking-wide text-slate-700">{t('proposal.header', 'builder')}</h3>
-                                    <p className="text-[10px] text-slate-400 font-medium">{t('proposal.agent', 'builder')}</p>
+                                    <h3 className="text-xs font-black uppercase tracking-wide text-slate-700">{t('proposal.header', 'journal')}</h3>
+                                    <p className="text-[10px] text-slate-400 font-medium">{t('proposal.agent', 'journal')}</p>
                                 </div>
                             </div>
                         </div>
@@ -73,10 +73,10 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, prevSnapshot, onRollback
                                 </div>
                                 <div>
                                     <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wide mb-1">
-                                        {t('deletionWarningTitle', 'builder')}
+                                        {t('deletionWarningTitle', 'journal')}
                                     </h4>
                                     <p className="text-xs text-amber-700 leading-relaxed mb-2">
-                                        {t('deletionWarningDesc', 'builder')}
+                                        {t('deletionWarningDesc', 'journal')}
                                     </p>
                                     {justificationText && (
                                         <div className="text-[11px] bg-white/60 p-2 rounded border border-amber-200/50 text-amber-900 font-medium italic border-l-2 border-l-amber-400">
@@ -96,7 +96,7 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, prevSnapshot, onRollback
                                 >
                                     <span className="flex items-center gap-2">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="7.5 4.21 12 6.81 16.5 4.21"></polyline><polyline points="7.5 19.79 7.5 14.6 3 12"></polyline><polyline points="21 12 16.5 14.6 16.5 19.79"></polyline><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-                                        {t('archPlan', 'assistant')}
+                                        {t('archPlan', 'insight')}
                                     </span>
                                     <span className="text-slate-400 text-[9px]">▼</span>
                                 </div>
@@ -117,9 +117,9 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, prevSnapshot, onRollback
                             <div className="mt-6 pt-2">
                                 <h4 className="flex items-center gap-2 text-xs font-black uppercase text-slate-800 tracking-wider mb-3">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                                    {t('proposal.changes', 'builder')}
+                                    {t('proposal.changes', 'journal')}
                                     <span className="text-[10px] font-normal text-slate-400 normal-case ml-auto">
-                                        {msg.modifiedFiles.length} {t('proposal.files', 'builder')}
+                                        {msg.modifiedFiles.length} {t('proposal.files', 'journal')}
                                     </span>
                                 </h4>
                                 
@@ -142,7 +142,7 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, prevSnapshot, onRollback
                                         return (
                                             <div key={filename} className="flex items-center gap-3 text-xs text-slate-500 bg-slate-50 px-3 py-2.5 rounded-lg border border-slate-200 font-mono opacity-75">
                                                 <div className="w-2 h-2 rounded-full bg-red-400"></div>
-                                                <span className="line-through text-slate-400 font-bold">{t('file.deleted', 'builder')}</span>
+                                                <span className="line-through text-slate-400 font-bold">{t('file.deleted', 'journal')}</span>
                                                 <span className="truncate flex-1">{filename}</span>
                                             </div>
                                         );
@@ -161,7 +161,7 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, prevSnapshot, onRollback
                                     className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center justify-center gap-2 hover:-translate-y-0.5"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                    {t('proposal.apply', 'builder')}
+                                    {t('proposal.apply', 'journal')}
                                 </button>
                                 
                                 {msg.snapshot && (
@@ -170,7 +170,7 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, prevSnapshot, onRollback
                                         className="sm:w-auto px-6 bg-white border border-red-100 text-red-500 hover:bg-red-50 font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
-                                        {t('proposal.discard', 'builder')}
+                                        {t('proposal.discard', 'journal')}
                                     </button>
                                 )}
                             </div>
@@ -182,7 +182,7 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, prevSnapshot, onRollback
                         <div className="px-5 py-3 text-center bg-emerald-50 cursor-pointer hover:bg-emerald-100 transition-colors" onClick={() => setCollapsed(false)}>
                             <span className="text-xs font-bold text-emerald-600 flex items-center justify-center gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                {t('proposal.applied', 'builder')}
+                                {t('proposal.applied', 'journal')}
                             </span>
                         </div>
                     )}

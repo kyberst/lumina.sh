@@ -28,8 +28,8 @@
   "modeExplain": "Explorar",
   "placeholderModify": "Pídele a la app que... (Ej: 'Añade un botón de ayuda')",
   "placeholderExplain": "Pregunta algo... (Ej: '¿Qué hace este botón?')",
-  "deletionWarningTitle": "Eliminación de Código Requerida",
-  "deletionWarningDesc": "Lumina necesita eliminar lógica existente para aplicar este cambio. Esto no es un error, pero por favor revisa la justificación.",
+  "deletionWarningTitle": "Revisión Requerida: Eliminación de Código",
+  "deletionWarningDesc": "⚠️ Lumina necesita eliminar lógica existente para aplicar este cambio. Esto no es un error, pero por favor revisa y aprueba antes de continuar.",
   "status": {
     "saved": "Guardado Local",
     "saving": "Guardando..."

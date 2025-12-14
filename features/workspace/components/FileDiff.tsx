@@ -15,8 +15,8 @@ export const FileDiff: React.FC<FileDiffProps> = ({ oldContent, newContent }) =>
         <div className="flex flex-col text-[10px] sm:text-xs font-mono bg-slate-900 text-slate-300 rounded-b-xl overflow-hidden">
              {/* Header Columns */}
              <div className="grid grid-cols-2 border-b border-slate-700 bg-slate-800 text-slate-400 font-bold select-none">
-                 <div className="p-2 text-center border-r border-slate-700">{t('diff.actual', 'builder')}</div>
-                 <div className="p-2 text-center">{t('diff.new', 'builder')}</div>
+                 <div className="p-2 text-center border-r border-slate-700">{t('diff.actual', 'journal')}</div>
+                 <div className="p-2 text-center">{t('diff.new', 'journal')}</div>
              </div>
              
              <div className="overflow-x-auto custom-scrollbar">

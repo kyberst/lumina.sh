@@ -23,7 +23,7 @@ export const FileCard: React.FC<FileCardProps> = ({ file, originalFile, isNew })
     const handleCopy = (e: React.MouseEvent) => {
         e.stopPropagation();
         navigator.clipboard.writeText(file.content);
-        toast.success(t('file.copied', 'builder'));
+        toast.success(t('file.copied', 'journal'));
     };
 
     const getIconColor = (name: string) => {
@@ -48,11 +48,11 @@ export const FileCard: React.FC<FileCardProps> = ({ file, originalFile, isNew })
                     <div className="flex flex-col min-w-0">
                         <div className="text-xs font-bold text-slate-700 truncate font-mono flex items-center gap-2">
                             {file.name}
-                            {isNew && <span className="text-[9px] bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded-full uppercase tracking-wider font-bold">{t('file.modified', 'builder')}</span>}
+                            {isNew && <span className="text-[9px] bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded-full uppercase tracking-wider font-bold">{t('file.modified', 'journal')}</span>}
                         </div>
                         <div className={`text-[10px] font-mono flex items-center gap-1 ${isTooLong ? 'text-amber-600 font-bold' : 'text-slate-400'}`}>
                             {lines} Lines
-                            {isTooLong && <span className="text-amber-500 flex items-center gap-1 bg-amber-50 px-1 rounded ml-1" title="Exceeds 200-line modularity rule">⚠ {t('file.splitReq', 'builder')}</span>}
+                            {isTooLong && <span className="text-amber-500 flex items-center gap-1 bg-amber-50 px-1 rounded ml-1" title="Exceeds 200-line modularity rule">⚠ {t('file.splitReq', 'journal')}</span>}
                         </div>
                     </div>
                 </div>
@@ -66,13 +66,13 @@ export const FileCard: React.FC<FileCardProps> = ({ file, originalFile, isNew })
                                 className={`px-3 py-1 text-[10px] font-bold rounded-sm transition-all flex items-center gap-1 ${mode === 'diff' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                             >
                                 <span className="w-2 h-2 bg-indigo-500 rounded-full opacity-50"></span>
-                                {t('file.blockDiff', 'builder')}
+                                {t('file.blockDiff', 'journal')}
                             </button>
                             <button 
                                 onClick={() => setMode('code')}
                                 className={`px-3 py-1 text-[10px] font-bold rounded-sm transition-all ${mode === 'code' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                             >
-                                {t('file.code', 'builder')}
+                                {t('file.code', 'journal')}
                             </button>
                         </div>
                     )}
@@ -80,7 +80,7 @@ export const FileCard: React.FC<FileCardProps> = ({ file, originalFile, isNew })
                     <button 
                         onClick={handleCopy}
                         className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors opacity-0 group-hover/card:opacity-100"
-                        title={t('file.copy', 'builder')}
+                        title={t('file.copy', 'journal')}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                     </button>
