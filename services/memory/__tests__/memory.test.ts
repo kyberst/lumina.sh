@@ -35,7 +35,9 @@ describe('MemoryOrchestrator (Unit)', () => {
     mcpServers: [],
     customProviders: [],
     telemetryId: 'test',
-    memory: { enabled: true }
+    memory: { enabled: true },
+    // FIX: Added missing developerMode property
+    developerMode: false
   };
 
   beforeEach(() => {

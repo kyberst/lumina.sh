@@ -1,6 +1,2 @@
-export interface CodeSymbol {
-    name: string;
-    type: string;
-    doc: string;
-    signature: string;
-}
+// FIX: Moved CodeSymbol to types/ai.ts to make it globally available.
+// This file is now obsolete.

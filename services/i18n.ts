@@ -1,22 +1,54 @@
-import { translations } from './translations';
 
 type Lang = 'en' | 'es';
 const LANG_KEY = 'umbra_lang';
 
-const getInitialLang = (): Lang => {
+const translations: Record<string, any> = { en: {}, es: {} };
+let currentLang: Lang = 'en';
+let isInitialized = false;
+
+const MODULES = [
+  'common', 'auth', 'nav', 'builder', 'assistant', 'graph', 
+  'settings', 'onboarding', 'workspace', 'project', 'profile', 
+  'import', 'creation', 'markdown', 'env'
+];
+
+async function loadAllTranslations(): Promise<void> {
+    const langs: Lang[] = ['en', 'es'];
+    for (const lang of langs) {
+        const promises = MODULES.map(module => 
+            fetch(`./assets/locales/${lang}/${module}.json`)
+                .then(res => {
+                    if (!res.ok) throw new Error(`Failed to fetch ${lang}/${module}.json`);
+                    return res.json();
+                })
+                .then(data => ({ module, data }))
+        );
+        
+        try {
+            const results = await Promise.all(promises);
+            translations[lang] = {};
+            for (const { module, data } of results) {
+                translations[lang][module] = data;
+            }
+        } catch (e) {
+            console.error(`Failed to load translations for ${lang}`, e);
+        }
+    }
+}
+
+export const initI18n = async () => {
+  if (isInitialized) return;
+  
+  await loadAllTranslations();
+
   try {
     const saved = localStorage.getItem(LANG_KEY);
-    return (saved === 'es' ? 'es' : 'en');
+    currentLang = (saved === 'es' ? 'es' : 'en');
   } catch {
-    return 'en';
+    currentLang = 'en';
   }
-};
 
-let currentLang: Lang = getInitialLang();
-
-// Deprecated but kept for compatibility with existing calls, no-op now
-export const initI18n = async () => {
-  return Promise.resolve();
+  isInitialized = true;
 };
 
 export const setLanguage = (lang: Lang) => {
@@ -31,14 +63,21 @@ export const setLanguage = (lang: Lang) => {
 export const getLanguage = () => currentLang;
 
 export const t = (key: string, module: string = 'common'): string => {
-  // Map legacy module names if necessary
   let modFile = module;
+  // Compatibility mapping for legacy modules
   if (module === 'journal') modFile = 'builder';
   if (module === 'insight') modFile = 'assistant';
   
   const dict = translations[currentLang] as any;
   if (dict && dict[modFile] && dict[modFile][key]) {
     return dict[modFile][key];
+  }
+  // Fallback to English if key not found in current language
+  if (currentLang !== 'en') {
+      const enDict = translations['en'] as any;
+      if (enDict && enDict[modFile] && enDict[modFile][key]) {
+          return enDict[modFile][key];
+      }
   }
   return key;
 };

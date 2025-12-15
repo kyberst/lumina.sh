@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { authService } from '../../../services/authService';
+// FIX: Corrected import path for authService
+import { authService } from '../../../services/auth';
 import { toast } from '../../../services/toastService';
 import { t } from '../../../services/i18n';
 
@@ -21,7 +22,7 @@ export const RecoverForm: React.FC<Props> = ({ onSuccess, onCancel }) => {
     const [expectedCode, setExpectedCode] = useState('');
 
     const handleSendCode = async () => {
-        if (!email) return toast.error("Email required");
+        if (!email) return toast.error(t('errorEmailRequired', 'auth'));
         try {
             const c = await authService.sendRecoveryCode(email);
             setExpectedCode(c);
@@ -32,11 +33,11 @@ export const RecoverForm: React.FC<Props> = ({ onSuccess, onCancel }) => {
     };
 
     const handleReset = async () => {
-        if (code !== expectedCode) return toast.error("Invalid Code");
-        if (!password) return toast.error("Enter new password");
+        if (code !== expectedCode) return toast.error(t('errorInvalidCode', 'auth'));
+        if (!password) return toast.error(t('errorNewPassword', 'auth'));
         try {
             await authService.resetPassword(email, password);
-            toast.success("Password Changed");
+            toast.success(t('passwordChanged', 'auth'));
             onSuccess();
         } catch (e: any) {
             toast.error(e.message);
@@ -50,7 +51,7 @@ export const RecoverForm: React.FC<Props> = ({ onSuccess, onCancel }) => {
                     {step === 1 ? t('recoverPass', 'auth') : t('setNewPass', 'auth')}
                 </h2>
                 <p className="text-muted-foreground text-sm mt-2">
-                    {step === 1 ? "We'll send you a verification code." : "Create a secure password."}
+                    {step === 1 ? t('recoverDesc1', 'auth') : t('recoverDesc2', 'auth')}
                 </p>
             </div>
 
@@ -73,7 +74,7 @@ export const RecoverForm: React.FC<Props> = ({ onSuccess, onCancel }) => {
             )}
 
             <button onClick={step === 1 ? handleSendCode : handleReset} className="shadcn-btn shadcn-btn-primary w-full h-11">
-                {step === 1 ? t('sendCode', 'auth') : 'Reset Password'}
+                {step === 1 ? t('sendCode', 'auth') : t('resetPassword', 'auth')}
             </button>
 
             <button onClick={onCancel} className="shadcn-btn shadcn-btn-ghost w-full h-11">

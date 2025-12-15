@@ -1,0 +1,18 @@
+
+{
+    "targetStack": "Target Stack",
+    "selected": "selected",
+    "simple": "Simple",
+    "complex": "Complex",
+    "geminiFlash": "Gemini Flash (Fast)",
+    "geminiPro": "Gemini Pro (Smart)",
+    "projectCategory": "Project Category",
+    "projectCategoryPlaceholder": "e.g. Finance Dashboard",
+    "appContentLanguage": "App Content Language",
+    "addLanguage": "+ Add Language...",
+    "provider": "Provider",
+    "googleGemini": "Google Gemini",
+    "model": "Model",
+    "flashDefault": "Flash (Default)",
+    "building": "Building..."
+}

@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import { JournalEntry, AppModule, AppSettings } from '../../types';
 import { validate } from '../../services/validator';
 import { ImportForm } from './components/ImportForm';
 import { CreationForm } from './components/CreationForm';
-import { getLanguage } from '../../services/i18n';
+import { getLanguage, t } from '../../services/i18n';
 
 interface JournalInputProps {
   onEntryCreated: (entry: JournalEntry) => void;
@@ -48,7 +49,7 @@ export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, sett
         tags: [...stack, ...appLanguages],
         mood: complexity,
         sentimentScore: 0,
-        project: project.trim() || 'Untitled App',
+        project: project.trim() || t('untitled', 'project'),
         pendingGeneration: true, 
         contextSource: 'manual',
         envVars: {
@@ -78,13 +79,13 @@ export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, sett
             onClick={() => setActiveTab('create')} 
             className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${activeTab === 'create' ? 'bg-white text-slate-950 shadow-sm' : 'hover:bg-slate-200 hover:text-slate-900'}`}
          >
-             New App
+             {t('newApp', 'builder')}
          </button>
          <button 
             onClick={() => setActiveTab('import')} 
             className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${activeTab === 'import' ? 'bg-white text-slate-950 shadow-sm' : 'hover:bg-slate-200 hover:text-slate-900'}`}
          >
-             Import
+             {t('import', 'builder')}
          </button>
       </div>
 

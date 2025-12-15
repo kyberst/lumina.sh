@@ -1,37 +1,94 @@
 
-import React, { useState } from 'react';
-import { JournalEntry } from '../../../types';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { JournalEntry, AppSettings } from '../../../types';
+import { FunctionalFileExplorer } from './info/FunctionalFileExplorer';
+import { UniversalPropertyInspector } from './info/UniversalPropertyInspector';
+import { t } from '../../../../services/i18n';
 
 interface WorkspaceInfoProps {
   entry: JournalEntry;
   onUpdate: (e: JournalEntry) => void;
+  settings: AppSettings;
+  selectedElement: any | null;
+  onPropertyChange: (changes: { textContent?: string; className?: string }) => void;
 }
 
-export const WorkspaceInfo: React.FC<WorkspaceInfoProps> = ({ entry, onUpdate }) => {
+export const WorkspaceInfo: React.FC<WorkspaceInfoProps> = ({ entry, onUpdate, settings, selectedElement, onPropertyChange }) => {
   const [tagInput, setTagInput] = useState('');
   const [showSecrets, setShowSecrets] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const timerRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || settings.developerMode) return;
+
+    const resetTimer = () => {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => setShowHelp(true), 30000); // 30 seconds
+    };
+
+    const handleMouseLeave = () => {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        setShowHelp(false);
+    };
+    
+    container.addEventListener('mousemove', resetTimer, { passive: true });
+    container.addEventListener('mouseleave', handleMouseLeave);
+    resetTimer(); // Initial timer
+
+    return () => {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        container.removeEventListener('mousemove', resetTimer);
+        container.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, [settings.developerMode]);
 
   return (
-    <div className="w-full h-full bg-slate-50 overflow-y-auto p-4 sm:p-8">
+    <div ref={containerRef} className="w-full h-full bg-slate-50 overflow-y-auto p-4 sm:p-8 relative">
+        
+        {showHelp && (
+            <div className="absolute top-24 right-8 w-64 bg-slate-800 text-white p-4 rounded-xl shadow-2xl animate-in fade-in slide-in-from-top-4 z-10">
+                <button onClick={() => setShowHelp(false)} className="absolute top-2 right-2 text-slate-400 hover:text-white text-lg">&times;</button>
+                <div className="flex items-center gap-2 mb-2">
+                    <span className="text-yellow-400">💡</span>
+                    <h4 className="font-bold text-sm">{t('contextualHelpTitle', 'builder')}</h4>
+                </div>
+                <p className="text-xs text-slate-300 bg-slate-700/50 p-2 rounded-md border border-slate-600">"{t('contextualHelpDesc', 'builder')}"</p>
+                <div className="absolute -bottom-2 right-6 w-0 h-0 border-x-8 border-x-transparent border-t-8 border-t-slate-800"></div>
+            </div>
+        )}
+
         <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4">
+            
+            <UniversalPropertyInspector 
+                selectedElement={selectedElement}
+                onPropertyChange={onPropertyChange}
+                settings={settings}
+            />
+
+            {!settings.developerMode && <FunctionalFileExplorer files={entry.files} />}
+
             <div>
-                <h2 className="text-2xl font-bold text-slate-800 mb-2 font-['Plus_Jakarta_Sans']">Project Configuration</h2>
-                <p className="text-slate-500 text-sm">Manage metadata and environment variables for this app.</p>
+                <h2 className="text-2xl font-bold text-slate-800 mb-2 font-['Plus_Jakarta_Sans']">{t('projectConfig', 'workspace')}</h2>
+                <p className="text-slate-500 text-sm">{t('projectConfigDesc', 'workspace')}</p>
             </div>
             
             <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm space-y-4">
                 <div>
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Project Name</label>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">{t('projectName', 'workspace')}</label>
                     <input className="shadcn-input font-bold text-lg" value={entry.project || ''} onChange={e => onUpdate({ ...entry, project: e.target.value })} />
                 </div>
                 <div>
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Original Prompt</label>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">{t('originalPrompt', 'workspace')}</label>
                     <textarea className="shadcn-input h-24 resize-none" value={entry.prompt} readOnly />
                 </div>
             </div>
             
             <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 block">Tech Stack & Tags</label>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 block">{t('stackAndTags', 'workspace')}</label>
                 <div className="flex flex-wrap gap-2 mb-3">
                     {entry.tags.map(tag => (
                         <span key={tag} className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-bold border border-indigo-100 flex items-center gap-1">
@@ -42,7 +99,7 @@ export const WorkspaceInfo: React.FC<WorkspaceInfoProps> = ({ entry, onUpdate })
                 </div>
                 <input 
                     className="shadcn-input text-sm" 
-                    placeholder="Type tag and press Enter to add..." 
+                    placeholder={t('addTagPlaceholder', 'workspace')} 
                     value={tagInput}
                     onChange={e => setTagInput(e.target.value)}
                     onKeyDown={e => {
@@ -57,9 +114,9 @@ export const WorkspaceInfo: React.FC<WorkspaceInfoProps> = ({ entry, onUpdate })
             {entry.envVars && (
                <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
                     <div className="flex justify-between items-center mb-4">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Environment Variables</label>
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">{t('envVarsTitle', 'workspace')}</label>
                         <button onClick={() => setShowSecrets(!showSecrets)} className="text-[10px] text-indigo-600 font-bold hover:underline uppercase">
-                            {showSecrets ? 'Hide Secrets' : 'Show Secrets'}
+                            {showSecrets ? t('hideSecrets', 'workspace') : t('showSecrets', 'workspace')}
                         </button>
                     </div>
                     <div className="space-y-3">
@@ -79,7 +136,7 @@ export const WorkspaceInfo: React.FC<WorkspaceInfoProps> = ({ entry, onUpdate })
                         ))}
                     </div>
                     <p className="text-[10px] text-slate-400 mt-4 italic">
-                        Values are stored securely in your local database. They are only injected into the preview sandbox when required by the code.
+                        {t('envVarsSecureNote', 'workspace')}
                     </p>
                </div>
             )}

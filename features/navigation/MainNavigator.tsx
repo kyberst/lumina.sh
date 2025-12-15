@@ -6,6 +6,8 @@ import { EntryCard } from '../journal/EntryCard';
 import { SettingsView } from '../settings/SettingsView';
 import { ProfileView } from '../profile/ProfileView';
 import { t } from '../../services/i18n';
+import { useOnboarding } from '../../hooks/useOnboarding';
+import { OnboardingOverlay, Step } from '../../components/ui/OnboardingOverlay';
 
 interface Props {
     view: ViewMode;
@@ -24,11 +26,25 @@ interface Props {
     searchQuery: string;
 }
 
+const ONBOARDING_STAGE1_STEPS: Step[] = [
+    { target: '[data-tour="main-prompt"]', titleKey: 'initialPromptTitle', descKey: 'initialPromptDesc', position: 'bottom' }
+];
+
 export const MainNavigator: React.FC<Props> = ({ view, entries, settings, actions, user, searchQuery }) => {
-    
+    const onboarding = useOnboarding('initial_prompt');
+
     if (view === 'builder') {
         return (
             <div className="max-w-4xl mx-auto">
+                {onboarding.isActive && (
+                    <OnboardingOverlay 
+                        steps={ONBOARDING_STAGE1_STEPS} 
+                        currentStep={onboarding.currentStep}
+                        onNext={onboarding.next}
+                        onFinish={onboarding.finish}
+                        onSkip={onboarding.skip}
+                    />
+                )}
                 <header className="mb-12 text-center animate-in fade-in slide-in-from-top-8">
                     <h1 className="text-5xl font-extrabold text-slate-900 mb-4">{t('prompt', 'builder')}</h1>
                     <p className="text-slate-500 text-xl">{t('placeholder', 'builder')}</p>

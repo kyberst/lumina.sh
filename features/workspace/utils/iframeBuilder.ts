@@ -1,6 +1,6 @@
 
 import { GeneratedFile, DependencyDetails } from "../../../types";
-import { ERROR_HANDLER_SCRIPT, DEPENDENCY_VALIDATOR_SCRIPT, ENV_HANDLING_SCRIPT } from "./previewScripts";
+import { ERROR_HANDLER_SCRIPT, DEPENDENCY_VALIDATOR_SCRIPT, ENV_HANDLING_SCRIPT, ELEMENT_INSPECTOR_SCRIPT } from "./previewScripts";
 
 interface SourceMapEntry {
     start: number;
@@ -54,22 +54,20 @@ export const generateIframeHtml = (
     const countLines = (str: string) => (str.match(/\n/g) || []).length;
 
     // 3. Split HTML for Injection
-    const parts = finalHtml.split('</head>');
-    let headPart = parts[0];
-    if (!headPart.includes('<head>')) headPart = '<head>' + headPart;
-
     const headCloseIndex = finalHtml.indexOf('</head>');
+    if (headCloseIndex === -1) {
+        // No head tag, inject one
+        finalHtml = `<html><head></head>${finalHtml}</html>`;
+    }
     const bodyCloseIndex = finalHtml.indexOf('</body>');
     
     let currentLine = 1;
     
     // A. Pre-Head
-    const preHead = finalHtml.substring(0, headCloseIndex);
+    const preHead = finalHtml.substring(0, headCloseIndex > -1 ? headCloseIndex : 0);
     currentLine += countLines(preHead);
     
     // B. Injections in Head
-    // Order: EnvHandler -> ErrorHandler -> ImportMap -> Validator -> Tailwind -> Styles
-    // ENV_HANDLING_SCRIPT must be early to polyfill process.env
     let headInjections = ENV_HANDLING_SCRIPT + '\n' + ERROR_HANDLER_SCRIPT + '\n' + importMapScript + '\n' + validatorScript + '\n' + '<script src="https://cdn.tailwindcss.com"></script>\n';
     currentLine += countLines(headInjections);
     
@@ -96,7 +94,7 @@ export const generateIframeHtml = (
     // E. Post Body
     const postBody = finalHtml.substring(bodyCloseIndex);
     
-    const composedHtml = preHead + headInjections + styleInjections + '</head>' + bodyContent + scriptInjections + postBody;
+    const composedHtml = preHead + headInjections + styleInjections + '</head>' + bodyContent + scriptInjections + ELEMENT_INSPECTOR_SCRIPT + postBody;
     
     return { html: composedHtml, sourceMap: newSourceMap };
 };

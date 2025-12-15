@@ -1,4 +1,6 @@
+
 import React from 'react';
+import { t } from '../../../../services/i18n';
 
 const COMMON_STACKS = [
     'React', 'Vue', 'Svelte', 'Angular', 
@@ -16,8 +18,8 @@ export const TechStackSelector: React.FC<Props> = ({ selected, onToggle }) => {
     return (
         <div className="bg-white text-slate-800 p-5 rounded-xl border border-slate-200 shadow-sm">
             <div className="text-[11px] text-slate-900 font-black uppercase tracking-widest mb-3 flex justify-between items-center">
-                <span>Target Stack</span>
-                <span className="text-indigo-600">{selected.length} selected</span>
+                <span>{t('targetStack', 'creation')}</span>
+                <span className="text-indigo-600">{selected.length} {t('selected', 'creation')}</span>
             </div>
             <div className="flex flex-wrap gap-2">
                 {COMMON_STACKS.map(tech => (

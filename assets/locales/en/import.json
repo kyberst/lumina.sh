@@ -1,0 +1,14 @@
+
+{
+    "localFolder": "Local Folder",
+    "myRepos": "My Repos",
+    "publicUrl": "Public URL",
+    "importing": "Importing...",
+    "selectFolder": "Select Folder",
+    "scanDescription": "Scans for .js, .ts, .html, .css, .json",
+    "publicRepoTitle": "Import Public Repository",
+    "publicRepoDesc": "Paste a GitHub URL to import code for analysis.",
+    "importButton": "Import",
+    "largeRepoWarning": "Large repositories (>50 files) will be truncated to fit context limits.",
+    "configureGithub": "Please configure GitHub Token in Settings."
+}

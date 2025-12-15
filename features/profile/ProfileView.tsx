@@ -29,9 +29,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdateUser }) 
 
                     {/* Navigation */}
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-2 flex flex-col gap-1">
-                        <button onClick={() => setActiveTab('details')} className={tabClass('details')}>Personal Details</button>
-                        <button onClick={() => setActiveTab('security')} className={tabClass('security')}>Sessions & Security</button>
-                        <button onClick={() => setActiveTab('billing')} className={tabClass('billing')}>Billing History</button>
+                        <button onClick={() => setActiveTab('details')} className={tabClass('details')}>{t('personalDetails', 'profile')}</button>
+                        <button onClick={() => setActiveTab('security')} className={tabClass('security')}>{t('sessionsAndSecurity', 'profile')}</button>
+                        <button onClick={() => setActiveTab('billing')} className={tabClass('billing')}>{t('billingHistory', 'profile')}</button>
                     </div>
                 </div>
 
@@ -40,19 +40,19 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdateUser }) 
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 min-h-[500px] p-6 sm:p-8 animate-in fade-in slide-in-from-bottom-2">
                         {activeTab === 'details' && (
                             <>
-                                <h3 className="text-lg font-bold text-slate-800 mb-6 pb-4 border-b">Edit Profile</h3>
+                                <h3 className="text-lg font-bold text-slate-800 mb-6 pb-4 border-b">{t('editProfile', 'profile')}</h3>
                                 <ProfileDetails user={user} onUpdate={onUpdateUser} />
                             </>
                         )}
                         {activeTab === 'security' && (
                             <>
-                                <h3 className="text-lg font-bold text-slate-800 mb-6 pb-4 border-b">Active Sessions</h3>
+                                <h3 className="text-lg font-bold text-slate-800 mb-6 pb-4 border-b">{t('activeSessions', 'profile')}</h3>
                                 <ProfileSessions userId={user.id} />
                             </>
                         )}
                         {activeTab === 'billing' && (
                             <>
-                                <h3 className="text-lg font-bold text-slate-800 mb-6 pb-4 border-b">Credit History</h3>
+                                <h3 className="text-lg font-bold text-slate-800 mb-6 pb-4 border-b">{t('creditHistory', 'profile')}</h3>
                                 <ProfileBilling userId={user.id} />
                             </>
                         )}

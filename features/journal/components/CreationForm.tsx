@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { t } from '../../../services/i18n';
 import { AppSettings } from '../../../types';
@@ -33,12 +34,12 @@ export const CreationForm: React.FC<CreationFormProps> = (props) => {
   const { isListening, toggleListening, attachmentRef, handleAttachment, removeAttachment, toggleStackItem } = useCreationForm(props.settings, props.setContent);
 
   const activeModels = props.selectedProvider === 'gemini' 
-    ? [{ id: 'flash', name: 'Gemini Flash (Fast)' }, { id: 'pro', name: 'Gemini Pro (Smart)' }]
+    ? [{ id: 'flash', name: t('geminiFlash', 'creation') }, { id: 'pro', name: t('geminiPro', 'creation') }]
     : props.settings.customProviders.find(p => p.id === props.selectedProvider)?.models || [];
 
   return (
     <>
-         <div className="flex flex-col h-[14rem] relative mb-6 bg-white border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all overflow-hidden shadow-sm">
+         <div data-tour="main-prompt" className="flex flex-col h-[14rem] relative mb-6 bg-white border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all overflow-hidden shadow-sm">
             {props.attachments.length > 0 && (
                 <div className="flex gap-2 p-3 bg-slate-50 border-b border-slate-100 overflow-x-auto">
                     {props.attachments.map((att, idx) => (
@@ -52,7 +53,7 @@ export const CreationForm: React.FC<CreationFormProps> = (props) => {
             <textarea
                 value={props.content}
                 onChange={(e) => props.setContent(e.target.value)}
-                placeholder={t('placeholder', 'journal')}
+                placeholder={t('placeholder', 'builder')}
                 className="flex-1 bg-transparent text-slate-900 placeholder:text-slate-400 text-lg focus:outline-none resize-none p-6"
                 disabled={props.isProcessing}
             />
@@ -69,15 +70,15 @@ export const CreationForm: React.FC<CreationFormProps> = (props) => {
             
             <div className="flex flex-col gap-4">
                  <div>
-                    <label className="block text-[11px] text-slate-900 font-black uppercase mb-1.5 ml-1">Project Category</label>
-                    <input type="text" value={props.project} onChange={(e) => props.setProject(e.target.value)} placeholder="e.g. Finance Dashboard" className="shadcn-input h-11 text-sm font-semibold" disabled={props.isProcessing} />
+                    <label className="block text-[11px] text-slate-900 font-black uppercase mb-1.5 ml-1">{t('projectCategory', 'creation')}</label>
+                    <input type="text" value={props.project} onChange={(e) => props.setProject(e.target.value)} placeholder={t('projectCategoryPlaceholder', 'creation')} className="shadcn-input h-11 text-sm font-semibold" disabled={props.isProcessing} />
                  </div>
                  
                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                     <label className="block text-[11px] text-slate-900 font-black uppercase mb-2">App Content Language</label>
+                     <label className="block text-[11px] text-slate-900 font-black uppercase mb-2">{t('appContentLanguage', 'creation')}</label>
                      <div className="relative mb-2">
                          <select onChange={(e) => { if(e.target.value && !props.appLanguages.includes(e.target.value)) props.setAppLanguages([...props.appLanguages, e.target.value]); e.target.value=''; }} className="shadcn-input cursor-pointer font-medium">
-                             <option value="">+ Add Language...</option>
+                             <option value="">{t('addLanguage', 'creation')}</option>
                              {LANGUAGES_LIST.map(l => <option key={l} value={l} disabled={props.appLanguages.includes(l)}>{l}</option>)}
                          </select>
                      </div>
@@ -92,16 +93,16 @@ export const CreationForm: React.FC<CreationFormProps> = (props) => {
 
                  <div className="flex gap-3">
                      <div className="relative flex-1">
-                        <label className="block text-[11px] text-slate-900 font-black uppercase mb-1.5 ml-1">Provider</label>
+                        <label className="block text-[11px] text-slate-900 font-black uppercase mb-1.5 ml-1">{t('provider', 'creation')}</label>
                         <select value={props.selectedProvider} onChange={e => { props.setSelectedProvider(e.target.value); props.setSelectedModel(''); }} className="shadcn-input font-medium text-slate-700">
-                            <option value="gemini">Google Gemini</option>
+                            <option value="gemini">{t('googleGemini', 'creation')}</option>
                             {props.settings.customProviders.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                      </div>
                      <div className="relative flex-1">
-                        <label className="block text-[11px] text-slate-900 font-black uppercase mb-1.5 ml-1">Model</label>
+                        <label className="block text-[11px] text-slate-900 font-black uppercase mb-1.5 ml-1">{t('model', 'creation')}</label>
                         <select value={props.selectedModel} onChange={e => props.setSelectedModel(e.target.value)} className="shadcn-input font-medium text-slate-700">
-                            {props.selectedProvider === 'gemini' && !props.selectedModel && <option value="flash">Flash (Default)</option>}
+                            {props.selectedProvider === 'gemini' && !props.selectedModel && <option value="flash">{t('flashDefault', 'creation')}</option>}
                             {activeModels.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                         </select>
                      </div>
@@ -120,7 +121,7 @@ export const CreationForm: React.FC<CreationFormProps> = (props) => {
                 </button>
             </div>
             <button onClick={props.onSubmit} disabled={props.isProcessing || !props.content.trim()} className="shadcn-btn shadcn-btn-primary h-12 px-8 text-sm font-bold uppercase tracking-widest shadow-lg rounded-full">
-                {props.isProcessing ? 'Building...' : t('analyze', 'journal')}
+                {props.isProcessing ? t('building', 'creation') : t('analyze', 'builder')}
             </button>
          </div>
     </>

@@ -1,12 +1,14 @@
 
 import React, { useState } from 'react';
 import { AuthLayout } from './AuthLayout';
-import { authService } from '../../services/authService';
+// FIX: Corrected import path for authService
+import { authService } from '../../services/auth';
 import { User } from '../../types';
 import { toast } from '../../services/toastService';
 import { LoginForm } from './components/LoginForm';
 import { RegisterForm } from './components/RegisterForm';
 import { RecoverForm } from './components/RecoverForm';
+import { t } from '../../services/i18n';
 
 interface AuthProps {
     onLogin: (user: User) => void;
@@ -22,7 +24,7 @@ export const AuthViews: React.FC<AuthProps> = ({ onLogin }) => {
 
     // Maneja el éxito del login desde cualquier subcomponente
     const handleLoginSuccess = (user: User) => {
-        toast.success("Welcome back!");
+        toast.success(t('welcomeBackToast', 'auth'));
         onLogin(user);
     };
 

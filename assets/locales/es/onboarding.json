@@ -1,0 +1,10 @@
+
+{
+    "initialPromptTitle": "¡A Construir!",
+    "initialPromptDesc": "Describe la aplicación web que quieres crear. Cuantos más detalles proporciones, mejor será el resultado.",
+    "firstBlockTitle": "Propiedades de la App",
+    "firstBlockDesc": "Aquí puedes cambiar el nombre de tu aplicación, revisar el prompt original y gestionar sus etiquetas y variables de entorno.",
+    "skip": "Saltar Tutorial",
+    "next": "Siguiente",
+    "finish": "Finalizar"
+}

@@ -1,7 +1,8 @@
+
 import { logger } from './logger';
 import { AppModule } from '../types';
 
-export type PromptType = 'builder' | 'refactor' | 'protocol' | 'dyad' | 'explain';
+export type PromptType = 'builder' | 'refactor' | 'protocol' | 'dyad' | 'explain' | 'simplify';
 
 export const getSystemPrompt = async (type: PromptType): Promise<string> => {
   try {
@@ -12,6 +13,7 @@ export const getSystemPrompt = async (type: PromptType): Promise<string> => {
         case 'protocol': filename = 'protocol.md'; break;
         case 'dyad': filename = 'dyad.md'; break;
         case 'explain': filename = 'explain_system.md'; break;
+        case 'simplify': filename = 'simplify_prompt.md'; break;
     }
     
     const response = await fetch(`assets/prompts/${filename}`);

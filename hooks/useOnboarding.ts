@@ -1,24 +1,34 @@
+
 import { useState, useEffect } from 'react';
 
-export const useOnboarding = () => {
+interface OnboardingOptions {
+    enabled?: boolean;
+    delay?: number;
+}
+
+export const useOnboarding = (stageId: string, options: OnboardingOptions = {}) => {
+    const { enabled = true, delay = 1000 } = options;
+    const storageKey = `lumina_onboarding_${stageId}_completed`;
+
+    const [isCompleted, setIsCompleted] = useState(() => {
+        try { return localStorage.getItem(storageKey) === 'true'; } catch { return true; }
+    });
     const [isActive, setIsActive] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
 
     useEffect(() => {
-        // Check if user has completed onboarding before
-        const completed = localStorage.getItem('lumina_onboarding_completed');
-        if (!completed) {
-            // Small delay to ensure UI is mounted and layout is stable
-            const timer = setTimeout(() => setIsActive(true), 1500);
+        if (!isCompleted && enabled) {
+            const timer = setTimeout(() => setIsActive(true), delay);
             return () => clearTimeout(timer);
         }
-    }, []);
+    }, [isCompleted, enabled, delay]);
 
     const next = () => setCurrentStep(p => p + 1);
     
     const finish = () => {
         setIsActive(false);
-        localStorage.setItem('lumina_onboarding_completed', 'true');
+        setIsCompleted(true);
+        try { localStorage.setItem(storageKey, 'true'); } catch {}
     };
     
     const skip = finish;

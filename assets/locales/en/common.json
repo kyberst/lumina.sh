@@ -17,5 +17,16 @@
   },
   "editor": {
     "quickFix": "Quick Fix Available"
-  }
+  },
+  "loading.init": "Loading Lumina Studio...",
+  "loading.db": "Connecting to local database (SurrealDB)...",
+  "loading.engine": "Initializing Lumina's refactoring engine...",
+  "saveChanges": "Save Changes",
+  "note": "Note:",
+  "clear": "Clear",
+  "close": "Close",
+  "deleted": "Deleted",
+  "errorLoadData": "Failed to load data",
+  "name": "Name",
+  "type": "Type"
 }

@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { AIProvider, AppSettings } from '../../../types';
 import { toast } from '../../../services/toastService';
+import { t } from '../../../services/i18n';
 
 interface Props { settings: AppSettings; onChange: (k: keyof AppSettings, v: any) => void; }
 
@@ -9,12 +10,12 @@ export const AIProviderSettings: React.FC<Props> = ({ settings, onChange }) => {
     const [editing, setEditing] = useState<Partial<AIProvider> | null>(null);
 
     const save = () => {
-        if (!editing?.name || !editing?.baseUrl) return toast.error("Required fields missing");
+        if (!editing?.name || !editing?.baseUrl) return toast.error(t('errorRequiredFields', 'settings'));
         const list = [...settings.customProviders];
         const idx = list.findIndex(p => p.id === editing.id);
         
         // Simple heuristic for models if empty
-        const models = editing.models && editing.models.length > 0 ? editing.models : [{id: 'default', name: 'Default Model'}];
+        const models = editing.models && editing.models.length > 0 ? editing.models : [{id: 'default', name: t('defaultModel', 'settings')}];
         const providerToSave = { ...editing, models } as AIProvider;
 
         if (idx >= 0) list[idx] = providerToSave;
@@ -27,38 +28,75 @@ export const AIProviderSettings: React.FC<Props> = ({ settings, onChange }) => {
     const remove = (id: string) => {
         const list = settings.customProviders.filter(p => p.id !== id);
         onChange('customProviders', list);
+        // If active provider was deleted, reset to Gemini
+        if (settings.activeProviderId === id) {
+            onChange('activeProviderId', 'gemini');
+            onChange('activeModelId', 'flash');
+        }
     };
 
+    const activeModels = useMemo(() => {
+        const providerId = settings.activeProviderId || 'gemini';
+        if (providerId === 'gemini') {
+            return [{ id: 'flash', name: 'Gemini Flash' }, { id: 'pro', name: 'Gemini Pro' }];
+        }
+        return settings.customProviders.find(p => p.id === providerId)?.models || [];
+    }, [settings.activeProviderId, settings.customProviders]);
+
+    const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        onChange('activeProviderId', e.target.value);
+        // Reset model when provider changes
+        onChange('activeModelId', '');
+    };
+    
     return (
         <div className="space-y-4">
             <h3 className="text-sm font-medium flex items-center gap-2">
-                <span className="text-indigo-600">⚡</span> AI Providers (OpenAI Compatible)
+                <span className="text-indigo-600">⚡</span> {t('aiProvidersTitle', 'settings')}
             </h3>
+            
+            <div className="p-4 border rounded-xl bg-slate-50 space-y-3">
+                 <div className="grid grid-cols-2 gap-3">
+                     <div>
+                         <label className="text-xs font-bold uppercase text-slate-500">{t('activeProvider', 'settings')}</label>
+                         <select className="shadcn-input" value={settings.activeProviderId || 'gemini'} onChange={handleProviderChange}>
+                             <option value="gemini">Google Gemini</option>
+                             {settings.customProviders.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                         </select>
+                     </div>
+                     <div>
+                         <label className="text-xs font-bold uppercase text-slate-500">{t('activeModel', 'settings')}</label>
+                         <select className="shadcn-input" value={settings.activeModelId || ''} onChange={(e) => onChange('activeModelId', e.target.value)}>
+                             {activeModels.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                         </select>
+                     </div>
+                 </div>
+            </div>
             
             {editing ? (
                 <div className="p-4 border rounded-xl bg-slate-50 space-y-3 animate-in fade-in">
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="text-xs font-bold uppercase text-slate-500">Name</label>
+                            <label className="text-xs font-bold uppercase text-slate-500">{t('name', 'common')}</label>
                             <input className="shadcn-input" placeholder="e.g. Ollama Local" value={editing.name} onChange={e => setEditing({...editing, name: e.target.value})} />
                         </div>
                         <div>
-                            <label className="text-xs font-bold uppercase text-slate-500">Base URL</label>
+                            <label className="text-xs font-bold uppercase text-slate-500">{t('baseUrl', 'settings')}</label>
                             <input className="shadcn-input" placeholder="http://localhost:11434/v1" value={editing.baseUrl} onChange={e => setEditing({...editing, baseUrl: e.target.value})} />
                         </div>
                     </div>
                     <div>
-                         <label className="text-xs font-bold uppercase text-slate-500">API Key Config Key (Optional)</label>
-                         <input className="shadcn-input" placeholder="e.g. OPENAI_KEY (Stored in Env Vars)" value={editing.apiKeyConfigKey || ''} onChange={e => setEditing({...editing, apiKeyConfigKey: e.target.value})} />
+                         <label className="text-xs font-bold uppercase text-slate-500">{t('apiKeyConfigKey', 'settings')}</label>
+                         <input className="shadcn-input" placeholder={t('apiKeyConfigKeyPlaceholder', 'settings')} value={editing.apiKeyConfigKey || ''} onChange={e => setEditing({...editing, apiKeyConfigKey: e.target.value})} />
                     </div>
                     <div className="flex justify-end gap-2 pt-2">
-                        <button onClick={() => setEditing(null)} className="shadcn-btn shadcn-btn-ghost">Cancel</button>
-                        <button onClick={save} className="shadcn-btn shadcn-btn-primary">Save Provider</button>
+                        <button onClick={() => setEditing(null)} className="shadcn-btn shadcn-btn-ghost">{t('cancel', 'common')}</button>
+                        <button onClick={save} className="shadcn-btn shadcn-btn-primary">{t('saveProvider', 'settings')}</button>
                     </div>
                 </div>
             ) : (
                 <div className="space-y-2">
-                    {settings.customProviders.length === 0 && <div className="text-sm text-slate-400 italic text-center py-4">No custom providers added.</div>}
+                    {settings.customProviders.length === 0 && <div className="text-sm text-slate-400 italic text-center py-4">{t('noCustomProviders', 'settings')}</div>}
                     
                     {settings.customProviders.map(p => (
                         <div key={p.id} className="flex justify-between items-center p-3 border rounded-lg bg-white shadow-sm hover:border-indigo-200 transition-colors">
@@ -77,7 +115,7 @@ export const AIProviderSettings: React.FC<Props> = ({ settings, onChange }) => {
                         </div>
                     ))}
                     <button onClick={() => setEditing({ id: crypto.randomUUID(), name: '', baseUrl: '', models: [] })} className="shadcn-btn w-full border-dashed border-2">
-                        + Add Provider
+                        {t('addProvider', 'settings')}
                     </button>
                 </div>
             )}

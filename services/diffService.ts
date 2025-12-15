@@ -84,8 +84,9 @@ export const applyReverseSnapshotDiff = (currentFiles: GeneratedFile[], diff: Sn
     if (diff.modified) {
         result = result.map(f => {
             if (diff.modified[f.name]) {
+                // FIX: `applyDiff` returns an object. We need to access its `content` property.
                 const revertedContent = applyDiff(f.content, diff.modified[f.name]);
-                return { ...f, content: revertedContent };
+                return { ...f, content: revertedContent.content };
             }
             return f;
         });

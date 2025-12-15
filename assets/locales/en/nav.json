@@ -4,5 +4,10 @@
   "memories": "Projects",
   "graph": "Map",
   "chat": "Assistant",
-  "settings": "Config"
+  "settings": "Config",
+  "profile": "My Profile",
+  "logout": "Logout",
+  "english": "English",
+  "spanish": "Español",
+  "copyright": "lumina.sh © {year}"
 }

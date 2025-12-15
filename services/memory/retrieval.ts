@@ -1,3 +1,4 @@
+
 import { AppSettings, AppModule } from "../../types";
 import { dbCore } from "../db/dbCore";
 import { logger } from "../logger";
@@ -45,5 +46,40 @@ export const retrieveContext = async (query: string, getEmbeddingFn: (t: string)
     } catch (e) {
         logger.error(AppModule.CORE, "Memory retrieval failed", e);
         return "";
+    }
+};
+
+
+/**
+ * Finds the most semantically similar code file to a given query.
+ */
+export const findSimilarCode = async (
+    query: string, 
+    getEmbeddingFn: (t: string) => Promise<number[]>,
+    similarityThreshold: number = 0.85
+): Promise<{ file: string, score: number } | null> => {
+    const vector = await getEmbeddingFn(query);
+    if (vector.length === 0) return null;
+
+    try {
+        // Query files table using vector similarity.
+        const results = await dbCore.query<any>(`
+            SELECT name, vector::similarity::cosine(embedding, $vector) as score
+            FROM files 
+            WHERE embedding IS NOT NONE
+            ORDER BY score DESC
+            LIMIT 1
+        `, { vector });
+
+        if (results && results.length > 0) {
+            const topMatch = results[0];
+            if (topMatch.score > similarityThreshold) {
+                return { file: topMatch.name, score: topMatch.score };
+            }
+        }
+        return null;
+    } catch (e) {
+        logger.warn(AppModule.CORE, "Similarity search for code reuse failed.", e);
+        return null;
     }
 };

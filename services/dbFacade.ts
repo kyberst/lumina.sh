@@ -100,6 +100,9 @@ class DatabaseFacade {
     public async saveRefactorMessage(pid: string, m: ChatMessage, oldF?: GeneratedFile[], newF?: GeneratedFile[]) {
         return this.chats.saveRefactorMessage(pid, m, oldF, newF);
     }
+    public async updateRefactorMessage(pid: string, m: ChatMessage) {
+        return this.chats.updateRefactorMessage(pid, m);
+    }
     public async saveChatMessage(m: ChatMessage) { return this.chats.saveChatMessage(m); }
     public async getChatHistory() { return this.chats.getChatHistory(); }
 

@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { User } from '../../../types';
+import { t } from '../../../services/i18n';
 
 interface Props { user: User; }
 
@@ -14,7 +15,7 @@ export const ProfileHeader: React.FC<Props> = ({ user }) => {
                 <p className="text-slate-500 text-sm mb-6">{user.email}</p>
                 
                 <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                    <div className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mb-1">Available Credits</div>
+                    <div className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mb-1">{t('availableCredits', 'profile')}</div>
                     <div className="text-3xl font-black text-indigo-600">{user.credits}</div>
                 </div>
             </div>

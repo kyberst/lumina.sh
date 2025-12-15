@@ -1,0 +1,10 @@
+
+{
+  "color-primary": "indigo-600",
+  "color-secondary": "slate-500",
+  "color-destructive": "red-600",
+  "color-success": "emerald-500",
+  "style-button-primary": "bg-indigo-600 text-white hover:bg-indigo-700",
+  "style-button-secondary": "bg-slate-100 text-slate-700 hover:bg-slate-200",
+  "style-input-default": "border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+}

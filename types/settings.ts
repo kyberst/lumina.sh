@@ -32,9 +32,13 @@ export interface AppSettings {
   customProviders: AIProvider[];
   activeProviderId?: string;
   activeModelId?: string;
+  modelPriority?: string[];
+  systemContextOverride?: string;
   mcpServers: MCPServer[];
   telemetryId: string;
   memory: MemorySettings;
+  developerMode: boolean;
+  learningMode?: boolean;
 }
 
 export interface GitHubRepo {

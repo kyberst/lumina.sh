@@ -1,5 +1,5 @@
 {
-  "name": "Lumina.sh",
+  "name": "lumina.sh",
   "description": "A sophisticated AI-powered application builder that transforms natural language into functional web apps.",
   "requestFramePermissions": [
     "microphone"

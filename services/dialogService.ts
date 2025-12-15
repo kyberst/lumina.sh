@@ -1,6 +1,7 @@
+
 import { ReactNode } from 'react';
 
-type DialogType = 'confirm' | 'alert' | 'prompt';
+type DialogType = 'confirm' | 'alert' | 'prompt' | 'custom';
 
 interface DialogRequest {
   id: string;
@@ -19,6 +20,7 @@ type Listener = (dialog: DialogRequest | null) => void;
 class DialogService {
   private static instance: DialogService;
   private listener: Listener | null = null;
+  private currentDialogId: string | null = null;
 
   private constructor() {}
 
@@ -36,8 +38,9 @@ class DialogService {
 
   public confirm(title: string, description: ReactNode, options?: { destructive?: boolean, confirmText?: string }): Promise<boolean> {
     return new Promise((resolve) => {
+      this.currentDialogId = crypto.randomUUID();
       const request: DialogRequest = {
-        id: crypto.randomUUID(),
+        id: this.currentDialogId,
         type: 'confirm',
         title,
         description,
@@ -58,8 +61,9 @@ class DialogService {
 
   public alert(title: string, description: ReactNode): Promise<void> {
       return new Promise((resolve) => {
+        this.currentDialogId = crypto.randomUUID();
         const request: DialogRequest = {
-            id: crypto.randomUUID(),
+            id: this.currentDialogId,
             type: 'alert',
             title,
             description,
@@ -76,9 +80,29 @@ class DialogService {
         if (this.listener) this.listener(request);
       });
   }
+  
+  public custom(title: string, description: ReactNode): { close: () => void } {
+    this.currentDialogId = crypto.randomUUID();
+    const request: DialogRequest = {
+      id: this.currentDialogId,
+      type: 'custom',
+      title,
+      description,
+      onConfirm: () => this.close(),
+      onCancel: () => this.close()
+    };
+    if (this.listener) this.listener(request);
+    
+    return {
+        close: () => this.close()
+    };
+  }
 
   private close() {
-    if (this.listener) this.listener(null);
+    if (this.listener) {
+        this.listener(null);
+        this.currentDialogId = null;
+    }
   }
 }
 

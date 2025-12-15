@@ -38,6 +38,11 @@ export class ChatRepository extends BaseRepository {
         await dbCore.query("UPDATE type::thing('refactor_history', $id) CONTENT $msg", { id: m.id, msg: msgToSave });
     }
 
+    public async updateRefactorMessage(pid: string, m: ChatMessage) {
+        const msgToSave = { ...m, project_id: pid };
+        await dbCore.query("UPDATE type::thing('refactor_history', $id) CONTENT $msg", { id: m.id, msg: msgToSave });
+    }
+
     /**
      * Prepares the save operation including Reverse Diff calculation for atomic transactions.
      */
@@ -63,7 +68,7 @@ export class ChatRepository extends BaseRepository {
         let currentFiles = project.files;
         
         // Fetch history with explicit fields
-        const r = await dbCore.query<any>("SELECT id, role, text, timestamp, snapshot, project_id, usage, reasoning, plan, modifiedFiles, requiredEnvVars FROM refactor_history WHERE project_id = $pid ORDER BY timestamp DESC", { pid });
+        const r = await dbCore.query<any>("SELECT id, role, text, timestamp, snapshot, project_id, usage, reasoning, plan, modifiedFiles, requiredEnvVars, applied, checkpointName FROM refactor_history WHERE project_id = $pid ORDER BY timestamp DESC", { pid });
         const rows = this.mapResults<any>(r);
         
         const messages: ChatMessage[] = [];

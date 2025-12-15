@@ -18,7 +18,10 @@ export const createInitialStreamState = (initialFiles: GeneratedFile[]): StreamS
   commands: [],
   dependencies: {},
   annotations: [],
-  aiPlan: undefined
+  aiPlan: undefined,
+  patches: {},
+  patchError: undefined,
+  requiredEnvVars: []
 });
 
 export const finalizeStream = (state: StreamState): StreamState => ({ ...state, buffer: '', mode: 'TEXT', currentCommandType: undefined });

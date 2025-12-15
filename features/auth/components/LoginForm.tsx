@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { authService } from '../../../services/authService';
+// FIX: Corrected import path for authService
+import { authService } from '../../../services/auth';
 import { User } from '../../../types';
 import { toast } from '../../../services/toastService';
 import { t } from '../../../services/i18n';
@@ -22,7 +23,7 @@ export const LoginForm: React.FC<Props> = ({ onSuccess, onForgotPassword, onRegi
     const [code, setCode] = useState('');
 
     const handleLogin = async () => {
-        if (!email || !password) return toast.error("Please fill fields");
+        if (!email || !password) return toast.error(t('errorFillFields', 'auth'));
         try {
             const res = await authService.login(email, password);
             if (res.require2FA) {
@@ -48,10 +49,10 @@ export const LoginForm: React.FC<Props> = ({ onSuccess, onForgotPassword, onRegi
         <div className="space-y-4 animate-in fade-in slide-in-from-left-4">
             <div className="text-center mb-6">
                 <h2 className="text-3xl font-bold tracking-tight">
-                    {step === 1 ? t('welcomeBack', 'auth') : '2FA Security'}
+                    {step === 1 ? t('welcomeBack', 'auth') : t('twoFATitle', 'auth')}
                 </h2>
                 <p className="text-muted-foreground text-sm mt-2">
-                    {step === 1 ? t('enterDetails', 'auth') : "Enter code from Authenticator App"}
+                    {step === 1 ? t('enterDetails', 'auth') : t('twoFADesc', 'auth')}
                 </p>
             </div>
 
@@ -59,7 +60,7 @@ export const LoginForm: React.FC<Props> = ({ onSuccess, onForgotPassword, onRegi
                 <>
                     <div className="space-y-1">
                         <label className="text-sm font-medium">{t('email', 'auth')}</label>
-                        <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="shadcn-input" placeholder="you@example.com" />
+                        <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="shadcn-input" placeholder={t('emailPlaceholder', 'auth')} />
                     </div>
                     <div className="space-y-1">
                         <div className="flex justify-between">
@@ -82,7 +83,7 @@ export const LoginForm: React.FC<Props> = ({ onSuccess, onForgotPassword, onRegi
 
             <div className="mt-6 text-center pt-4 border-t">
                 <p className="text-muted-foreground text-sm">
-                    Don't have an account? <button onClick={onRegisterClick} className="text-primary font-semibold hover:underline">{t('createOne', 'auth')}</button>
+                    {t('noAccount', 'auth')} <button onClick={onRegisterClick} className="text-primary font-semibold hover:underline">{t('createOne', 'auth')}</button>
                 </p>
             </div>
         </div>

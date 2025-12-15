@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Transaction } from '../../../types';
 import { dbFacade } from '../../../services/dbFacade';
+import { t } from '../../../services/i18n';
 
 export const ProfileBilling: React.FC<{ userId: string }> = ({ userId }) => {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -15,8 +16,7 @@ export const ProfileBilling: React.FC<{ userId: string }> = ({ userId }) => {
              <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4 mb-6 flex items-start gap-3">
                  <div className="text-indigo-600 mt-0.5"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></div>
                  <p className="text-xs text-indigo-900 leading-relaxed">
-                     Credits are used to generate code and run advanced AI models. 
-                     Refills are processed securely via Stripe (Simulated).
+                     {t('billingDesc', 'profile')}
                  </p>
              </div>
 
@@ -24,10 +24,10 @@ export const ProfileBilling: React.FC<{ userId: string }> = ({ userId }) => {
                 <table className="w-full text-sm text-left">
                     <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
                         <tr>
-                            <th className="px-4 py-3">Date</th>
-                            <th className="px-4 py-3">Description</th>
-                            <th className="px-4 py-3 text-right">Amount</th>
-                            <th className="px-4 py-3 text-right">Credits</th>
+                            <th className="px-4 py-3">{t('date', 'profile')}</th>
+                            <th className="px-4 py-3">{t('description', 'profile')}</th>
+                            <th className="px-4 py-3 text-right">{t('amount', 'profile')}</th>
+                            <th className="px-4 py-3 text-right">{t('credits', 'profile')}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -53,7 +53,7 @@ export const ProfileBilling: React.FC<{ userId: string }> = ({ userId }) => {
                     </tbody>
                 </table>
                 {transactions.length === 0 && (
-                    <div className="p-8 text-center text-slate-400 italic">No transactions found.</div>
+                    <div className="p-8 text-center text-slate-400 italic">{t('noTransactions', 'profile')}</div>
                 )}
              </div>
         </div>

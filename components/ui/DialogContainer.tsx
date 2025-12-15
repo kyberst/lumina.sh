@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { dialogService } from '../../services/dialogService';
 
@@ -29,22 +30,24 @@ export const DialogContainer: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 gap-2 sm:gap-0 mt-2">
-            {dialog.type !== 'alert' && (
+        {(dialog.type === 'confirm' || dialog.type === 'alert') && (
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 gap-2 sm:gap-0 mt-2">
+                {dialog.type !== 'alert' && (
+                    <button 
+                        onClick={dialog.onCancel}
+                        className="shadcn-btn shadcn-btn-outline"
+                    >
+                        {dialog.cancelLabel || 'Cancel'}
+                    </button>
+                )}
                 <button 
-                    onClick={dialog.onCancel}
-                    className="shadcn-btn shadcn-btn-outline"
+                    onClick={() => dialog.onConfirm()}
+                    className={`shadcn-btn ${dialog.destructive ? 'shadcn-btn-destructive' : 'shadcn-btn-primary'}`}
                 >
-                    {dialog.cancelLabel || 'Cancel'}
+                    {dialog.confirmLabel || 'Confirm'}
                 </button>
-            )}
-            <button 
-                onClick={() => dialog.onConfirm()}
-                className={`shadcn-btn ${dialog.destructive ? 'shadcn-btn-destructive' : 'shadcn-btn-primary'}`}
-            >
-                {dialog.confirmLabel || 'Confirm'}
-            </button>
-        </div>
+            </div>
+        )}
       </div>
     </div>
   );

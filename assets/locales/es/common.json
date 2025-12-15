@@ -17,5 +17,16 @@
   },
   "editor": {
     "quickFix": "Solución Rápida Disponible"
-  }
+  },
+  "loading.init": "Cargando Lumina Studio...",
+  "loading.db": "Conectando a tu base de datos local (SurrealDB)...",
+  "loading.engine": "Inicializando el motor de refactorización Lumina...",
+  "saveChanges": "Guardar Cambios",
+  "note": "Nota:",
+  "clear": "Limpiar",
+  "close": "Cerrar",
+  "deleted": "Eliminado",
+  "errorLoadData": "Error al cargar datos",
+  "name": "Nombre",
+  "type": "Tipo"
 }

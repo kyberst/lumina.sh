@@ -1,5 +1,4 @@
-import { CodeSymbol } from "./types";
-import { GeneratedFile } from "../../types";
+import { CodeSymbol, GeneratedFile } from "../../types";
 
 export const extractSymbols = (content: string): CodeSymbol[] => {
     const symbols: CodeSymbol[] = [];

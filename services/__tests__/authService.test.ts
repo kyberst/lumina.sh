@@ -1,6 +1,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { authService } from '../authService';
+// FIX: Corrected import path for authService
+import { authService } from '../auth';
 import { dbFacade } from '../dbFacade';
 import { User } from '../../types';
 

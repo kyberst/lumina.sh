@@ -1,16 +1,24 @@
+
 import { GeneratedFile, ChatMessage } from "../../types";
 import { dbCore } from "../db/dbCore";
 import { logger } from "../logger";
 import { AppModule } from "../../types";
-import { extractSymbols, extractImports } from "./analysis";
+import { extractSymbols, extractImports } from "../ai/analysis";
 
 export const syncCodebase = async (files: GeneratedFile[], getEmbeddingFn: (t: string) => Promise<number[]>) => {
     try {
         for (const file of files) {
-            // 1. Upsert File Node
-            await dbCore.query(`UPDATE type::thing('files', $name) CONTENT { name: $name, content: $content }`, { name: file.name, content: file.content });
+            // 1. Upsert File Node with its own embedding for similarity search
+            const fileEmbedding = await getEmbeddingFn(file.content);
+            await dbCore.query(`
+                UPDATE type::thing('files', $name) CONTENT { 
+                    name: $name, 
+                    content: $content,
+                    embedding: $embedding 
+                }
+            `, { name: file.name, content: file.content, embedding: fileEmbedding });
             
-            // 2. Smart Indexing
+            // 2. Smart Indexing of Symbols within the file
             const symbols = extractSymbols(file.content);
             for (const sym of symbols) {
                 const textToEmbed = `File: ${file.name}\nSymbol: ${sym.name} (${sym.type})\nDoc: ${sym.doc}\nSignature: ${sym.signature}`;
@@ -29,7 +37,7 @@ export const syncCodebase = async (files: GeneratedFile[], getEmbeddingFn: (t: s
                 }
             }
 
-            // 3. Graph Relationships
+            // 3. Graph Relationships based on imports
             const imports = extractImports(file);
             for (const imp of imports) {
                     await dbCore.query(`RELATE type::thing('files', $src)->imports->type::thing('files', $target)`, { src: file.name, target: imp });

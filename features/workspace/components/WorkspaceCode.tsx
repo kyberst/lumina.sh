@@ -2,6 +2,7 @@
 import React from 'react';
 import { GeneratedFile, CodeAnnotation } from '../../../types';
 import { CodeEditor, CodeEditorApi } from '../../../components/ui/CodeEditor';
+import { t } from '../../../services/i18n';
 
 interface WorkspaceCodeProps {
   files: GeneratedFile[];
@@ -29,7 +30,7 @@ export const WorkspaceCode: React.FC<WorkspaceCodeProps> = ({
   return (
     <div className="w-full h-full flex">
         <div className={`w-48 bg-slate-50 border-r border-slate-200 flex flex-col ${readOnly ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
-            <div className="p-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-200">Files</div>
+            <div className="p-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-200">{t('files', 'workspace')}</div>
             <div className="overflow-y-auto flex-1">
                 {files.map(f => {
                     const errorCount = annotations.filter(a => a.file === f.name && a.type === 'error').length;
@@ -73,7 +74,7 @@ export const WorkspaceCode: React.FC<WorkspaceCodeProps> = ({
 
             {hasChanges && !readOnly && (
                 <div className="absolute top-4 right-4 z-10 animate-in fade-in zoom-in">
-                    <button onClick={onSave} className="shadcn-btn shadcn-btn-primary shadow-lg hover:scale-105 transition-transform">Save Changes</button>
+                    <button onClick={onSave} className="shadcn-btn shadcn-btn-primary shadow-lg hover:scale-105 transition-transform">{t('saveChanges', 'common')}</button>
                 </div>
             )}
         </div>

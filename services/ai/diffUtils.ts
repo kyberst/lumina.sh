@@ -16,66 +16,68 @@ export interface DiffBlock {
 
 /**
  * Applies a Unified Diff content to the original string.
- * Supports fuzzy matching for robustness.
+ * Returns an object indicating success or failure.
  */
-export const applyDiff = (originalContent: string, diffContent: string): string => {
-    const lines = originalContent.split('\n');
-    let result = [...lines];
+export const applyDiff = (originalContent: string, diffContent: string): { success: boolean, content: string, error?: string } => {
+    if (!diffContent.trim()) {
+        return { success: true, content: originalContent };
+    }
+
+    const originalLines = originalContent.split('\n');
     const diffLines = diffContent.split('\n');
-    
-    let i = 0;
-    while (i < diffLines.length) {
-        // Skip headers until '@@'
-        if (!diffLines[i].startsWith('@@')) { i++; continue; }
-        i++; 
-        
-        const searchBlock: string[] = [];
-        const replaceBlock: string[] = [];
-        
-        // Parse Hunk
-        while (i < diffLines.length && !diffLines[i].startsWith('@@')) {
-            const line = diffLines[i];
-            const char = line.charAt(0);
-            const text = line.substring(1); 
 
-            if (char === ' ') { searchBlock.push(text); replaceBlock.push(text); }
-            else if (char === '-') { searchBlock.push(text); }
-            else if (char === '+') { replaceBlock.push(text); }
-            i++;
-        }
+    let currentOriginalLine = 0;
+    const resultLines = [];
+    let hunkApplied = false;
 
-        if (searchBlock.length === 0 && replaceBlock.length === 0) continue;
-
-        // Try Exact Match
-        const searchString = searchBlock.join('\n');
-        const replaceString = replaceBlock.join('\n');
-        const exactResult = result.join('\n').replace(searchString, replaceString);
+    for (const line of diffLines) {
+        if (line.startsWith('---') || line.startsWith('+++')) continue;
         
-        if (exactResult !== result.join('\n')) {
-            result = exactResult.split('\n');
+        if (line.startsWith('@@')) {
+            const match = line.match(/@@ -(\d+)/);
+            if (match) {
+                const startLine = parseInt(match[1], 10) - 1;
+                // Add lines from original content that are before this hunk
+                while (currentOriginalLine < startLine) {
+                    resultLines.push(originalLines[currentOriginalLine]);
+                    currentOriginalLine++;
+                }
+                hunkApplied = true;
+            }
             continue;
         }
 
-        // Try Fuzzy Match (Scan lines)
-        const norm = (s: string) => s.trim();
-        let bestMatchIndex = -1;
-
-        for (let l = 0; l <= result.length - searchBlock.length; l++) {
-            let match = true;
-            for (let s = 0; s < searchBlock.length; s++) {
-                if (norm(result[l + s]) !== norm(searchBlock[s])) { match = false; break; }
+        if (line.startsWith('+')) {
+            resultLines.push(line.substring(1));
+        } else if (line.startsWith('-')) {
+            if (originalLines[currentOriginalLine] !== line.substring(1)) {
+                 return { success: false, content: originalContent, error: `Patch mismatch: Expected to remove "${line.substring(1)}" but found "${originalLines[currentOriginalLine]}" at line ${currentOriginalLine + 1}.` };
             }
-            if (match) { bestMatchIndex = l; break; }
-        }
-
-        if (bestMatchIndex !== -1) {
-            const before = result.slice(0, bestMatchIndex);
-            const after = result.slice(bestMatchIndex + searchBlock.length);
-            result = [...before, ...replaceBlock, ...after];
+            currentOriginalLine++;
+        } else { // Context line
+            if (currentOriginalLine < originalLines.length && originalLines[currentOriginalLine] !== line.substring(1)) {
+                 return { success: false, content: originalContent, error: `Patch context mismatch at line ${currentOriginalLine + 1}.` };
+            }
+            if (currentOriginalLine < originalLines.length) {
+                resultLines.push(originalLines[currentOriginalLine]);
+            }
+            currentOriginalLine++;
         }
     }
-    return result.join('\n');
+    
+    // Add any remaining lines from the original file
+    while (currentOriginalLine < originalLines.length) {
+        resultLines.push(originalLines[currentOriginalLine]);
+        currentOriginalLine++;
+    }
+
+    if (!hunkApplied && diffContent.includes('@@')) {
+        return { success: false, content: originalContent, error: "Could not parse any hunk from patch." };
+    }
+
+    return { success: true, content: resultLines.join('\n') };
 };
+
 
 /**
  * Generates a simple Unified Diff between two strings using LCS.

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { JournalEntry } from '../../types';
 import { t } from '../../services/i18n';
@@ -50,13 +51,13 @@ export const EntryCard: React.FC<EntryCardProps> = ({ entry, onDelete, onSelect,
              ) : (
                 <div className="flex items-center gap-2 mb-1">
                     <h3 className="text-lg font-semibold leading-none tracking-tight group-hover:text-primary transition-colors">
-                        {entry.project || 'Untitled App'}
+                        {entry.project || t('untitled', 'project')}
                     </h3>
                     {onUpdate && (
                         <button 
                             onClick={(e) => { e.stopPropagation(); setIsEditing(true); }} 
                             className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary transition-all p-1"
-                            title="Rename"
+                            title={t('rename', 'project')}
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                         </button>
@@ -72,7 +73,7 @@ export const EntryCard: React.FC<EntryCardProps> = ({ entry, onDelete, onSelect,
             <button 
               onClick={(e) => { e.stopPropagation(); onDelete(entry.id); }}
               className="h-8 w-8 rounded-md hover:bg-destructive hover:text-destructive-foreground flex items-center justify-center transition-colors text-muted-foreground"
-              title="Delete Project"
+              title={t('delete', 'common')}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
@@ -100,7 +101,7 @@ export const EntryCard: React.FC<EntryCardProps> = ({ entry, onDelete, onSelect,
            <button 
              className="shadcn-btn shadcn-btn-primary h-8 px-3 text-xs"
            >
-             Open Studio 
+             {t('openStudio', 'project')}
            </button>
         </div>
       </div>

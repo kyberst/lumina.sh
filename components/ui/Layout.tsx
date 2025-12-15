@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { t } from '../../services/i18n';
 import { ViewMode, User } from '../../types';
@@ -46,7 +47,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
             <span className="text-white font-bold text-lg tracking-tighter">Lu</span>
           </div>
           <span className="text-xl font-bold text-slate-900 hidden sm:block tracking-tight font-['Plus_Jakarta_Sans']">
-            Lumina<span className="text-indigo-600">.Studio</span>
+            lumina<span className="text-indigo-600">.sh</span>
           </span>
         </div>
         
@@ -121,15 +122,15 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
                       onChange={(e) => onLanguageChange?.(e.target.value as 'en' | 'es')}
                       className="appearance-none bg-slate-50 border border-slate-200 hover:border-indigo-400 text-slate-600 text-xs font-semibold py-2 pl-4 pr-10 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-100 transition-all"
                   >
-                      <option value="en">English</option>
-                      <option value="es">Español</option>
+                      <option value="en">{t('english', 'nav')}</option>
+                      <option value="es">{t('spanish', 'nav')}</option>
                   </select>
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                   </div>
               </div>
               <p className="text-[10px] text-slate-400 font-medium tracking-wide">
-                  Lumina Studio © {new Date().getFullYear()}
+                  {t('copyright', 'nav').replace('{year}', new Date().getFullYear().toString())}
               </p>
           </div>
       </footer>
