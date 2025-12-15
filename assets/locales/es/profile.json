@@ -26,5 +26,16 @@
     "amount": "Monto",
     "credits": "Créditos",
     "noTransactions": "No se encontraron transacciones.",
-    "availableCredits": "Créditos Disponibles"
+    "availableCredits": "Créditos Disponibles",
+    "changePassword": "Cambiar Contraseña",
+    "currentPassword": "Contraseña Actual",
+    "newPassword": "Nueva Contraseña",
+    "confirmNewPassword": "Confirmar Nueva Contraseña",
+    "updatePassword": "Actualizar Contraseña",
+    "errorCurrentPasswordIncorrect": "La contraseña actual es incorrecta",
+    "errorPasswordShort": "Contraseña muy corta (mín 8 caracteres)",
+    "errorPasswordWeak": "Contraseña débil (añade un número)",
+    "errorPasswordMismatch": "Las contraseñas no coinciden",
+    "errorPasswordSame": "La nueva contraseña no puede ser igual a la actual",
+    "passwordUpdatedSuccess": "Contraseña actualizada con éxito"
 }

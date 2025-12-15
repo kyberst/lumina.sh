@@ -46,7 +46,7 @@ export const AppView: React.FC<AppViewProps> = ({
     }
 
     if (!user) {
-        return <><AuthViews onLogin={onLogin} /><ToastContainer /><DialogContainer /></>;
+        return <><AuthViews onLogin={onLogin} loading={loading} /><ToastContainer /><DialogContainer /></>;
     }
 
     if (selectedProject) {

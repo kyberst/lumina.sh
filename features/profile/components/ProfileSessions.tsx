@@ -2,12 +2,14 @@
 import React, { useEffect, useState } from 'react';
 import { Session } from '../../../types';
 import { dbFacade } from '../../../services/dbFacade';
+// FIX: Corrected import path for authService
+import { authService } from '../../../services/auth';
 import { toast } from '../../../services/toastService';
 import { t } from '../../../services/i18n';
 
 export const ProfileSessions: React.FC<{ userId: string }> = ({ userId }) => {
     const [sessions, setSessions] = useState<Session[]>([]);
-    const currentSessionId = localStorage.getItem('dyad_session_id');
+    const currentSessionId = authService.getSessionId();
 
     const load = async () => {
         const list = await dbFacade.getUserSessions(userId);

@@ -1,12 +1,19 @@
 
 import { dbFacade } from '../dbFacade';
-
-const SESSION_KEY = 'dyad_session_user_id';
-const SESSION_ID_KEY = 'dyad_session_id';
+import { authStorage } from './storage';
 
 export const logout = async () => {
-    const sid = localStorage.getItem(SESSION_ID_KEY);
-    if (sid) await dbFacade.revokeSession(sid);
-    localStorage.removeItem(SESSION_KEY);
-    localStorage.removeItem(SESSION_ID_KEY);
+    const token = authStorage.getToken();
+    
+    // Revoke server-side if token exists
+    if (token) {
+        try {
+            await dbFacade.revokeSession(token);
+        } catch (e) {
+            console.warn('[Auth] Failed to revoke session on server', e);
+        }
+    }
+
+    // Clear local persistence
+    authStorage.clear();
 };

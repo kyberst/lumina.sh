@@ -1,21 +1,29 @@
 
 import { dbFacade } from '../dbFacade';
 import { Session } from '../../types';
+import { authStorage } from './storage';
 
-const SESSION_KEY = 'dyad_session_user_id';
-const SESSION_ID_KEY = 'dyad_session_id';
-
+/**
+ * Starts a new authenticated session.
+ * Persists token immediately to ensure deterministic login state.
+ */
 export const startSession = async (userId: string) => {
-    localStorage.setItem(SESSION_KEY, userId);
+    // 1. Persist User Context locally
+    authStorage.setUserId(userId);
 
+    // 2. Generate Secure Session Token
     const sessionId = crypto.randomUUID();
+    
+    // 3. Register Session in Database
     const session: Session = {
         id: sessionId,
         userId,
-        device: navigator.userAgent, // Simplified
-        ip: '127.0.0.1', // Mocked for local-first
+        device: navigator.userAgent,
+        ip: '127.0.0.1', // Local-first mock IP
         lastActive: Date.now()
     };
     await dbFacade.createSession(session);
-    localStorage.setItem(SESSION_ID_KEY, sessionId);
+
+    // 4. Persist Token securely
+    authStorage.setToken(sessionId);
 };

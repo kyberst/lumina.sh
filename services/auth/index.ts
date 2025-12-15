@@ -8,7 +8,9 @@ import { startSession } from './startSession';
 import { generate2FASecret } from './generate2FASecret';
 import { sendRecoveryCode } from './sendRecoveryCode';
 import { resetPassword } from './resetPassword';
+import { changePassword } from './changePassword';
 import { logout } from './logout';
+import { getSessionId } from './getSessionId';
 
 export const authService = {
     getCurrentUser,
@@ -20,5 +22,7 @@ export const authService = {
     generate2FASecret,
     sendRecoveryCode,
     resetPassword,
-    logout
+    changePassword,
+    logout,
+    getSessionId
 };

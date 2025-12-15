@@ -82,13 +82,13 @@ export const WorkspaceChat: React.FC<WorkspaceChatProps> = (props) => {
   }, [props.history]);
 
   const { canUndo, snapshotToRestore } = useMemo(() => {
-    const lastAppliedIdx = findLastIndex(props.history, m => m.role === 'model' && m.applied && !!m.snapshot);
+    const lastAppliedIdx = findLastIndex(props.history, (m: ChatMessage) => m.role === 'model' && !!m.applied && !!m.snapshot);
 
     if (lastAppliedIdx === -1) {
         return { canUndo: false, snapshotToRestore: null };
     }
     
-    const prevModelMsgWithSnapshotIdx = findLastIndex(props.history.slice(0, lastAppliedIdx), m => m.role === 'model' && !!m.snapshot);
+    const prevModelMsgWithSnapshotIdx = findLastIndex(props.history.slice(0, lastAppliedIdx), (m: ChatMessage) => m.role === 'model' && !!m.snapshot);
     
     if (prevModelMsgWithSnapshotIdx !== -1) {
         const snapshot = props.history[prevModelMsgWithSnapshotIdx].snapshot;

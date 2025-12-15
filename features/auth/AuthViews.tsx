@@ -12,6 +12,7 @@ import { t } from '../../services/i18n';
 
 interface AuthProps {
     onLogin: (user: User) => void;
+    loading?: boolean;
 }
 
 /**
@@ -19,7 +20,7 @@ interface AuthProps {
  * Gestiona el estado de alto nivel (qué vista mostrar) y las transiciones.
  * Delega la lógica específica de cada formulario a componentes hijos.
  */
-export const AuthViews: React.FC<AuthProps> = ({ onLogin }) => {
+export const AuthViews: React.FC<AuthProps> = ({ onLogin, loading = false }) => {
     const [view, setView] = useState<'login' | 'register' | 'recover'>('login');
 
     // Maneja el éxito del login desde cualquier subcomponente
@@ -38,6 +39,7 @@ export const AuthViews: React.FC<AuthProps> = ({ onLogin }) => {
                         onSuccess={handleLoginSuccess}
                         onForgotPassword={() => setView('recover')}
                         onRegisterClick={() => setView('register')}
+                        isLoading={loading}
                     />
                 )}
 
@@ -45,6 +47,7 @@ export const AuthViews: React.FC<AuthProps> = ({ onLogin }) => {
                     <RegisterForm 
                         onSuccess={handleLoginSuccess}
                         onLoginClick={() => setView('login')}
+                        isLoading={loading}
                     />
                 )}
 
@@ -52,6 +55,7 @@ export const AuthViews: React.FC<AuthProps> = ({ onLogin }) => {
                     <RecoverForm 
                         onSuccess={() => setView('login')}
                         onCancel={() => setView('login')}
+                        isLoading={loading}
                     />
                 )}
 

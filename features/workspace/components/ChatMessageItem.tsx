@@ -37,8 +37,9 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, prevSnapshot, onEnvVarSa
         
         const patchContent = Object.entries(msg.patches)
             .map(([filename, patch]) => {
-                if (patch.startsWith('--- a/')) return patch;
-                return `--- a/${filename}\n+++ b/${filename}\n${patch}`;
+                const p = patch as string; // Fix: Explicit cast for TS
+                if (p.startsWith('--- a/')) return p;
+                return `--- a/${filename}\n+++ b/${filename}\n${p}`;
             })
             .join('\n\n');
 

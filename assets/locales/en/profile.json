@@ -26,5 +26,16 @@
     "amount": "Amount",
     "credits": "Credits",
     "noTransactions": "No transactions found.",
-    "availableCredits": "Available Credits"
+    "availableCredits": "Available Credits",
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmNewPassword": "Confirm New Password",
+    "updatePassword": "Update Password",
+    "errorCurrentPasswordIncorrect": "Current password incorrect",
+    "errorPasswordShort": "Password too short (min 8 chars)",
+    "errorPasswordWeak": "Password too weak (add a number)",
+    "errorPasswordMismatch": "Passwords do not match",
+    "errorPasswordSame": "New password cannot be the same as current",
+    "passwordUpdatedSuccess": "Password updated successfully"
 }

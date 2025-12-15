@@ -6,6 +6,7 @@ import { ProfileDetails } from './components/ProfileDetails';
 import { ProfileSessions } from './components/ProfileSessions';
 import { ProfileBilling } from './components/ProfileBilling';
 import { ProfileHeader } from './components/ProfileHeader';
+import { ChangePasswordForm } from './components/ChangePasswordForm';
 
 interface ProfileViewProps { user: User; onUpdateUser: (u: User) => void; }
 
@@ -46,7 +47,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdateUser }) 
                         )}
                         {activeTab === 'security' && (
                             <>
-                                <h3 className="text-lg font-bold text-slate-800 mb-6 pb-4 border-b">{t('activeSessions', 'profile')}</h3>
+                                <h3 className="text-lg font-bold text-slate-800 mb-6 pb-4 border-b">{t('sessionsAndSecurity', 'profile')}</h3>
+                                <ChangePasswordForm userId={user.id} />
+                                <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4 mt-8 pt-8 border-t border-slate-100">
+                                    {t('activeSessions', 'profile')}
+                                </h4>
                                 <ProfileSessions userId={user.id} />
                             </>
                         )}
