@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { JournalEntry, AppModule, AppSettings } from '../../types';
 import { validate } from '../../services/validator';
 import { ImportForm } from './components/ImportForm';
@@ -9,21 +9,39 @@ import { getLanguage, t } from '../../services/i18n';
 interface JournalInputProps {
   onEntryCreated: (entry: JournalEntry) => void;
   settings: AppSettings;
+  onSaveSettings: (settings: AppSettings) => void;
 }
 
-export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, settings }) => {
+export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, settings, onSaveSettings }) => {
   const [activeTab, setActiveTab] = useState<'create' | 'import'>('create');
   
-  // Create State
+  // Create State - Basic
   const [content, setContent] = useState('');
   const [project, setProject] = useState('');
   const [complexity, setComplexity] = useState(50);
-  const [stack, setStack] = useState<string[]>([]); // Selected tech stack
-  const [appLanguages, setAppLanguages] = useState<string[]>([getLanguage() === 'es' ? 'Spanish' : 'English']); // Target App Languages
+  const [appLanguages, setAppLanguages] = useState<string[]>([getLanguage() === 'es' ? 'Spanish' : 'English']); 
   const [attachments, setAttachments] = useState<{ name: string; type: string; data: string }[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  // Create State - Developer / Advanced
+  const [stack, setStack] = useState<string[]>([]); // Frontend/Backend
+  const [databases, setDatabases] = useState<string[]>([]); // Persistence
   const [selectedProvider, setSelectedProvider] = useState<string>('gemini');
   const [selectedModel, setSelectedModel] = useState<string>('flash');
-  const [error, setError] = useState<string | null>(null);
+  const [thinkingBudget, setThinkingBudget] = useState<'low' | 'medium' | 'high'>('medium');
+  const [contextSize, setContextSize] = useState<'economy' | 'default' | 'plus' | 'high' | 'max'>('default');
+  const [autoFix, setAutoFix] = useState(false);
+  const [learningMode, setLearningMode] = useState(false);
+  const [systemContextOverride, setSystemContextOverride] = useState('');
+
+  // Sync defaults from global settings when they change
+  useEffect(() => {
+      setAutoFix(settings.autoFix);
+      setLearningMode(settings.learningMode || false);
+      setThinkingBudget(settings.thinkingBudget);
+      setContextSize(settings.contextSize);
+      setSystemContextOverride(settings.systemContextOverride || '');
+  }, [settings]);
 
   const handleSubmit = async () => {
     setError(null);
@@ -34,6 +52,7 @@ export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, sett
       
       const requirements = [];
       if (stack.length > 0) requirements.push(`Tech Stack: ${stack.join(', ')}`);
+      if (databases.length > 0) requirements.push(`Database/Persistence: ${databases.join(', ')}`);
       if (appLanguages.length > 0) requirements.push(`Target App Languages: ${appLanguages.join(', ')}`);
       
       if (requirements.length > 0) {
@@ -46,7 +65,7 @@ export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, sett
         timestamp: Date.now(),
         description: "Initializing Project...",
         files: [],
-        tags: [...stack, ...appLanguages],
+        tags: [...stack, ...databases, ...appLanguages],
         mood: complexity,
         sentimentScore: 0,
         project: project.trim() || t('untitled', 'project'),
@@ -55,7 +74,12 @@ export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, sett
         envVars: {
             _INIT_PROVIDER: selectedProvider,
             _INIT_MODEL: selectedModel,
-            _INIT_COMPLEXITY: complexity.toString()
+            _INIT_COMPLEXITY: complexity.toString(),
+            _INIT_THINKING_BUDGET: thinkingBudget,
+            _INIT_CONTEXT_SIZE: contextSize,
+            _INIT_AUTO_FIX: String(autoFix),
+            _INIT_LEARNING_MODE: String(learningMode),
+            _INIT_CONTEXT_OVERRIDE: systemContextOverride
         }
       };
 
@@ -108,11 +132,20 @@ export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, sett
                     project={project} setProject={setProject}
                     complexity={complexity} setComplexity={setComplexity}
                     stack={stack} setStack={setStack}
+                    databases={databases} setDatabases={setDatabases}
                     appLanguages={appLanguages} setAppLanguages={setAppLanguages}
                     isProcessing={false} onSubmit={handleSubmit}
                     attachments={attachments} setAttachments={setAttachments}
+                    onToggleDevMode={() => onSaveSettings({ ...settings, developerMode: !settings.developerMode })}
+                    
+                    // Advanced AI Props
                     selectedProvider={selectedProvider} setSelectedProvider={setSelectedProvider}
                     selectedModel={selectedModel} setSelectedModel={setSelectedModel}
+                    thinkingBudget={thinkingBudget} setThinkingBudget={setThinkingBudget}
+                    contextSize={contextSize} setContextSize={setContextSize}
+                    autoFix={autoFix} setAutoFix={setAutoFix}
+                    learningMode={learningMode} setLearningMode={setLearningMode}
+                    systemContextOverride={systemContextOverride} setSystemContextOverride={setSystemContextOverride}
                 />
             </div>
         )}

@@ -49,7 +49,11 @@ export const MainNavigator: React.FC<Props> = ({ view, entries, settings, action
                     <h1 className="text-5xl font-extrabold text-slate-900 mb-4">{t('prompt', 'builder')}</h1>
                     <p className="text-slate-500 text-xl">{t('placeholder', 'builder')}</p>
                 </header>
-                <JournalInput onEntryCreated={actions.createEntry} settings={settings} />
+                <JournalInput 
+                    onEntryCreated={actions.createEntry} 
+                    settings={settings} 
+                    onSaveSettings={actions.saveSettings}
+                />
             </div>
         );
     }

@@ -92,6 +92,7 @@ class DatabaseFacade {
     public async createSession(s: Session) { return this.sessions.create(s); }
     public async getUserSessions(uid: string) { return this.sessions.getByUser(uid); }
     public async revokeSession(sid: string) { return this.sessions.revoke(sid); }
+    public async extendSession(sid: string, expiresAt: number) { return this.sessions.extend(sid, expiresAt); }
     public async addTransaction(t: Transaction) { return this.sessions.addTransaction(t); }
     public async getUserTransactions(uid: string) { return this.sessions.getUserTransactions(uid); }
 

@@ -17,6 +17,12 @@ export interface MemorySettings {
   neo4jPass?: string;
 }
 
+export interface SSOProviderConfig {
+    provider: 'google' | 'github';
+    clientId: string;
+    enabled: boolean;
+}
+
 export interface AppSettings {
   language: 'en' | 'es';
   aiModel: 'flash' | 'pro';
@@ -39,6 +45,7 @@ export interface AppSettings {
   memory: MemorySettings;
   developerMode: boolean;
   learningMode?: boolean;
+  ssoProviders?: SSOProviderConfig[];
 }
 
 export interface GitHubRepo {

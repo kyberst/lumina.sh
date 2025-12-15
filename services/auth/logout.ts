@@ -1,8 +1,11 @@
 
 import { dbFacade } from '../dbFacade';
 import { authStorage } from './storage';
+import { stopSessionMonitor } from './sessionMonitor';
 
 export const logout = async () => {
+    stopSessionMonitor();
+    
     const token = authStorage.getToken();
     
     // Revoke server-side if token exists

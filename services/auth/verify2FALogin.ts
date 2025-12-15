@@ -12,7 +12,14 @@ export const verify2FALogin = async (code: string): Promise<User> => {
     const user = await dbFacade.getUserById(tempId);
     if (!user) throw new Error(t('errorUserGeneric', 'auth'));
 
-    await startSession(user.id);
+    // Retrieve the persistence preference set during the initial login step
+    const rememberMe = sessionStorage.getItem('temp_2fa_remember') !== 'false'; // Default true if missing
+
+    await startSession(user.id, rememberMe);
+    
+    // Cleanup temporary auth state
     sessionStorage.removeItem('temp_2fa_user');
+    sessionStorage.removeItem('temp_2fa_remember');
+    
     return user;
 };

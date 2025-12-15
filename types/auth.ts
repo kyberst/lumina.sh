@@ -1,3 +1,4 @@
+
 /** Represents an authenticated user in the local system. */
 export interface User {
   id: string;
@@ -7,6 +8,7 @@ export interface User {
   avatar?: string; 
   credits: number;
   twoFactorEnabled: boolean;
+  telemetryConsent: boolean;
   createdAt: number;
 }
 
@@ -17,6 +19,7 @@ export interface Session {
   device: string;
   ip: string;
   lastActive: number;
+  expiresAt: number;
   isCurrent?: boolean;
 }
 

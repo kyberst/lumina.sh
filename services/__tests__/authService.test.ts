@@ -36,7 +36,8 @@ describe('AuthService (Contract/Unit)', () => {
       passwordHash: btoa('password123'),
       credits: 10,
       twoFactorEnabled: false,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      telemetryConsent: false
     };
 
     vi.mocked(dbFacade.getUser).mockResolvedValue(mockUser);
@@ -56,7 +57,8 @@ describe('AuthService (Contract/Unit)', () => {
         passwordHash: btoa('password123'), // Encoded 'password123'
         credits: 10,
         twoFactorEnabled: false,
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        telemetryConsent: false
     };
 
     vi.mocked(dbFacade.getUser).mockResolvedValue(mockUser);
@@ -73,7 +75,8 @@ describe('AuthService (Contract/Unit)', () => {
         passwordHash: btoa('password123'),
         credits: 10,
         twoFactorEnabled: true,
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        telemetryConsent: false
     };
 
     vi.mocked(dbFacade.getUser).mockResolvedValue(mockUser);

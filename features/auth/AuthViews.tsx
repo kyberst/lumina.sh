@@ -1,13 +1,12 @@
 
 import React, { useState } from 'react';
 import { AuthLayout } from './AuthLayout';
-// FIX: Corrected import path for authService
-import { authService } from '../../services/auth';
 import { User } from '../../types';
 import { toast } from '../../services/toastService';
-import { LoginForm } from './components/LoginForm';
-import { RegisterForm } from './components/RegisterForm';
-import { RecoverForm } from './components/RecoverForm';
+import { IdentityForm } from './components/IdentityForm/index';
+import { LoginForm } from './components/LoginForm/index';
+import { RegisterForm } from './components/RegisterForm/index';
+import { RecoverForm } from './components/RecoverForm/index';
 import { t } from '../../services/i18n';
 
 interface AuthProps {
@@ -15,46 +14,63 @@ interface AuthProps {
     loading?: boolean;
 }
 
-/**
- * AuthViews: Componente Orquestador.
- * Gestiona el estado de alto nivel (qué vista mostrar) y las transiciones.
- * Delega la lógica específica de cada formulario a componentes hijos.
- */
-export const AuthViews: React.FC<AuthProps> = ({ onLogin, loading = false }) => {
-    const [view, setView] = useState<'login' | 'register' | 'recover'>('login');
+type AuthStep = 'identity' | 'login' | 'register' | 'recover';
 
-    // Maneja el éxito del login desde cualquier subcomponente
+export const AuthViews: React.FC<AuthProps> = ({ onLogin, loading = false }) => {
+    const [step, setStep] = useState<AuthStep>('identity');
+    const [currentEmail, setCurrentEmail] = useState('');
+
     const handleLoginSuccess = (user: User) => {
         toast.success(t('welcomeBackToast', 'auth'));
         onLogin(user);
+    };
+
+    const handleIdentityResult = (email: string, exists: boolean) => {
+        setCurrentEmail(email);
+        setStep(exists ? 'login' : 'register');
+    };
+
+    const handleEditEmail = () => {
+        setStep('identity');
+        // keep currentEmail populated so they can fix a typo
     };
 
     return (
         <AuthLayout>
             <div className="bg-card text-card-foreground rounded-xl p-8 md:p-10 shadow-lg border">
                 
-                {/* Renderizado Condicional de Formularios */}
-                {view === 'login' && (
+                {step === 'identity' && (
+                    <IdentityForm 
+                        onResult={handleIdentityResult} 
+                        onSSOSuccess={handleLoginSuccess}
+                    />
+                )}
+
+                {step === 'login' && (
                     <LoginForm 
+                        initialEmail={currentEmail}
+                        onEditEmail={handleEditEmail}
                         onSuccess={handleLoginSuccess}
-                        onForgotPassword={() => setView('recover')}
-                        onRegisterClick={() => setView('register')}
+                        onForgotPassword={() => setStep('recover')}
+                        onRegisterClick={() => setStep('register')} // Fallback in case state drift
                         isLoading={loading}
                     />
                 )}
 
-                {view === 'register' && (
+                {step === 'register' && (
                     <RegisterForm 
+                        initialEmail={currentEmail}
+                        onEditEmail={handleEditEmail}
                         onSuccess={handleLoginSuccess}
-                        onLoginClick={() => setView('login')}
+                        onLoginClick={() => setStep('login')} // Fallback
                         isLoading={loading}
                     />
                 )}
 
-                {view === 'recover' && (
+                {step === 'recover' && (
                     <RecoverForm 
-                        onSuccess={() => setView('login')}
-                        onCancel={() => setView('login')}
+                        onSuccess={() => setStep('login')}
+                        onCancel={() => setStep('login')}
                         isLoading={loading}
                     />
                 )}

@@ -11,6 +11,11 @@ import { resetPassword } from './resetPassword';
 import { changePassword } from './changePassword';
 import { logout } from './logout';
 import { getSessionId } from './getSessionId';
+import { generateMFASecret, verifyAndActivateMFA, disableMFA } from './mfa';
+import { loginWithSSO } from './sso';
+import { isWebAuthnAvailable, registerDevice, loginWithDevice } from './webauthn';
+import { checkEmailExists } from './checkEmail';
+import { validateSession } from './validateSession';
 
 export const authService = {
     getCurrentUser,
@@ -24,5 +29,14 @@ export const authService = {
     resetPassword,
     changePassword,
     logout,
-    getSessionId
+    getSessionId,
+    generateMFASecret,
+    verifyAndActivateMFA,
+    disableMFA,
+    loginWithSSO,
+    isWebAuthnAvailable,
+    registerDevice,
+    loginWithDevice,
+    checkEmailExists,
+    validateSession
 };

@@ -1,7 +1,10 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useProjectData } from './useProjectData';
 import { authService } from '../services/auth';
+import { usePageVisibility } from './usePageVisibility';
+import { toast } from '../services/toastService';
+import { t } from '../services/i18n';
 
 export const useApp = () => {
     const data = useProjectData();
@@ -9,10 +12,10 @@ export const useApp = () => {
     const [search, setSearch] = useState('');
     const [isOffline, setIsOffline] = useState(false);
 
-    const handleLogout = () => {
+    const handleLogout = useCallback(() => {
         authService.logout();
         data.setUser(null);
-    };
+    }, [data]);
     
     const handleLanguageChange = (lang: 'en' | 'es') => {
         data.saveSettings({ ...data.settings, language: lang });
@@ -21,6 +24,18 @@ export const useApp = () => {
     const handleCloseWorkspace = () => {
         data.setSelectedProject(null);
     };
+
+    // Security: Revalidate session when user returns to the tab
+    usePageVisibility(async () => {
+        if (data.user) {
+            const isValid = await authService.validateSession();
+            if (!isValid) {
+                console.warn('[Security] Session expired in background. Logging out.');
+                toast.info(t('errorSessionExpired', 'auth'));
+                handleLogout();
+            }
+        }
+    });
 
     return {
         ...data,

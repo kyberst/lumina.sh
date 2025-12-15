@@ -20,6 +20,10 @@ export class SessionRepository extends BaseRepository {
         await dbCore.query("DELETE type::thing('sessions', $id)", { id: sessionId });
     }
 
+    public async extend(sessionId: string, newExpiresAt: number) {
+        await dbCore.query("UPDATE type::thing('sessions', $id) SET expiresAt = $newExpiresAt", { id: sessionId, newExpiresAt });
+    }
+
     public async addTransaction(t: Transaction) {
         // Upsert transaction
         await dbCore.query("UPDATE type::thing('transactions', $id) CONTENT $t", { id: t.id, t });

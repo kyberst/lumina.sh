@@ -20,7 +20,8 @@ describe('UserRepository (Integration)', () => {
       passwordHash: 'hash',
       credits: 100,
       twoFactorEnabled: false,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      telemetryConsent: false
     };
 
     await repo.create(user);
