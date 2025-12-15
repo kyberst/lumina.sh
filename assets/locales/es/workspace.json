@@ -45,5 +45,10 @@
     "offlineDesc": "La Edición Visual y de Propiedades sigue funcionando sin costo.",
     "retryConnection": "Reintentar Conexión",
     "failoverToast": "⚠️ Problema de servicio con {modelA}. Cambiando a {modelB} para continuar.",
-    "inputNeeded": "Por favor, responde a la sugerencia de arriba..."
+    "inputNeeded": "Por favor, responde a la sugerencia de arriba...",
+    "noHistory": "No hay instantáneas disponibles. ¡Haz algunos cambios!",
+    "restoreTitle": "¿Restaurar Instantánea?",
+    "restoreDesc": "Esto revertirá tu proyecto al estado seleccionado. Los cambios actuales se guardarán como una nueva instantánea antes de revertir.",
+    "restoreConfirm": "Restaurar",
+    "changeApplied": "¡Instantánea Restaurada!"
 }

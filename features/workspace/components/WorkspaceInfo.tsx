@@ -1,10 +1,11 @@
 
-
 import React, { useState, useEffect, useRef } from 'react';
 import { JournalEntry, AppSettings } from '../../../types';
 import { FunctionalFileExplorer } from './info/FunctionalFileExplorer';
 import { UniversalPropertyInspector } from './info/UniversalPropertyInspector';
+import { HistoryList } from './info/HistoryList';
 import { t } from '../../../../services/i18n';
+import { toast } from '../../../../services/toastService';
 
 interface WorkspaceInfoProps {
   entry: JournalEntry;
@@ -46,6 +47,11 @@ export const WorkspaceInfo: React.FC<WorkspaceInfoProps> = ({ entry, onUpdate, s
     };
   }, [settings.developerMode]);
 
+  const handleRestoreSnapshot = (snapshot: any) => {
+      onUpdate({ ...entry, files: snapshot.files });
+      toast.success(t('changeApplied', 'builder'));
+  };
+
   return (
     <div ref={containerRef} className="w-full h-full bg-slate-50 overflow-y-auto p-4 sm:p-8 relative">
         
@@ -70,6 +76,8 @@ export const WorkspaceInfo: React.FC<WorkspaceInfoProps> = ({ entry, onUpdate, s
             />
 
             {!settings.developerMode && <FunctionalFileExplorer files={entry.files} />}
+
+            <HistoryList history={entry.history || []} onRestore={handleRestoreSnapshot} />
 
             <div>
                 <h2 className="text-2xl font-bold text-slate-800 mb-2 font-['Plus_Jakarta_Sans']">{t('projectConfig', 'workspace')}</h2>

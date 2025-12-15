@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
-import { JournalEntry, AppSettings, User } from '../types';
+import { JournalEntry, AppSettings, User, Snapshot } from '../types';
 import { dbFacade } from '../services/dbFacade';
 // FIX: Corrected import path for authService
 import { authService } from '../services/auth';
@@ -114,9 +114,34 @@ export const useProjectData = () => {
     };
 
     const updateEntry = async (e: JournalEntry) => { 
-        await dbFacade.saveProject(e); 
-        setEntries(p => p.map(x => x.id===e.id?e:x)); 
-        if(selectedProject?.id===e.id) setSelectedProject(e); 
+        let entryToSave = { ...e };
+        const currentEntry = entries.find(p => p.id === e.id);
+
+        if (currentEntry) {
+            // Check for file changes to determine if we need a snapshot
+            const filesChanged = JSON.stringify(currentEntry.files) !== JSON.stringify(e.files);
+            
+            if (filesChanged) {
+                const newSnapshot: Snapshot = {
+                    id: crypto.randomUUID(),
+                    timestamp: Date.now(),
+                    description: `Checkpoint ${new Date().toLocaleTimeString()}`,
+                    files: currentEntry.files
+                };
+                
+                const existingHistory = currentEntry.history || [];
+                // Prepend new snapshot, limit to 50
+                entryToSave.history = [newSnapshot, ...existingHistory].slice(0, 50);
+            } else {
+                // If files didn't change (e.g. metadata update), preserve existing history
+                // Note: 'e' might not have history if it came from a partial update source, so use currentEntry's history
+                entryToSave.history = currentEntry.history;
+            }
+        }
+
+        await dbFacade.saveProject(entryToSave); 
+        setEntries(p => p.map(x => x.id===entryToSave.id?entryToSave:x)); 
+        if(selectedProject?.id===entryToSave.id) setSelectedProject(entryToSave); 
     };
 
     const deleteEntry = async (id: string) => { 
@@ -133,7 +158,7 @@ export const useProjectData = () => {
         selectedProject, 
         setSelectedProject, 
         loading, 
-        loadingMessage,
+        loadingMessage, 
         settings: effectiveSettings, 
         saveSettings, 
         createEntry, 

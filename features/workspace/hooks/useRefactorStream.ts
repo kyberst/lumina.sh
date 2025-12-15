@@ -21,6 +21,7 @@ interface UseRefactorStreamProps {
     setTotalUsage: React.Dispatch<React.SetStateAction<{input: number, output: number}>>;
     setIframeKey: React.Dispatch<React.SetStateAction<number>>;
     setIsOffline: (isOffline: boolean) => void;
+    setSelectedContextFiles?: React.Dispatch<React.SetStateAction<Set<string>>>;
 }
 
 const containsTechnicalJargon = (text: string): boolean => {
@@ -29,14 +30,14 @@ const containsTechnicalJargon = (text: string): boolean => {
     return jargonRegex.test(text);
 };
 
-export const useRefactorStream = ({ entry, settings, history, setHistory, onUpdate, setTotalUsage, setIframeKey, setIsOffline }: UseRefactorStreamProps) => {
+export const useRefactorStream = ({ entry, settings, history, setHistory, onUpdate, setTotalUsage, setIframeKey, setIsOffline, setSelectedContextFiles }: UseRefactorStreamProps) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [streamState, setStreamState] = useState<StreamState>(createInitialStreamState(entry.files));
     const abortControllerRef = useRef<AbortController | null>(null);
 
     const handleStreamingBuild = async (
         userMessage?: string, attachments: any[] = [], editorContext?: EditorContext, mode: 'modify' | 'explain' = 'modify',
-        options?: { isRetry?: boolean; overrideSettings?: Partial<AppSettings>; isFollowUp?: boolean, bypassInterceptors?: boolean }
+        options?: { isRetry?: boolean; overrideSettings?: Partial<AppSettings>; isFollowUp?: boolean, bypassInterceptors?: boolean, allowedContextFiles?: Set<string> }
     ) => {
         setIsOffline(false); // Reset offline state on every new attempt
         const isInitial = !userMessage && entry.pendingGeneration;
@@ -52,8 +53,44 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
         
         setIsProcessing(true);
 
-        // --- INTELLIGENT INTERCEPTORS ---
+        // --- INTELLIGENT INTERCEPTORS (Guardrails & Suggestions) ---
         if (mode === 'modify' && !options?.bypassInterceptors && !isInitial) {
+            
+            // 0. Context Guardrail (Path 1)
+            // If Developer Mode is ON and a file is mentioned but NOT selected, ask to add it.
+            if (settings.developerMode && options?.allowedContextFiles && options.allowedContextFiles.size < entry.files.length) {
+                // Regex to find filenames in prompt (basic heuristic)
+                const filenameRegex = /\b[\w-]+\.(tsx|ts|js|jsx|css|html|json)\b/g;
+                const mentions = new Set(promptText.match(filenameRegex) || []);
+                const missingFiles = Array.from(mentions).filter(name => entry.files.some(f => f.name === name) && !options.allowedContextFiles!.has(name));
+
+                if (missingFiles.length > 0) {
+                    const guardMsg: ChatMessage = {
+                        id: crypto.randomUUID(), role: 'model', isAwaitingInput: true, timestamp: Date.now(),
+                        text: `⚠️ **Context Alert**: You mentioned \`${missingFiles.join(', ')}\`, but it is not currently in the active context. To ensure an accurate refactor, I need to read this file.`,
+                        suggestions: [
+                            { 
+                                label: `Add ${missingFiles[0]} & Continue`, 
+                                action: 'submit_props', // Reusing action type to trigger callback with payload
+                                payload: { 
+                                    originalPrompt, 
+                                    actionType: 'add_context_and_retry',
+                                    filesToAdd: missingFiles 
+                                } 
+                            },
+                            { 
+                                label: "Ignore & Continue (Risky)", 
+                                action: 'create_new', // Reusing action to just push prompt
+                                payload: { originalPrompt } 
+                            }
+                        ]
+                    };
+                    setHistory(p => [...p, guardMsg]);
+                    setIsProcessing(false);
+                    return;
+                }
+            }
+
             // 1. Code Reuse Interceptor
             const similarCode = await findSimilarCode(promptText, getEmbedding);
             if (similarCode) {
@@ -124,9 +161,14 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
         let finalUsage = { inputTokens: 0, outputTokens: 0 };
         const effectiveSettings = { ...settings, ...(options?.overrideSettings || {}) };
 
+        // FILTER FILES BASED ON SELECTION
+        const filesToSend = options?.allowedContextFiles 
+            ? entry.files.filter(f => options.allowedContextFiles!.has(f.name))
+            : entry.files;
+
         try {
             const promptType = isInitial ? 'builder' : (mode === 'explain' ? 'explain' : 'refactor');
-            const stream = streamChatRefactor(entry.files, promptText, isInitial ? [] : history, getLanguage(), attachments, 
+            const stream = streamChatRefactor(filesToSend, promptText, isInitial ? [] : history, getLanguage(), attachments, 
                 { settings: effectiveSettings, systemPromptType: promptType }, 
                 abortControllerRef.current.signal
             );
@@ -210,7 +252,7 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
                     { confirmText: t('patchRetryButton', 'builder') }
                 );
                 if (confirmed) {
-                    handleStreamingBuild(userMessage, attachments, editorContext, mode, { isRetry: true, overrideSettings: { contextSize: 'max' } });
+                    handleStreamingBuild(userMessage, attachments, editorContext, mode, { isRetry: true, overrideSettings: { contextSize: 'max' }, allowedContextFiles: options?.allowedContextFiles });
                 } else {
                     setIsProcessing(false);
                 }

@@ -1,7 +1,8 @@
 
 import React, { useRef, useMemo, useState } from 'react';
 import { t } from '../../../../services/i18n';
-import { AppSettings, ChatMessage } from '../../../../types';
+import { AppSettings, ChatMessage, GeneratedFile } from '../../../../types';
+import { estimateTokens } from '../../../../services/ai/costEstimator';
 
 interface Props {
     chatInput: string;
@@ -21,6 +22,7 @@ interface Props {
     onSaveSettings: (s: AppSettings) => void;
     history: ChatMessage[];
     isOffline: boolean;
+    currentFiles?: GeneratedFile[]; // Passed down to calculate total project context
 }
 
 /**
@@ -28,12 +30,31 @@ interface Props {
  * Maneja textarea auto-expandible, botón de adjuntar y grabación de voz.
  */
 export const ChatInputArea: React.FC<Props> = ({ 
-    chatInput, setChatInput, isProcessing, isListening, toggleListening, onSend, onStop, attachments, setAttachments, showSuggestions, mode = 'modify', onUndo, canUndo, settings, onSaveSettings, history, isOffline
+    chatInput, setChatInput, isProcessing, isListening, toggleListening, onSend, onStop, attachments, setAttachments, showSuggestions, mode = 'modify', onUndo, canUndo, settings, onSaveSettings, history, isOffline, currentFiles = []
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [historyIndex, setHistoryIndex] = useState<number | null>(null);
 
     const userPrompts = useMemo(() => history.filter(m => m.role === 'user').map(m => m.text), [history]);
+
+    // Context Usage Calculation (Approximate)
+    const contextUsage = useMemo(() => {
+        if (!settings.developerMode) return { used: 0, total: 0, percent: 0 };
+        
+        let totalChars = 0;
+        currentFiles.forEach(f => totalChars += f.content.length);
+        const usedTokens = estimateTokens(' ' .repeat(totalChars)); // Hack using estimateTokens logic
+        
+        // Define Limits based on settings
+        let limit = 32000; // default
+        if (settings.contextSize === 'economy') limit = 8000;
+        if (settings.contextSize === 'plus') limit = 128000;
+        if (settings.contextSize === 'high') limit = 500000;
+        if (settings.contextSize === 'max') limit = 1000000; // Gemini 1M window
+
+        const percent = Math.min(100, (usedTokens / limit) * 100);
+        return { used: usedTokens, total: limit, percent };
+    }, [currentFiles, settings.contextSize, settings.developerMode]);
 
     const suggestionItems = [
         { key: 'makeItGreen', action: () => onSend(t('suggestions.makeItGreen', 'assistant')) },
@@ -109,7 +130,22 @@ export const ChatInputArea: React.FC<Props> = ({
     }
 
     return (
-        <div className="p-3 bg-white border-t space-y-2" data-tour="chat-input">
+        <div className="p-3 bg-white border-t space-y-2 relative" data-tour="chat-input">
+            
+            {/* Total Context Bar (Programmer Mode) */}
+            {settings.developerMode && (
+                <div className="absolute top-0 left-0 right-0 h-1 bg-slate-100">
+                    <div 
+                        className={`h-full transition-all duration-500 ${contextUsage.percent > 90 ? 'bg-red-500' : contextUsage.percent > 70 ? 'bg-amber-500' : 'bg-indigo-500'}`} 
+                        style={{ width: `${contextUsage.percent}%` }}
+                    />
+                    {/* Tooltip showing precise numbers */}
+                    <div className="absolute top-0 right-0 transform -translate-y-full bg-slate-800 text-white text-[9px] px-2 py-0.5 rounded-tl-md font-mono opacity-0 hover:opacity-100 transition-opacity pointer-events-auto cursor-help">
+                        Context: {Math.round(contextUsage.used/1000)}k / {Math.round(contextUsage.total/1000)}k tokens
+                    </div>
+                </div>
+            )}
+
             {showSuggestions && !isProcessing && !chatInput && !isOffline && mode === 'modify' && !settings.developerMode && (
                 <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar px-1">
                     {suggestionItems.map(({ key, action }) => (
@@ -125,7 +161,7 @@ export const ChatInputArea: React.FC<Props> = ({
             )}
             
             {settings.developerMode && mode === 'modify' && (
-                <div className="flex items-center gap-3 px-1 pb-2 border-b border-slate-100 mb-2">
+                <div className="flex items-center gap-3 px-1 pb-2 border-b border-slate-100 mb-2 mt-2">
                     <label className="text-[10px] font-bold uppercase text-slate-500 whitespace-nowrap">{t('contextSize', 'settings')}:</label>
                     <select 
                         value={settings.contextSize} 

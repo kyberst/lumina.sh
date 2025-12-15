@@ -45,5 +45,10 @@
     "offlineDesc": "Visual and Property editing remains functional at no cost.",
     "retryConnection": "Retry Connection",
     "failoverToast": "⚠️ Service issue with {modelA}. Switching to {modelB} to continue.",
-    "inputNeeded": "Please respond to the suggestion above..."
+    "inputNeeded": "Please respond to the suggestion above...",
+    "noHistory": "No snapshots available yet. Make some changes!",
+    "restoreTitle": "Restore Snapshot?",
+    "restoreDesc": "This will revert your project to the selected state. Current changes will be saved as a new snapshot before reverting.",
+    "restoreConfirm": "Restore",
+    "changeApplied": "Snapshot Restored!"
 }

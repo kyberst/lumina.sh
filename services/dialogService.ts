@@ -98,7 +98,7 @@ class DialogService {
     };
   }
 
-  private close() {
+  public close() {
     if (this.listener) {
         this.listener(null);
         this.currentDialogId = null;

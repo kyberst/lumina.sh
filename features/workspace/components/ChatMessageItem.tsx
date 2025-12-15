@@ -8,6 +8,7 @@ import { t } from '../../../services/i18n';
 import { dialogService } from '../../../../services/dialogService';
 import { SyntaxHighlighter } from '../../../../components/ui/SyntaxHighlighter';
 import { IntelligentSuggestions } from './chat/IntelligentSuggestions';
+import { estimateCost, formatCost } from '../../../../services/ai/costEstimator';
 
 interface Props {
     msg: ChatMessage;
@@ -31,6 +32,11 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, prevSnapshot, onEnvVarSa
     const { developerMode } = settings;
     const totalTokens = (msg.usage?.inputTokens || 0) + (msg.usage?.outputTokens || 0);
     const hasPatches = msg.patches && Object.keys(msg.patches).length > 0;
+
+    // Cost Calculation
+    const estimatedCost = (isModel && msg.audit) 
+        ? estimateCost(msg.audit.tokenUsage.input, msg.audit.tokenUsage.output, msg.audit.model) 
+        : 0;
 
     const handleViewPatch = () => {
         if (!msg.patches) return;
@@ -93,6 +99,33 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, prevSnapshot, onEnvVarSa
                                         <span className="text-xs font-bold">{t('checkpoint', 'builder')}</span>
                                     </div>
                                 )}
+                                
+                                {/* Cost & Memory Chip (Programmer Mode Only) */}
+                                {developerMode && msg.audit && (
+                                    <div className="group/cost relative flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-full px-2 py-0.5 text-[9px] text-slate-500 cursor-help transition-colors hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50">
+                                        <span className="font-mono">{formatCost(estimatedCost)}</span>
+                                        <span className="w-px h-2 bg-slate-300 mx-0.5"></span>
+                                        <span className="font-mono">{((msg.audit.tokenUsage.input + msg.audit.tokenUsage.output) / 1000).toFixed(1)}k T</span>
+                                        
+                                        {/* Tooltip */}
+                                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 bg-slate-800 text-white p-2 rounded-lg text-[10px] shadow-xl opacity-0 group-hover/cost:opacity-100 pointer-events-none transition-opacity z-50 flex flex-col gap-1">
+                                            <div className="flex justify-between border-b border-slate-600 pb-1 mb-1">
+                                                <span>Est. Cost:</span>
+                                                <span className="font-mono text-emerald-400">{formatCost(estimatedCost)}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-400">Context Read:</span>
+                                                <span className="font-mono">{msg.audit.tokenUsage.input.toLocaleString()}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-400">Generated:</span>
+                                                <span className="font-mono">{msg.audit.tokenUsage.output.toLocaleString()}</span>
+                                            </div>
+                                            <div className="text-right text-slate-500 italic mt-1">{msg.audit.model}</div>
+                                            <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             <button onClick={() => setCollapsed(!collapsed)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-full">
                                 {collapsed ? <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M12 20V4"/><path d="m4 12 8 8 8-8"/></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><path d="M12 4v16"/><path d="m20 12-8-8-8 8"/></svg>}
@@ -124,7 +157,7 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, prevSnapshot, onEnvVarSa
                                         <p className="text-xs italic mt-1">{justificationText}</p>
                                     </div>
                                 )}
-                                {msg.audit && (
+                                {msg.audit && !collapsed && (
                                     <details className="mt-3 text-[10px] cursor-pointer">
                                         <summary className="font-bold text-slate-400 uppercase tracking-wider">{t('auditHeader', 'builder')}</summary>
                                         <div className="grid grid-cols-2 gap-2 mt-2 p-2 bg-slate-50 rounded">
