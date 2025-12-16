@@ -10,11 +10,11 @@ export const useIdentityForm = (onResult: (email: string, exists: boolean) => vo
 
     const handleContinue = async () => {
         if (!email.trim()) {
-            toast.error(t('errorEmailRequired', 'auth'));
+            toast.error(t('error.emailRequired', 'auth'));
             return;
         }
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            toast.error("Invalid email format");
+            toast.error(t('error.invalidEmail', 'auth'));
             return;
         }
 
@@ -23,7 +23,7 @@ export const useIdentityForm = (onResult: (email: string, exists: boolean) => vo
             const exists = await authService.checkEmailExists(email);
             onResult(email, exists);
         } catch (e: any) {
-            toast.error(e.message || t('errorGeneric', 'common'));
+            toast.error(e.message || t('error.generic', 'auth'));
         } finally {
             setIsSubmitting(false);
         }

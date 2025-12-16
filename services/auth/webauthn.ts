@@ -32,7 +32,7 @@ export const isWebAuthnAvailable = async (): Promise<boolean> => {
  * In a real app, the 'challenge' comes from the server.
  */
 export const registerDevice = async (userId: string, email: string) => {
-    if (!userId) throw new Error("User context required");
+    if (!userId) throw new Error(t('error.userGeneric', 'auth'));
 
     // 1. Mock Server Challenge options
     const challenge = new Uint8Array(32);
@@ -67,7 +67,7 @@ export const registerDevice = async (userId: string, email: string) => {
         return true;
     } catch (e: any) {
         console.error('[WebAuthn] Registration failed', e);
-        throw new Error(t('passkeyRegisterFail', 'auth'));
+        throw new Error(t('passkey.registerFail', 'auth'));
     }
 };
 
@@ -109,13 +109,13 @@ export const loginWithDevice = async () => {
             // If completely new device/cleared cache, we can't mock-lookup the user easily
             // without a real backend index of CredentialID -> UserID.
             // For demo purposes, we reject if we don't have a hint.
-            throw new Error("Device not recognized locally. Please login with password once to sync.");
+            throw new Error(t('passkey.deviceNotRecognized', 'auth'));
         }
 
         // Verify "backend" check
         const hasPasskey = await dbFacade.getConfig(`passkey_${lastUserId}`);
         if (!hasPasskey) {
-             throw new Error("No passkey registered for this user.");
+             throw new Error(t('passkey.notRegistered', 'auth'));
         }
 
         // 4. Start Session
@@ -124,6 +124,6 @@ export const loginWithDevice = async () => {
         return true;
     } catch (e: any) {
         console.error('[WebAuthn] Login failed', e);
-        throw new Error(t('passkeyLoginFail', 'auth'));
+        throw new Error(t('passkey.loginFail', 'auth'));
     }
 };

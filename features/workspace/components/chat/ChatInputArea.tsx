@@ -140,8 +140,8 @@ export const ChatInputArea: React.FC<Props> = ({
                         style={{ width: `${contextUsage.percent}%` }}
                     />
                     {/* Tooltip showing precise numbers */}
-                    <div className="absolute top-0 right-0 transform -translate-y-full bg-slate-800 text-white text-[9px] px-2 py-0.5 rounded-tl-md font-mono opacity-0 hover:opacity-100 transition-opacity pointer-events-auto cursor-help">
-                        Context: {Math.round(contextUsage.used/1000)}k / {Math.round(contextUsage.total/1000)}k tokens
+                    <div className="absolute top-0 right-0 transform -translate-y-full bg-slate-800 text-white text-[9px] px-2 py-0.5 rounded-tl-md font-mono opacity-0 hover:opacity-100 transition-opacity pointer-events-auto cursor-help" title={t('contextUsageTooltip', 'workspace').replace('{used}', (Math.round(contextUsage.used/1000)).toString()).replace('{total}', (Math.round(contextUsage.total/1000)).toString())}>
+                        {t('contextUsageTooltip', 'workspace').replace('{used}', (Math.round(contextUsage.used/1000)).toString()).replace('{total}', (Math.round(contextUsage.total/1000)).toString())}
                     </div>
                 </div>
             )}
@@ -182,7 +182,7 @@ export const ChatInputArea: React.FC<Props> = ({
                 </div>
             )}
             <div className="flex gap-2 items-end">
-                <button onClick={() => fileInputRef.current?.click()} disabled={isProcessing || isOffline} className="shadcn-btn shadcn-btn-outline w-10 px-0 h-[44px] shrink-0" title="Attach File">
+                <button onClick={() => fileInputRef.current?.click()} disabled={isProcessing || isOffline} className="shadcn-btn shadcn-btn-outline w-10 px-0 h-[44px] shrink-0" title={t('attachFile', 'workspace')}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
                 </button>
                 <input type="file" ref={fileInputRef} className="hidden" multiple onChange={handleAttach} />
@@ -195,7 +195,7 @@ export const ChatInputArea: React.FC<Props> = ({
                     value={chatInput} 
                     onChange={handleInputChange} 
                     onKeyDown={handleKeyDown} 
-                    placeholder={isProcessing ? "AI is working..." : placeholderText} 
+                    placeholder={isProcessing ? t('aiWorking', 'assistant') : placeholderText} 
                     disabled={isProcessing || isOffline || history.some(m => m.isAwaitingInput)} 
                     className="shadcn-input flex-1 min-h-[44px] max-h-[150px] py-2.5 resize-none overflow-y-auto" 
                     rows={1} 
@@ -203,12 +203,12 @@ export const ChatInputArea: React.FC<Props> = ({
                 />
                 
                 {isProcessing ? (
-                    <button onClick={onStop} className="shadcn-btn bg-red-500 text-white w-10 px-0 h-[44px] shrink-0">Stop</button>
+                    <button onClick={onStop} className="shadcn-btn bg-red-500 text-white w-10 px-0 h-[44px] shrink-0">{t('voiceStop', 'builder')}</button>
                 ) : (
                     <button onClick={() => handleSend()} disabled={!chatInput.trim() || isOffline || history.some(m => m.isAwaitingInput)} className={`shadcn-btn w-10 px-0 h-[44px] shrink-0 ${mode === 'explain' ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'shadcn-btn-primary'}`}>
                         {mode === 'explain' ? (
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                        ) : 'Send'}
+                        ) : t('send', 'common')}
                     </button>
                 )}
             </div>

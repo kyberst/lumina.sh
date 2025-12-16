@@ -52,7 +52,7 @@ export const CreationForm: React.FC<CreationFormProps> = (props) => {
 
   const activeModels = props.selectedProvider === 'gemini' 
     ? [{ id: 'flash', name: t('geminiFlash', 'creation') }, { id: 'pro', name: t('geminiPro', 'creation') }]
-    : props.settings.customProviders.find(p => p.id === props.selectedProvider)?.models || [];
+    : (props.settings.customProviders || []).find(p => p.id === props.selectedProvider)?.models || [];
 
   const toggleDatabase = (db: string) => {
       const current = props.databases;
@@ -132,11 +132,11 @@ export const CreationForm: React.FC<CreationFormProps> = (props) => {
                  {/* A. Target Stack */}
                  <div className="mb-6 space-y-4">
                      <div>
-                        <label className="block text-[11px] text-slate-500 font-bold uppercase mb-2">Target Stack (Frontend / Backend)</label>
+                        <label className="block text-[11px] text-slate-500 font-bold uppercase mb-2">{t('targetStackFull', 'creation')}</label>
                         <TechStackSelector selected={props.stack} onToggle={toggleStackItem} />
                      </div>
                      <div>
-                        <label className="block text-[11px] text-slate-500 font-bold uppercase mb-2">Database & Persistence</label>
+                        <label className="block text-[11px] text-slate-500 font-bold uppercase mb-2">{t('databasePersistence', 'creation')}</label>
                         <div className="bg-white text-slate-800 p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap gap-2">
                             {DB_OPTIONS.map(db => (
                                 <button
@@ -157,14 +157,14 @@ export const CreationForm: React.FC<CreationFormProps> = (props) => {
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
                          <div className="flex items-center gap-2 mb-2">
-                             <span className="text-indigo-600 font-bold text-xs uppercase tracking-wider">AI Engine</span>
+                             <span className="text-indigo-600 font-bold text-xs uppercase tracking-wider">{t('aiEngine', 'creation')}</span>
                          </div>
                          <div className="grid grid-cols-2 gap-3">
                              <div>
                                 <label className="block text-[10px] text-slate-400 font-bold uppercase mb-1">{t('provider', 'creation')}</label>
                                 <select value={props.selectedProvider} onChange={e => { props.setSelectedProvider(e.target.value); props.setSelectedModel(''); }} className="shadcn-input text-xs font-medium h-9">
                                     <option value="gemini">{t('googleGemini', 'creation')}</option>
-                                    {props.settings.customProviders.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    {(props.settings.customProviders || []).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                 </select>
                              </div>
                              <div>
@@ -179,19 +179,19 @@ export const CreationForm: React.FC<CreationFormProps> = (props) => {
                              <div>
                                  <label className="block text-[10px] text-slate-400 font-bold uppercase mb-1">{t('thinkingBudget', 'settings')}</label>
                                  <select value={props.thinkingBudget} onChange={e => props.setThinkingBudget(e.target.value as any)} className="shadcn-input text-xs font-medium h-9">
-                                     <option value="low">Low (Fast)</option>
-                                     <option value="medium">Medium (Balanced)</option>
-                                     <option value="high">High (Deep)</option>
+                                     <option value="low">{t('thinkingBudgetFast', 'creation')}</option>
+                                     <option value="medium">{t('thinkingBudgetBalanced', 'creation')}</option>
+                                     <option value="high">{t('thinkingBudgetDeep', 'creation')}</option>
                                  </select>
                              </div>
                              <div>
                                  <label className="block text-[10px] text-slate-400 font-bold uppercase mb-1">{t('contextSize', 'settings')}</label>
                                  <select value={props.contextSize} onChange={e => props.setContextSize(e.target.value as any)} className="shadcn-input text-xs font-medium h-9">
-                                     <option value="economy">Economy</option>
-                                     <option value="default">Default</option>
-                                     <option value="plus">Plus</option>
-                                     <option value="high">High</option>
-                                     <option value="max">Max</option>
+                                     <option value="economy">{t('contextSizeEconomy', 'creation')}</option>
+                                     <option value="default">{t('contextSizeDefault', 'creation')}</option>
+                                     <option value="plus">{t('contextSizePlus', 'creation')}</option>
+                                     <option value="high">{t('contextSizeHigh', 'creation')}</option>
+                                     <option value="max">{t('contextSizeMax', 'creation')}</option>
                                  </select>
                              </div>
                          </div>
@@ -200,7 +200,7 @@ export const CreationForm: React.FC<CreationFormProps> = (props) => {
                      {/* C. Workflow Control */}
                      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
                          <div className="flex items-center gap-2 mb-2">
-                             <span className="text-emerald-600 font-bold text-xs uppercase tracking-wider">Workflow</span>
+                             <span className="text-emerald-600 font-bold text-xs uppercase tracking-wider">{t('workflow', 'creation')}</span>
                          </div>
                          <div className="flex gap-4">
                              <label className="flex items-center gap-2 cursor-pointer">
@@ -218,7 +218,7 @@ export const CreationForm: React.FC<CreationFormProps> = (props) => {
                                 value={props.systemContextOverride} 
                                 onChange={e => props.setSystemContextOverride(e.target.value)} 
                                 className="shadcn-input h-20 text-xs font-mono resize-none py-2" 
-                                placeholder="e.g. Always use React hooks with this pattern..."
+                                placeholder={t('archContextPlaceholder', 'creation')}
                              />
                          </div>
                      </div>

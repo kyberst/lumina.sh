@@ -50,5 +50,16 @@
     "restoreTitle": "Restore Snapshot?",
     "restoreDesc": "This will revert your project to the selected state. Current changes will be saved as a new snapshot before reverting.",
     "restoreConfirm": "Restore",
-    "changeApplied": "Snapshot Restored!"
+    "changeApplied": "Snapshot Restored!",
+    "contextTooltip": "Include in AI Context",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
+    "selectFileToEdit": "Select a file to edit",
+    "aiEditing": "AI Editing...",
+    "contextUsageTooltip": "Context: {used}k / {total}k tokens",
+    "contextAlertDesc": "⚠️ **Context Alert**: You mentioned {files}, but it is not currently in the active context. To ensure an accurate refactor, I need to read this file.",
+    "contextAlertAddAndContinue": "Add {file} & Continue",
+    "contextAlertIgnore": "Ignore & Continue (Risky)",
+    "attachFile": "Attach File",
+    "patchFailedError": "Patch failed"
 }

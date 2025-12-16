@@ -7,7 +7,7 @@ interface WorkspaceHeaderProps {
   entry: JournalEntry;
   rightTab: 'preview' | 'code' | 'info';
   setRightTab: (t: 'preview' | 'code' | 'info') => void;
-  onClose: () => void;
+  onCloseWorkspace: () => void;
   onSecurityScan: () => void;
   onPublish: () => void;
   onInvite: () => void;
@@ -20,7 +20,7 @@ interface WorkspaceHeaderProps {
 }
 
 export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
-  entry, rightTab, setRightTab, onClose, onSecurityScan, onPublish, onInvite, onDownload, onRefresh, totalUsage, saveStatus = 'saved', isProcessing = false, settings
+  entry, rightTab, setRightTab, onCloseWorkspace, onSecurityScan, onPublish, onInvite, onDownload, onRefresh, totalUsage, saveStatus = 'saved', isProcessing = false, settings
 }) => {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -37,77 +37,77 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   }, []);
 
   return (
-    <header className="h-16 bg-slate-900 text-white flex items-center justify-between px-4 shrink-0 shadow-lg z-20 border-b border-slate-800 relative">
+    <header className="h-16 bg-white text-slate-900 flex items-center justify-between px-4 shrink-0 shadow-sm z-20 border-b border-slate-200 relative">
       <div className="flex items-center gap-4 min-w-0">
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors p-1 hover:bg-slate-800 rounded-full">
+          <button onClick={onCloseWorkspace} className="text-slate-500 hover:text-slate-900 transition-colors p-1 hover:bg-slate-100 rounded-full">
              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>
           </button>
           <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-3">
-                  <h1 className="text-base font-bold leading-none truncate text-slate-100">{entry.project || t('untitled', 'project')}</h1>
+                  <h1 className="text-base font-bold leading-none truncate text-slate-900">{entry.project || t('untitled', 'project')}</h1>
                   
                   {saveStatus === 'saving' ? (
-                      <span className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-indigo-400 animate-pulse bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
+                      <span className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-indigo-600 animate-pulse bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
                           <svg className="animate-spin h-2.5 w-2.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                           {t('status.saving', 'builder')}
                       </span>
                   ) : (
-                      <span className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-emerald-500/80 transition-all">
+                      <span className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-emerald-600 transition-all">
                           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                           {t('status.saved', 'builder')}
                       </span>
                   )}
                   {isProcessing && (
-                        <span className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-purple-400 animate-pulse bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20">
+                        <span className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-purple-600 animate-pulse bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
                            <svg className="animate-spin h-2.5 w-2.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                            {t('luminaIsWorking', 'builder')}
                        </span>
                   )}
               </div>
-              <div className="flex items-center gap-2 mt-1 text-[10px] font-mono text-slate-400">
-                  <span className="hidden sm:inline">{entry.files.length} {t('files', 'workspace')}</span>
-                  <span className="text-slate-600">•</span>
+              <div className="flex items-center gap-2 mt-1 text-[10px] font-mono text-slate-500">
+                  <span className="hidden sm:inline">{(entry.files || []).length} {t('files', 'workspace')}</span>
+                  <span className="text-slate-300">•</span>
                   <span>{new Date(entry.timestamp).toLocaleDateString()}</span>
               </div>
           </div>
       </div>
       
       <div className="flex items-center gap-2 sm:gap-4">
-           <div className="flex bg-slate-800/50 rounded-lg p-1 gap-1 border border-slate-700/50">
-               <button onClick={() => setRightTab('preview')} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold uppercase transition-all ${rightTab === 'preview' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/20' : 'bg-transparent text-slate-400 hover:text-white hover:bg-slate-700'}`} title={t('preview', 'builder')}>
+           <div className="inline-flex h-9 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-500">
+               <button onClick={() => setRightTab('preview')} className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 gap-2 ${rightTab === 'preview' ? 'bg-white text-indigo-600 shadow-sm' : 'hover:bg-slate-200 hover:text-slate-900'}`} title={t('preview', 'builder')}>
                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                    <span className="hidden sm:inline">{t('preview', 'builder')}</span>
                </button>
                
                {developerMode && (
-                <button onClick={() => setRightTab('code')} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold uppercase transition-all ${rightTab === 'code' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/20' : 'bg-transparent text-slate-400 hover:text-white hover:bg-slate-700'}`} title={t('code', 'builder')}>
+                <button onClick={() => setRightTab('code')} className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 gap-2 ${rightTab === 'code' ? 'bg-white text-indigo-600 shadow-sm' : 'hover:bg-slate-200 hover:text-slate-900'}`} title={t('code', 'builder')}>
                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
                    <span className="hidden sm:inline">{t('code', 'builder')}</span>
                 </button>
                )}
 
-               <button data-tour="properties-tab" onClick={() => setRightTab('info')} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold uppercase transition-all ${rightTab === 'info' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/20' : 'bg-transparent text-slate-400 hover:text-white hover:bg-slate-700'}`} title={developerMode ? t('info', 'builder') : t('properties', 'builder')}>
+               <button data-tour="properties-tab" onClick={() => setRightTab('info')} className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 gap-2 ${rightTab === 'info' ? 'bg-white text-indigo-600 shadow-sm' : 'hover:bg-slate-200 hover:text-slate-900'}`} title={developerMode ? t('info', 'builder') : t('properties', 'builder')}>
                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
                    <span className="hidden sm:inline">{developerMode ? t('info', 'builder') : t('properties', 'builder')}</span>
                </button>
            </div>
 
-           <button onClick={onInvite} className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all bg-slate-700 hover:bg-slate-600 text-white shadow-md">
+           <button onClick={onInvite} className="shadcn-btn shadcn-btn-outline h-9 px-3 text-xs flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
                 <span className="hidden sm:inline">{t('invite', 'builder')}</span>
             </button>
            
            {!developerMode && (
-              <button onClick={onPublish} className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-900/20">
+              <button onClick={onPublish} className="shadcn-btn shadcn-btn-primary h-9 px-4 text-xs flex items-center gap-2">
                   🚀
                   <span className="hidden sm:inline">{t('publishAppUserMode', 'builder')}</span>
               </button>
            )}
            
-           <div className="w-px h-6 bg-slate-700 mx-1 hidden sm:block"></div>
+           <div className="w-px h-6 bg-slate-200 mx-1 hidden sm:block"></div>
            
            <div className="relative" ref={menuRef}>
-               <button onClick={() => setShowMenu(!showMenu)} className={`p-2 rounded-lg transition-all ${showMenu ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`} title={t('moreOptions', 'workspace')}>
+               <button onClick={() => setShowMenu(!showMenu)} className={`p-2 rounded-lg transition-all ${showMenu ? 'bg-slate-200 text-slate-900' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`} title={t('moreOptions', 'workspace')}>
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
                </button>
                

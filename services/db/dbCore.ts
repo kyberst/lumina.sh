@@ -1,9 +1,9 @@
 
 import { Surreal } from 'surrealdb';
+import { surrealdbWasmEngines } from '@surrealdb/wasm';
 import { logger } from '../logger';
 import { AppModule } from '../../types';
 import { runMigrations } from './migrations';
-import { MockDatabase } from './mockDb';
 
 /**
  * DBCore: Wrapper for SurrealDB.
@@ -22,28 +22,18 @@ class DBCore {
   public async init(): Promise<void> {
     if (this.isReady) return;
     try {
-      this.db = new Surreal();
+      // Per official documentation, initialize with WASM engines.
+      this.db = new Surreal({
+        engines: surrealdbWasmEngines(),
+      });
       
-      try {
-          // Attempt standard connection. 
-          await this.db.connect('indb://lumina');
-          logger.info(AppModule.CORE, 'SurrealDB Connected (IndexedDB)');
-      } catch (indbError) {
-          console.warn("DB Connection failed (Missing WASM?), falling back to MockDB", indbError);
-          // FALLBACK: Use MockDatabase backed by localStorage
-          this.db = new MockDatabase() as any;
-          await this.db!.connect('mock://local');
-      }
+      await this.db.connect('indxdb://demo');
+      logger.info(AppModule.CORE, 'SurrealDB Connected (IndexedDB)');
       
-      try {
-          await this.db!.use({ namespace: 'lumina', database: 'lumina' });
-          logger.info(AppModule.CORE, 'Checking DB Schema Versions...');
-          await runMigrations(this);
-          this.isReady = true;
-      } catch (e) {
-          console.error("Failed to select DB or run migrations.", e);
-          if (this.db instanceof MockDatabase) this.isReady = true; 
-      }
+      await this.db.use({ namespace: 'demo', database: 'demo' });
+      logger.info(AppModule.CORE, 'Checking DB Schema Versions...');
+      await runMigrations(this);
+      this.isReady = true;
       
     } catch (e: any) {
       logger.error(AppModule.CORE, 'DB Init Failed', e);
@@ -70,16 +60,6 @@ class DBCore {
 
   public async executeTransaction(ops: { query: string, params?: Record<string, any> }[]) {
     if (!this.db) throw new Error("DB not initialized");
-
-    const isMock = (this.db as any).constructor.name === 'MockDatabase';
-
-    if (isMock) {
-        const results = [];
-        for (const op of ops) {
-            results.push(await this.query(op.query, op.params));
-        }
-        return results;
-    }
 
     const statements: string[] = ["BEGIN TRANSACTION"];
     const globalParams: Record<string, any> = {};

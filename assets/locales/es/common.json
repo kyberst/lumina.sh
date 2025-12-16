@@ -28,5 +28,17 @@
   "deleted": "Eliminado",
   "errorLoadData": "Error al cargar datos",
   "name": "Nombre",
-  "type": "Tipo"
+  "type": "Tipo",
+  "unknownError": "Ocurrió un error desconocido",
+  "errorSyncHistory": "No se pudo sincronizar el estado del historial",
+  "errorMicPermission": "Acceso al micrófono denegado. Por favor, actívalo en la configuración de tu navegador.",
+  "toastSuccess": "Éxito",
+  "toastError": "Error",
+  "toastProcessing": "Procesando",
+  "toastNotification": "Notificación",
+  "processing": "Procesando...",
+  "edit": "Editar",
+  "error.speechRecognitionNotSupported": "El navegador no soporta Reconocimiento de Voz",
+  "ok": "Aceptar",
+  "tryAgain": "Intentar de Nuevo"
 }

@@ -43,7 +43,7 @@ export const loginWithSSO = async (provider: 'google' | 'github'): Promise<User>
         // Welcome Bonus
         const bonus: Transaction = {
             id: crypto.randomUUID(), userId: user.id, amount: 0, credits: 50,
-            type: 'bonus', description: `Welcome via ${provider}`, timestamp: Date.now()
+            type: 'bonus', description: t('bonus.ssoWelcome', 'profile').replace('{provider}', provider), timestamp: Date.now()
         };
         await dbFacade.addTransaction(bonus);
         

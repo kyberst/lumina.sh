@@ -25,7 +25,7 @@ export const verifyAndActivateMFA = async (userId: string, code: string): Promis
     // In a real app, this would verify the TOTP code against the secret using a library like 'otplib'
     // For this simulation/scaffolding, we accept a specific 'magic' code or just assume success if it looks like a code.
     if (!/^\d{6}$/.test(code)) {
-        throw new Error(t('errorInvalidCodeLength', 'auth'));
+        throw new Error(t('error.invalidCodeLength', 'auth'));
     }
 
     // Update user state

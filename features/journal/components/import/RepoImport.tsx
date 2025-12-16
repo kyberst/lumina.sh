@@ -19,7 +19,7 @@ export const RepoImport: React.FC<Props> = ({ repos, onImport, disabled, hasToke
                  <div key={repo.id} className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-200 hover:border-indigo-300 transition-colors shadow-sm">
                      <div>
                          <div className="text-sm font-bold text-slate-800">{repo.name}</div>
-                         <div className="text-[10px] text-slate-500">{repo.full_name} • {repo.private ? 'Private' : 'Public'}</div>
+                         <div className="text-[10px] text-slate-500">{repo.full_name} • {t(repo.private ? 'private' : 'public', 'import')}</div>
                      </div>
                      <button onClick={() => onImport(repo.full_name)} disabled={disabled} className="shadcn-btn shadcn-btn-outline h-8 text-xs">{t('importButton', 'import')}</button>
                  </div>

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { t } from '../../services/i18n';
@@ -26,11 +27,10 @@ export const OnboardingOverlay: React.FC<Props> = ({ steps, currentStep, onNext,
             const el = document.querySelector(step.target);
             if (el) {
                 setRect(el.getBoundingClientRect());
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
             }
         };
 
-        // Initial update with delay for transitions
         const timer = setTimeout(updateRect, 300);
         window.addEventListener('resize', updateRect);
         
@@ -42,31 +42,29 @@ export const OnboardingOverlay: React.FC<Props> = ({ steps, currentStep, onNext,
 
     if (!rect) return null;
 
-    // Tooltip positioning logic
     const tooltipStyle: React.CSSProperties = { position: 'absolute' };
+    const margin = 16;
+    const tooltipHeightEstimate = 250; 
+
+    let left = rect.left + rect.width / 2;
+    let top = rect.bottom + margin;
+    let transform = 'translateX(-50%)';
+    let isAbove = false;
+
+    if (top + tooltipHeightEstimate > window.innerHeight) {
+        top = rect.top - margin;
+        transform = 'translate(-50%, -100%)';
+        isAbove = true;
+    }
+
+    tooltipStyle.top = top;
+    tooltipStyle.left = left;
+    tooltipStyle.transform = transform;
     
-    if (step.position === 'top') {
-        tooltipStyle.bottom = window.innerHeight - rect.top + 20;
-        tooltipStyle.left = rect.left;
-    } else if (step.position === 'left') {
-        tooltipStyle.top = rect.top;
-        tooltipStyle.right = window.innerWidth - rect.left + 20;
-    } else {
-        // Default bottom
-        tooltipStyle.top = rect.bottom + 20;
-        tooltipStyle.left = rect.left;
-    }
-
-    // Basic viewport clamping
-    if (tooltipStyle.left && (tooltipStyle.left as number) > window.innerWidth - 300) {
-        tooltipStyle.left = window.innerWidth - 320;
-    }
-
     const isLast = currentStep === steps.length - 1;
 
     return createPortal(
-        <div className="fixed inset-0 z-[9999] overflow-hidden">
-            {/* Spotlight Overlay using massive box-shadow trick */}
+        <div className="fixed inset-0 z-[9999]">
             <div 
                 className="absolute transition-all duration-500 ease-in-out border-2 border-indigo-500 rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.7)] pointer-events-none"
                 style={{
@@ -77,9 +75,8 @@ export const OnboardingOverlay: React.FC<Props> = ({ steps, currentStep, onNext,
                 }}
             />
             
-            {/* Tooltip Card */}
             <div 
-                className="absolute z-[10000] bg-white p-6 rounded-2xl shadow-2xl max-w-sm border border-indigo-100 animate-in fade-in slide-in-from-bottom-4 duration-500"
+                className="absolute z-[10000] bg-white p-6 rounded-2xl shadow-2xl w-[calc(100%-2rem)] max-w-sm border border-indigo-100 animate-in fade-in slide-in-from-bottom-4 duration-500"
                 style={tooltipStyle}
             >
                 <div className="flex items-center justify-between mb-2">
@@ -101,13 +98,11 @@ export const OnboardingOverlay: React.FC<Props> = ({ steps, currentStep, onNext,
                     </button>
                 </div>
                 
-                {/* Visual Arrow */}
                 <div 
-                    className="absolute w-4 h-4 bg-white transform rotate-45 border-l border-t border-indigo-50"
+                    className="absolute left-1/2 -translate-x-1/2 w-4 h-4 bg-white transform rotate-45"
                     style={{
-                        top: step.position === 'bottom' ? -8 : 'auto',
-                        bottom: step.position === 'top' ? -8 : 'auto',
-                        left: 20,
+                        top: isAbove ? 'auto' : -8,
+                        bottom: isAbove ? -8 : 'auto',
                     }}
                 />
             </div>

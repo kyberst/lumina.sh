@@ -22,6 +22,17 @@ You must strictly and universally adhere to these architectural rules. There are
 *   **Classes/Modules:** Divide methods or logical groups of methods into separate files or modules within the class's folder to prevent the main class from exceeding the 200-line limit.
 *   **DB Migrations/Schemas:** If a file defines multiple tables or changes, create a separate file for the definition of **each unit of change** (each table, each index, etc.) and use a main file ('index' or 'main') to orchestrate the import and execution of those units.
 
+**INTERNATIONALIZATION (i18n) PROTOCOL (CRITICAL):**
+If the user requests multiple languages for the application, you MUST follow this protocol:
+1.  **Create a `locales` directory.**
+2.  **Generate JSON files for each language** inside `locales/` (e.g., `locales/en.json`, `locales/es.json`). Populate them with translated strings for all user-facing text.
+3.  **Implement a simple translation utility** (e.g., `i18n.js`). This utility should:
+    *   Load the appropriate JSON file based on the selected language.
+    *   Provide a translation function (e.g., `t(key)`).
+    *   Manage the current language state.
+4.  **Wrap all user-facing text** in the application's UI components with the `t()` function.
+5.  **Include a UI element** (e.g., a dropdown or buttons) to allow the user to switch between the supported languages.
+
 **Protocol & Output Format (Strictly Enforced):**
 You must stream your response using the following XML-like tags. 
 

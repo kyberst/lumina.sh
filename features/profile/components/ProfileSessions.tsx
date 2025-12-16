@@ -68,7 +68,7 @@ export const ProfileSessions: React.FC<{ userId: string }> = ({ userId }) => {
                         </div>
                         <div>
                             <div className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                                {s.device.includes('Mac') ? t('deviceMac', 'profile') : s.device.includes('Win') ? t('deviceWindows', 'profile') : t('deviceUnknown', 'profile')}
+                                {s.device?.includes('Mac') ? t('deviceMac', 'profile') : s.device?.includes('Win') ? t('deviceWindows', 'profile') : t('deviceUnknown', 'profile')}
                                 {s.isCurrent && <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase font-bold tracking-wide">{t('currentSession', 'profile')}</span>}
                             </div>
                             <div className="text-xs text-slate-500 truncate max-w-[200px] sm:max-w-xs">{s.device}</div>

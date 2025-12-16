@@ -22,6 +22,7 @@ export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, sett
   const [appLanguages, setAppLanguages] = useState<string[]>([getLanguage() === 'es' ? 'Spanish' : 'English']); 
   const [attachments, setAttachments] = useState<{ name: string; type: string; data: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Create State - Developer / Advanced
   const [stack, setStack] = useState<string[]>([]); // Frontend/Backend
@@ -51,19 +52,30 @@ export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, sett
       let finalPrompt = content;
       
       const requirements = [];
-      if (stack.length > 0) requirements.push(`Tech Stack: ${stack.join(', ')}`);
-      if (databases.length > 0) requirements.push(`Database/Persistence: ${databases.join(', ')}`);
-      if (appLanguages.length > 0) requirements.push(`Target App Languages: ${appLanguages.join(', ')}`);
+      if (stack.length > 0) {
+          requirements.push(`You MUST build the application using this exact tech stack: ${stack.join(', ')}. Do not deviate from these technologies.`);
+      }
+      if (databases.length > 0) {
+          requirements.push(`You MUST use the following for database and persistence: ${databases.join(', ')}.`);
+      }
+      
+      // If more than one language is selected, give a specific i18n instruction
+      if (appLanguages.length > 1) {
+          requirements.push(`Implement full internationalization (i18n) support for the following languages: ${appLanguages.join(', ')}. Adhere strictly to the i18n protocol in your system instructions, creating separate JSON translation files and a language switcher UI.`);
+      } else if (appLanguages.length === 1) {
+          // If only one, just state the target language for content
+          requirements.push(`Target App Language: ${appLanguages[0]}`);
+      }
       
       if (requirements.length > 0) {
-          finalPrompt += `\n\nRequirements:\n- ${requirements.join('\n- ')}`;
+          finalPrompt += `\n\nCritical Requirements:\n- ${requirements.join('\n- ')}`;
       }
 
       const skeletonEntry: JournalEntry = {
         id: crypto.randomUUID(),
         prompt: finalPrompt,
         timestamp: Date.now(),
-        description: "Initializing Project...",
+        description: t('initializing', 'project'),
         files: [],
         tags: [...stack, ...databases, ...appLanguages],
         mood: complexity,
@@ -86,7 +98,7 @@ export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, sett
       onEntryCreated(skeletonEntry);
 
     } catch (err: any) {
-        setError(err.message || 'Unknown error');
+        setError(err.message || t('unknownError', 'common'));
     }
   };
 
@@ -134,7 +146,7 @@ export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, sett
                     stack={stack} setStack={setStack}
                     databases={databases} setDatabases={setDatabases}
                     appLanguages={appLanguages} setAppLanguages={setAppLanguages}
-                    isProcessing={false} onSubmit={handleSubmit}
+                    isProcessing={isProcessing} onSubmit={handleSubmit}
                     attachments={attachments} setAttachments={setAttachments}
                     onToggleDevMode={() => onSaveSettings({ ...settings, developerMode: !settings.developerMode })}
                     
@@ -154,8 +166,8 @@ export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, sett
             <ImportForm 
                 settings={settings} 
                 onImport={handleImportSuccess}
-                isProcessing={false}
-                setIsProcessing={() => {}}
+                isProcessing={isProcessing}
+                setIsProcessing={setIsProcessing}
                 setError={setError}
             />
         )}

@@ -1,5 +1,9 @@
 
 {
     "nodes": "Project Nodes",
-    "pattern": "patterns found."
+    "pattern": "patterns found.",
+    "initializing": "Initializing...",
+    "indexingNodes": "Indexing {count} Project Nodes...",
+    "analyzingTopology": "Analyzing Semantic Topology...",
+    "mappedDependencies": "Mapped {count} Dependencies."
 }

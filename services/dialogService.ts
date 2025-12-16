@@ -1,5 +1,6 @@
 
 import { ReactNode } from 'react';
+import { t } from './i18n';
 
 type DialogType = 'confirm' | 'alert' | 'prompt' | 'custom';
 
@@ -45,7 +46,8 @@ class DialogService {
         title,
         description,
         destructive: options?.destructive,
-        confirmLabel: options?.confirmText || 'Continue',
+        confirmLabel: options?.confirmText || t('confirm', 'common'),
+        cancelLabel: t('cancel', 'common'),
         onConfirm: () => {
           this.close();
           resolve(true);
@@ -67,7 +69,7 @@ class DialogService {
             type: 'alert',
             title,
             description,
-            confirmLabel: 'OK',
+            confirmLabel: t('ok', 'common'),
             onConfirm: () => {
                 this.close();
                 resolve();

@@ -33,7 +33,7 @@ export const useRegisterForm = (onSuccess: (u: User) => void, initialEmail: stri
             return false;
         }
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            toast.error("Invalid email format");
+            toast.error(t('error.invalidEmail', 'auth'));
             return false;
         }
         // Enforce Security Policy: Prevent registration with weak passwords

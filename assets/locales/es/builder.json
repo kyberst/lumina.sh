@@ -130,5 +130,10 @@
   "applyAndCheckpoint": "Aplicar y Guardar Checkpoint",
   "changeApplied": "✅ ¡Cambio aplicado! La vista previa ha sido actualizada.",
   "lastChangeReverted": "Último cambio revertido.",
-  "nothingToUndo": "No hay nada que deshacer."
+  "nothingToUndo": "No hay nada que deshacer.",
+  "builderTerminalTitle": "Terminal del Constructor",
+  "auditEstCost": "Costo Est.:",
+  "auditContextRead": "Contexto Leído:",
+  "auditGenerated": "Generado:",
+  "manualCheckpoint": "Punto de Control Manual"
 }

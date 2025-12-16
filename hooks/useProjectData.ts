@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
-import { JournalEntry, AppSettings, User, Snapshot } from '../types';
+import { JournalEntry, AppSettings, User, Snapshot, ChatMessage } from '../types';
 import { dbFacade } from '../services/dbFacade';
 // FIX: Corrected import path for authService
 import { authService } from '../services/auth';
@@ -67,7 +67,7 @@ export const useProjectData = () => {
 
                 if (role === 'designer' || role === 'programmer') {
                     setSessionRole(role);
-                    toast.info(`Entering project as ${role}.`);
+                    toast.info(t('enteringAsRole', 'project').replace('{role}', role));
                 }
 
                 if (projectId) {
@@ -75,7 +75,7 @@ export const useProjectData = () => {
                     if (projectToLoad) {
                         setSelectedProject(projectToLoad);
                     } else {
-                        toast.error("Project from invitation link not found.");
+                        toast.error(t('inviteNotFound', 'project'));
                     }
                     // Clean URL to avoid re-triggering on hot-reloads
                     window.history.replaceState({}, document.title, window.location.pathname);
@@ -83,7 +83,7 @@ export const useProjectData = () => {
 
             } catch(e) { 
                 console.error(e); 
-                toast.error("Failed to load data");
+                toast.error(t('errorLoadData', 'common'));
             } finally { 
                 await new Promise(r => setTimeout(r, 500)); // Perceived performance
                 setLoading(false); 
@@ -118,6 +118,19 @@ export const useProjectData = () => {
         const currentEntry = entries.find(p => p.id === e.id);
 
         if (currentEntry) {
+            // If project name changed, log it to the project's chat history
+            if (currentEntry.project !== e.project) {
+                const chatMessage: ChatMessage = {
+                    id: crypto.randomUUID(),
+                    role: 'model', // System-generated message
+                    text: `Project renamed from "${currentEntry.project || t('untitled', 'project')}" to "${e.project || t('untitled', 'project')}".`,
+                    timestamp: Date.now(),
+                    applied: true, // This is a record of an action that has already occurred
+                };
+                // This doesn't need to be awaited as it's a background logging task
+                dbFacade.saveRefactorMessage(e.id, chatMessage).catch(console.error);
+            }
+
             // Check for file changes to determine if we need a snapshot
             const filesChanged = JSON.stringify(currentEntry.files) !== JSON.stringify(e.files);
             
@@ -125,7 +138,7 @@ export const useProjectData = () => {
                 const newSnapshot: Snapshot = {
                     id: crypto.randomUUID(),
                     timestamp: Date.now(),
-                    description: `Checkpoint ${new Date().toLocaleTimeString()}`,
+                    description: `${t('checkpoint', 'builder')} ${new Date().toLocaleTimeString()}`,
                     files: currentEntry.files
                 };
                 
@@ -148,7 +161,7 @@ export const useProjectData = () => {
         await dbFacade.deleteProject(id); 
         setEntries(p => p.filter(x => x.id!==id)); 
         if(selectedProject?.id===id) setSelectedProject(null); 
-        toast.success("Deleted"); 
+        toast.success(t('deleted', 'common')); 
     };
 
     return { 

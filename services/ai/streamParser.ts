@@ -14,7 +14,7 @@ export const createInitialStreamState = (initialFiles: GeneratedFile[]): StreamS
   reasoningBuffer: '',
   textBuffer: '',
   fileStatuses: {},
-  workingFiles: [...initialFiles],
+  workingFiles: [...(initialFiles || [])],
   commands: [],
   dependencies: {},
   annotations: [],

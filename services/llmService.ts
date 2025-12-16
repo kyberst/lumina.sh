@@ -2,6 +2,7 @@
 import { AIProvider, AppError, AppModule, ChatMessage } from '../types';
 import { logger } from './logger';
 import { dbFacade } from './dbFacade';
+import { t } from './i18n';
 
 export const testAIConnection = async (provider: AIProvider, modelId: string, apiKey: string): Promise<boolean> => {
     try {
@@ -41,7 +42,7 @@ export const callCustomLLM = async (
 ): Promise<string> => {
     try {
         const apiKey = await dbFacade.getConfig(provider.apiKeyConfigKey);
-        if (!apiKey) throw new AppError("API Key not found for provider", "NO_KEY", AppModule.INSIGHT);
+        if (!apiKey) throw new AppError(t('apiKeyNotFound', 'settings'), "NO_KEY", AppModule.INSIGHT);
 
         const url = `${provider.baseUrl.replace(/\/$/, '')}/chat/completions`;
         

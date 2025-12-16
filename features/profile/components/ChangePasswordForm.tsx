@@ -17,7 +17,7 @@ export const ChangePasswordForm: React.FC<Props> = ({ userId }) => {
 
     const validate = (): boolean => {
         if (!currentPass || !newPass || !confirmPass) {
-            toast.error(t('errorFillAllFields', 'auth'));
+            toast.error(t('error.fillFields', 'auth'));
             return false;
         }
         
@@ -57,7 +57,7 @@ export const ChangePasswordForm: React.FC<Props> = ({ userId }) => {
             setNewPass('');
             setConfirmPass('');
         } catch (e: any) {
-            toast.error(e.message || t('errorGeneric', 'common'));
+            toast.error(e.message || t('unknownError', 'common'));
         } finally {
             setLoading(false);
         }
@@ -90,7 +90,7 @@ export const ChangePasswordForm: React.FC<Props> = ({ userId }) => {
                             className="shadcn-input bg-white" 
                             value={newPass}
                             onChange={e => setNewPass(e.target.value)}
-                            placeholder="Min 8 chars, 1 number"
+                            placeholder={t('passwordPlaceholder', 'profile')}
                             disabled={loading}
                         />
                     </div>
@@ -112,7 +112,7 @@ export const ChangePasswordForm: React.FC<Props> = ({ userId }) => {
                         disabled={loading}
                         className="shadcn-btn shadcn-btn-primary w-full sm:w-auto px-6 text-xs font-bold uppercase tracking-wide"
                     >
-                        {loading ? 'Updating...' : t('updatePassword', 'profile')}
+                        {loading ? t('updating', 'profile') : t('updatePassword', 'profile')}
                     </button>
                 </div>
             </div>

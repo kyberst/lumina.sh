@@ -80,7 +80,7 @@ export const RegisterFormView: React.FC<RegisterFormViewProps> = ({ state, actio
                             value={state.password} 
                             onChange={e => actions.setPassword(e.target.value)} 
                             className="shadcn-input" 
-                            placeholder="Min 8 chars, 1 number" 
+                            placeholder={t('passwordPlaceholder', 'profile')}
                             disabled={isProcessing} 
                         />
                         {/* Visual Password Strength Indicator */}

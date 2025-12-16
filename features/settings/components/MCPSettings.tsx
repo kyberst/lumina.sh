@@ -12,7 +12,7 @@ export const MCPSettings: React.FC<Props> = ({ settings, onChange }) => {
     const save = () => {
         if (!editing?.name || !editing?.command) return toast.error(t('errorNameAndCommand', 'settings'));
         
-        const list = [...settings.mcpServers];
+        const list = [...(settings.mcpServers || [])];
         const idx = list.findIndex(s => s.id === editing.id);
         
         const serverToSave = { ...editing, args: editing.args || [] } as MCPServer;
@@ -25,7 +25,7 @@ export const MCPSettings: React.FC<Props> = ({ settings, onChange }) => {
     };
 
     const remove = (id: string) => {
-        const list = settings.mcpServers.filter(s => s.id !== id);
+        const list = (settings.mcpServers || []).filter(s => s.id !== id);
         onChange('mcpServers', list);
     };
 
@@ -40,24 +40,24 @@ export const MCPSettings: React.FC<Props> = ({ settings, onChange }) => {
                     <div className="space-y-2">
                         <div>
                             <label className="text-xs font-bold uppercase text-slate-500">{t('serverName', 'settings')}</label>
-                            <input className="shadcn-input" placeholder="e.g. Filesystem" value={editing.name} onChange={e => setEditing({...editing, name: e.target.value})} />
+                            <input className="shadcn-input" placeholder={t('serverNamePlaceholder', 'settings')} value={editing.name} onChange={e => setEditing({...editing, name: e.target.value})} />
                         </div>
                         <div className="grid grid-cols-3 gap-2">
                              <div className="col-span-1">
                                 <label className="text-xs font-bold uppercase text-slate-500">{t('type', 'common')}</label>
                                 <select className="shadcn-input" value={editing.type} onChange={e => setEditing({...editing, type: e.target.value as any})}>
-                                    <option value="stdio">STDIO</option>
-                                    <option value="websocket">WebSocket</option>
+                                    <option value="stdio">{t('stdio', 'settings')}</option>
+                                    <option value="websocket">{t('websocket', 'settings')}</option>
                                 </select>
                              </div>
                              <div className="col-span-2">
                                 <label className="text-xs font-bold uppercase text-slate-500">{t('commandUrl', 'settings')}</label>
-                                <input className="shadcn-input" placeholder={editing.type === 'stdio' ? "npx" : "ws://localhost:8080"} value={editing.command} onChange={e => setEditing({...editing, command: e.target.value})} />
+                                <input className="shadcn-input" placeholder={editing.type === 'stdio' ? t('commandPlaceholder', 'settings') : "ws://localhost:8080"} value={editing.command} onChange={e => setEditing({...editing, command: e.target.value})} />
                              </div>
                         </div>
                         <div>
                             <label className="text-xs font-bold uppercase text-slate-500">{t('args', 'settings')}</label>
-                            <input className="shadcn-input" placeholder="-y @modelcontextprotocol/server-filesystem" value={editing.args?.join(' ')} onChange={e => setEditing({...editing, args: e.target.value.split(' ')})} />
+                            <input className="shadcn-input" placeholder={t('argsPlaceholder', 'settings')} value={editing.args?.join(' ')} onChange={e => setEditing({...editing, args: e.target.value.split(' ')})} />
                         </div>
                     </div>
                     <div className="flex justify-end gap-2 pt-2">
@@ -67,9 +67,9 @@ export const MCPSettings: React.FC<Props> = ({ settings, onChange }) => {
                 </div>
             ) : (
                 <div className="space-y-2">
-                    {settings.mcpServers.length === 0 && <div className="text-sm text-slate-400 italic text-center py-4">{t('noMcpServers', 'settings')}</div>}
+                    {(settings.mcpServers || []).length === 0 && <div className="text-sm text-slate-400 italic text-center py-4">{t('noMcpServers', 'settings')}</div>}
                     
-                    {settings.mcpServers.map(s => (
+                    {(settings.mcpServers || []).map(s => (
                         <div key={s.id} className="flex justify-between items-center p-3 border rounded-lg bg-white shadow-sm hover:border-orange-200 transition-colors">
                             <div className="flex flex-col">
                                 <span className="font-bold text-sm text-slate-700 flex items-center gap-2">

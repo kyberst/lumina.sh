@@ -9,5 +9,6 @@
   "logout": "Logout",
   "english": "English",
   "spanish": "Español",
-  "copyright": "lumina.sh © {year}"
+  "copyright": "lumina.sh © {year}",
+  "profileAlt": "Profile"
 }

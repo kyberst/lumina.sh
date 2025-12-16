@@ -1,4 +1,6 @@
+
 import React from 'react';
+import { t } from '../../services/i18n';
 
 interface AuthLayoutProps {
     children: React.ReactNode;
@@ -17,22 +19,22 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
                         <span className="text-4xl">🚀</span>
                     </div>
                     <h1 className="text-5xl font-bold mb-6 tracking-tight drop-shadow-sm font-['Plus_Jakarta_Sans'] leading-tight">
-                        Build Apps<br/><span className="text-indigo-400">At Speed</span>
+                        {t('layout.title1', 'auth')}<br/><span className="text-indigo-400">{t('layout.title2', 'auth')}</span>
                     </h1>
                     <p className="text-lg font-medium leading-relaxed opacity-80 mb-10 text-slate-300">
-                        The AI-powered workspace where ideas become functional applications in seconds. Secure, scalable, and intuitive.
+                        {t('layout.subtitle', 'auth')}
                     </p>
                     
                     <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
                         <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 text-left">
                             <div className="text-2xl mb-1">⚡</div>
-                            <div className="font-bold text-sm">Instant Code</div>
-                            <div className="text-[10px] opacity-60">From prompt to preview</div>
+                            <div className="font-bold text-sm">{t('layout.feature1Title', 'auth')}</div>
+                            <div className="text-[10px] opacity-60">{t('layout.feature1Desc', 'auth')}</div>
                         </div>
                         <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 text-left">
                             <div className="text-2xl mb-1">🔐</div>
-                            <div className="font-bold text-sm">Secure 2FA</div>
-                            <div className="text-[10px] opacity-60">Your data is safe</div>
+                            <div className="font-bold text-sm">{t('layout.feature2Title', 'auth')}</div>
+                            <div className="text-[10px] opacity-60">{t('layout.feature2Desc', 'auth')}</div>
                         </div>
                     </div>
                 </div>

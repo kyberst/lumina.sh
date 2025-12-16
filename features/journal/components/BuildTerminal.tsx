@@ -1,4 +1,6 @@
+
 import React from 'react';
+import { t } from '../../../services/i18n';
 
 export interface ConsoleLog {
   id: string;
@@ -17,7 +19,7 @@ export const BuildTerminal: React.FC<BuildTerminalProps> = ({ logs }) => {
         <div className="w-2.5 h-2.5 rounded-full bg-[#ff2935]"></div>
         <div className="w-2.5 h-2.5 rounded-full bg-[#ffc93a]"></div>
         <div className="w-2.5 h-2.5 rounded-full bg-[#ff7e15]"></div>
-        <span className="ml-2 text-[#ff7e15] text-[10px] uppercase tracking-widest font-bold">Builder Terminal</span>
+        <span className="ml-2 text-[#ff7e15] text-[10px] uppercase tracking-widest font-bold">{t('builderTerminalTitle', 'builder')}</span>
       </div>
       <div className="space-y-2">
         {logs.map((log) => (

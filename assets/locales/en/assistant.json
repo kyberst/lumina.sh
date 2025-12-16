@@ -23,5 +23,8 @@
   "createAction": "Create New",
   "propsNeededUser": "Great! To add this component, I need a few details. Please tell me:",
   "propsNeededDev": "Component `{component}` requires the following props. Please provide values to proceed:",
-  "continue": "Continue"
+  "continue": "Continue",
+  "dyadError": "Unable to access project archives.",
+  "dyadPlaceholder": "Ask Architect...",
+  "aiWorking": "AI is working..."
 }

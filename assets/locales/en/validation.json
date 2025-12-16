@@ -1,0 +1,11 @@
+
+{
+    "invalidTypeString": "Invalid type: expected string",
+    "stringTooShort": "String too short (min {minLength})",
+    "stringTooLong": "String too long (max {maxLength})",
+    "invalidTypeNumber": "Invalid type: expected number",
+    "numberTooSmall": "Number too small (min {min})",
+    "numberTooLarge": "Number too large (max {max})",
+    "invalidTypeObject": "Invalid type: expected object",
+    "missingField": "Missing required field: {field}"
+}

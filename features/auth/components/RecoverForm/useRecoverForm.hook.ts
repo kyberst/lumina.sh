@@ -30,8 +30,8 @@ export const useRecoverForm = (onSuccess: () => void) => {
     }, [resendCountdown]);
 
     const handleSendCode = async () => {
-        if (!email) return toast.error(t('errorEmailRequired', 'auth'));
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return toast.error("Invalid email format");
+        if (!email) return toast.error(t('error.emailRequired', 'auth'));
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return toast.error(t('error.invalidEmail', 'auth'));
 
         setIsSubmitting(true);
         try {
@@ -61,8 +61,8 @@ export const useRecoverForm = (onSuccess: () => void) => {
     };
 
     const handleReset = async () => {
-        if (!code || code.length !== 6) return toast.error(t('errorInvalidCodeLength', 'auth'));
-        if (!password) return toast.error(t('errorNewPassword', 'auth'));
+        if (!code || code.length !== 6) return toast.error(t('error.invalidCodeLength', 'auth'));
+        if (!password) return toast.error(t('error.newPassword', 'auth'));
         
         // Security Check
         if (!passwordStrength.isSafe) return toast.error(t('error.passwordTooWeak', 'auth'));

@@ -4,5 +4,9 @@
     "rename": "Renombrar",
     "openStudio": "Abrir Estudio",
     "enteringAsRole": "Entrando al proyecto como {role}.",
-    "inviteNotFound": "No se encontró el proyecto del enlace de invitación."
+    "inviteNotFound": "No se encontró el proyecto del enlace de invitación.",
+    "initializing": "Inicializando Proyecto...",
+    "projectsTitle": "Proyectos",
+    "noProjectsFound": "No se encontraron proyectos para \"{query}\"",
+    "clearSearch": "Limpiar Búsqueda"
 }

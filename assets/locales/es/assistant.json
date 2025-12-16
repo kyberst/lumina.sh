@@ -23,5 +23,8 @@
   "createAction": "Crear Nuevo",
   "propsNeededUser": "¡Genial! Para añadir este componente, necesito algunos detalles. Por favor, dime:",
   "propsNeededDev": "El componente `{component}` requiere las siguientes `props`. Por favor, proporciona los valores para continuar:",
-  "continue": "Continuar"
+  "continue": "Continuar",
+  "dyadError": "No se puede acceder a los archivos del proyecto.",
+  "dyadPlaceholder": "Pregúntale al Arquitecto...",
+  "aiWorking": "La IA está trabajando..."
 }

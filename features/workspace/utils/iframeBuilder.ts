@@ -17,7 +17,8 @@ export const generateIframeHtml = (
     dependencies: Record<string, string | DependencyDetails> | undefined
 ): { html: string; sourceMap: Record<string, SourceMapEntry> } => {
     
-    const indexFile = files.find(x => x.name === 'index.html'); 
+    const safeFiles = files || [];
+    const indexFile = safeFiles.find(x => x.name === 'index.html'); 
     if(!indexFile) return { html: '', sourceMap: {} };
     
     let finalHtml = indexFile.content;
@@ -46,8 +47,8 @@ export const generateIframeHtml = (
     const validatorScript = DEPENDENCY_VALIDATOR_SCRIPT(imports);
     
     // 2. Prepare Injection Assets
-    const styles = files.filter(x => x.name.endsWith('.css')).map(f => ({ name: f.name, content: `<style>/* ${f.name} */\n${f.content}\n</style>` }));
-    const modules = files.filter(x => /\.(js|jsx|ts|tsx)$/.test(x.name)).map(f => {
+    const styles = safeFiles.filter(x => x.name.endsWith('.css')).map(f => ({ name: f.name, content: `<style>/* ${f.name} */\n${f.content}\n</style>` }));
+    const modules = safeFiles.filter(x => /\.(js|jsx|ts|tsx)$/.test(x.name)).map(f => {
         return { name: f.name, content: `<script type="module">\n// ${f.name}\n${f.content}\n</script>` };
     });
 

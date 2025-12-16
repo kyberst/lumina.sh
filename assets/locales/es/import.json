@@ -10,5 +10,8 @@
     "publicRepoDesc": "Pega una URL de GitHub para importar código para análisis.",
     "importButton": "Importar",
     "largeRepoWarning": "Los repositorios grandes (>50 archivos) serán truncados para ajustarse a los límites de contexto.",
-    "configureGithub": "Por favor, configura tu Token de GitHub en Ajustes."
+    "configureGithub": "Por favor, configura tu Token de GitHub en Ajustes.",
+    "noValidFilesError": "No se encontraron archivos de código válidos. Se revisaron {count} archivos (ej., {sample}). Asegúrate de que los archivos sean < 2MB y tengan extensiones estándar.",
+    "private": "Privado",
+    "public": "Público"
 }

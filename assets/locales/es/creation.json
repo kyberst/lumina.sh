@@ -14,5 +14,18 @@
     "googleGemini": "Google Gemini",
     "model": "Modelo",
     "flashDefault": "Flash (Por defecto)",
-    "building": "Construyendo..."
+    "building": "Construyendo...",
+    "thinkingBudgetFast": "Bajo (Rápido)",
+    "thinkingBudgetBalanced": "Medio (Equilibrado)",
+    "thinkingBudgetDeep": "Alto (Profundo)",
+    "contextSizeEconomy": "Económico",
+    "contextSizeDefault": "Estándar",
+    "contextSizePlus": "Plus",
+    "contextSizeHigh": "Alto",
+    "contextSizeMax": "Máximo",
+    "archContextPlaceholder": "ej. Usar siempre React hooks con este patrón...",
+    "aiEngine": "Motor de IA",
+    "workflow": "Flujo de Trabajo",
+    "targetStackFull": "Stack Objetivo (Frontend / Backend)",
+    "databasePersistence": "Base de Datos y Persistencia"
 }

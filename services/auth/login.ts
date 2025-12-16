@@ -15,7 +15,7 @@ export const login = async (email: string, password: string, rememberMe: boolean
         // Simulate a delay (Tarapit) to slow them down, then reject.
         console.warn(`[Auth] Bot detected via honeypot. Value: ${honeypot}`);
         await new Promise(r => setTimeout(r, 1500));
-        throw new AppError('Traffic limit exceeded', 'BOT_DETECTED', AppModule.AUTH);
+        throw new AppError(t('botDetected', 'auth'), 'BOT_DETECTED', AppModule.AUTH);
     }
 
     // --- 1. MOCK SERVER THROTTLING CHECK ---
@@ -25,7 +25,7 @@ export const login = async (email: string, password: string, rememberMe: boolean
     const lockUntil = parseInt(localStorage.getItem(lockKey) || '0', 10);
     if (lockUntil > Date.now()) {
         throw new AppError(
-            t('tooManyAttempts', 'auth'),
+            t('error.locked', 'auth'),
             'AUTH_LOCKED',
             AppModule.AUTH,
             { 'X-Account-Locked-Until': lockUntil.toString() }
@@ -55,7 +55,7 @@ export const login = async (email: string, password: string, rememberMe: boolean
             headers['X-Account-Locked-Until'] = newLockUntil.toString();
             
             throw new AppError(
-                t('tooManyAttempts', 'auth'),
+                t('error.locked', 'auth'),
                 'AUTH_LOCKED',
                 AppModule.AUTH,
                 headers
@@ -63,7 +63,7 @@ export const login = async (email: string, password: string, rememberMe: boolean
         }
 
         throw new AppError(
-            t('errorInvalidCredentialsGeneric', 'auth'),
+            t('error.invalidCredentials', 'auth'),
             'AUTH_FAIL',
             AppModule.AUTH,
             headers

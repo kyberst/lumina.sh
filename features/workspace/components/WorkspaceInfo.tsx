@@ -75,7 +75,7 @@ export const WorkspaceInfo: React.FC<WorkspaceInfoProps> = ({ entry, onUpdate, s
                 settings={settings}
             />
 
-            {!settings.developerMode && <FunctionalFileExplorer files={entry.files} />}
+            {!settings.developerMode && <FunctionalFileExplorer files={entry.files || []} />}
 
             <HistoryList history={entry.history || []} onRestore={handleRestoreSnapshot} />
 
@@ -98,10 +98,10 @@ export const WorkspaceInfo: React.FC<WorkspaceInfoProps> = ({ entry, onUpdate, s
             <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 block">{t('stackAndTags', 'workspace')}</label>
                 <div className="flex flex-wrap gap-2 mb-3">
-                    {entry.tags.map(tag => (
+                    {(entry.tags || []).map(tag => (
                         <span key={tag} className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-bold border border-indigo-100 flex items-center gap-1">
                             {tag}
-                            <button onClick={() => onUpdate({...entry, tags: entry.tags.filter(t => t !== tag)})} className="hover:text-red-500 font-black ml-1">×</button>
+                            <button onClick={() => onUpdate({...entry, tags: (entry.tags || []).filter(t => t !== tag)})} className="hover:text-red-500 font-black ml-1">×</button>
                         </span>
                     ))}
                 </div>
@@ -112,7 +112,7 @@ export const WorkspaceInfo: React.FC<WorkspaceInfoProps> = ({ entry, onUpdate, s
                     onChange={e => setTagInput(e.target.value)}
                     onKeyDown={e => {
                         if(e.key === 'Enter' && tagInput.trim()) {
-                            if(!entry.tags.includes(tagInput.trim())) onUpdate({...entry, tags: [...entry.tags, tagInput.trim()]});
+                            if(!(entry.tags || []).includes(tagInput.trim())) onUpdate({...entry, tags: [...(entry.tags || []), tagInput.trim()]});
                             setTagInput('');
                         }
                     }}

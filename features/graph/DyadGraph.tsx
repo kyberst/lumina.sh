@@ -11,14 +11,14 @@ interface Link { source: number; target: number; strength: number; }
 export const DyadGraph: React.FC<DyadGraphProps> = ({ entries }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState("Initializing...");
+  const [status, setStatus] = useState(t('initializing', 'graph'));
   const sim = useRef<{ nodes: Node[], links: Link[] }>({ nodes: [], links: [] });
 
   useEffect(() => {
     const init = async () => {
         setLoading(true);
         
-        setStatus(`Indexing ${entries.length} Project Nodes...`);
+        setStatus(t('indexingNodes', 'graph').replace('{count}', entries.length.toString()));
         await new Promise(r => setTimeout(r, 600));
 
         const nodes: Node[] = entries.map((entry) => ({
@@ -27,13 +27,13 @@ export const DyadGraph: React.FC<DyadGraphProps> = ({ entries }) => {
             entry, vx: (Math.random() - 0.5) * 0.2, vy: (Math.random() - 0.5) * 0.2,
         }));
 
-        setStatus("Analyzing Semantic Topology...");
+        setStatus(t('analyzingTopology', 'graph'));
         await new Promise(r => setTimeout(r, 800));
 
         const links: Link[] = [];
         for (let i = 0; i < nodes.length; i++) {
             for (let j = i + 1; j < nodes.length; j++) {
-                const tagsA = nodes[i].entry.tags, tagsB = nodes[j].entry.tags;
+                const tagsA = nodes[i].entry.tags || [], tagsB = nodes[j].entry.tags || [];
                 const shared = tagsA.filter(t => tagsB.includes(t));
                 if (shared.length > 0) {
                     links.push({ source: i, target: j, strength: Math.min(0.8, 0.15 * shared.length) });
@@ -41,7 +41,7 @@ export const DyadGraph: React.FC<DyadGraphProps> = ({ entries }) => {
             }
         }
 
-        setStatus(`Mapped ${links.length} Dependencies.`);
+        setStatus(t('mappedDependencies', 'graph').replace('{count}', links.length.toString()));
         await new Promise(r => setTimeout(r, 600));
         
         sim.current = { nodes, links };

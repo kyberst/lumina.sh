@@ -30,7 +30,7 @@ import { findOrphanedFiles } from './utils/codeHealth';
 interface WorkspaceViewProps {
   entry: JournalEntry;
   onUpdate: (updatedEntry: JournalEntry) => void;
-  onClose: () => void;
+  onCloseWorkspace: () => void;
   settings: AppSettings;
   onSaveSettings: (s: AppSettings) => void;
   isOffline: boolean;
@@ -43,7 +43,7 @@ const ONBOARDING_STAGE2_STEPS: Step[] = [
     { target: '[data-tour="properties-tab"]', titleKey: 'firstBlockTitle', descKey: 'firstBlockDesc', position: 'bottom' },
 ];
 
-export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, onClose, settings, onSaveSettings, isOffline, setIsOffline }) => {
+export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, onCloseWorkspace, settings, onSaveSettings, isOffline, setIsOffline }) => {
   const layout = useWorkspaceLayout();
   const [chatInput, setChatInput] = useState('');
   const [history, setHistory] = useState<ChatMessage[]>([]);
@@ -63,7 +63,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, o
           // If purely new load (size 0), select all. 
           // If files changed (add/delete), try to maintain selection but add new files by default.
           const newSet = new Set(prev);
-          const currentNames = entry.files.map(f => f.name);
+          const currentNames = (entry.files || []).map(f => f.name);
           
           if (prev.size === 0) return new Set(currentNames);
 
@@ -74,7 +74,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, o
           
           return newSet;
       });
-  }, [entry.files.length, entry.id]);
+  }, [(entry.files || []).length, entry.id]);
 
   const isFirstGenComplete = history.some(m => m.role === 'model') && (entry.tags || []).includes('Generated');
   const onboarding = useOnboarding('first_generation', { enabled: isFirstGenComplete, delay: 1500 });
@@ -118,7 +118,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, o
                 toast.success(t('checkpointSet', 'builder'));
             }
             setHistory(prev => prev.map(m => m.id === messageId ? updatedMessage : m));
-            dbFacade.updateRefactorMessage(entry.id, updatedMessage).catch(err => { toast.error("Failed to sync history state."); console.error(err); });
+            dbFacade.updateRefactorMessage(entry.id, updatedMessage).catch(err => { toast.error(t('errorSyncHistory', 'common')); console.error(err); });
         }
     }
   };
@@ -152,16 +152,16 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, o
   }, [entry.id]);
 
   const activeFilesForContextBar = settings.developerMode 
-      ? entry.files.filter(f => selectedContextFiles.has(f.name))
-      : entry.files;
+      ? (entry.files || []).filter(f => selectedContextFiles.has(f.name))
+      : (entry.files || []);
 
   return (
     <div className="fixed inset-0 bg-white z-[100] flex flex-col animate-in fade-in duration-300">
       {onboarding.isActive && <OnboardingOverlay steps={ONBOARDING_STAGE2_STEPS} currentStep={onboarding.currentStep} onNext={onboarding.next} onFinish={onboarding.finish} onSkip={onboarding.skip} />}
 
       <WorkspaceHeader 
-        entry={entry} rightTab={layout.rightTab} setRightTab={layout.setRightTab} onClose={onClose} 
-        onSecurityScan={async () => dialogService.alert(t('reportTitle', 'workspace'), <MarkdownRenderer content={await analyzeSecurity(entry.files, t('check', 'workspace'))}/>)}
+        entry={entry} rightTab={layout.rightTab} setRightTab={layout.setRightTab} onCloseWorkspace={onCloseWorkspace} 
+        onSecurityScan={async () => dialogService.alert(t('reportTitle', 'workspace'), <MarkdownRenderer content={await analyzeSecurity(entry.files || [], t('check', 'workspace'))}/>)}
         onPublish={handlePublish} onInvite={handleInvite} onDownload={() => toast.success(t('downloading', 'workspace'))} onRefresh={layout.refreshPreview} totalUsage={totalUsage}
         saveStatus={saveStatus} settings={settings} isProcessing={isProcessing}
       />
@@ -188,19 +188,19 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, o
                   <WorkspacePreview 
                       iframeSrc={preview.iframeSrc} iframeKey={layout.iframeKey} deviceMode={layout.deviceMode} setDeviceMode={layout.setDeviceMode} 
                       showConsole={preview.showConsole} setShowConsole={preview.setShowConsole} consoleLogs={preview.consoleLogs} errorCount={preview.errorCount} onClearLogs={preview.clearLogs} 
-                      onNavigateError={(f, l) => { layout.setRightTab('code'); editor.selectFile(entry.files.find(x => x.name === f) || entry.files[0]); editor.setScrollToLine(l); }}
+                      onNavigateError={(f, l) => { layout.setRightTab('code'); editor.selectFile((entry.files || []).find(x => x.name === f) || (entry.files || [])[0]); editor.setScrollToLine(l); }}
                       settings={settings} onAskToFix={handleAskToFix}
                   />
               )}
               {layout.rightTab === 'code' && settings.developerMode && (
                   <WorkspaceCode 
-                      files={entry.files} selectedFile={editor.selectedFile} editorContent={editor.editorContent} hasChanges={editor.hasChanges} 
+                      files={entry.files || []} selectedFile={editor.selectedFile} editorContent={editor.editorContent} hasChanges={editor.hasChanges} 
                       onFileSelect={editor.selectFile} onCodeChange={editor.handleContentChange} onSave={editor.saveChanges} scrollToLine={editor.scrollToLine}
                       onEditorMount={(api) => editor.editorApiRef.current = api} annotations={streamState.annotations}
                       readOnly={isProcessing}
                       contextFiles={selectedContextFiles}
                       toggleContextFile={(name) => setSelectedContextFiles(prev => { const n = new Set(prev); if(n.has(name)) n.delete(name); else n.add(name); return n; })}
-                      setAllContextFiles={(all) => setSelectedContextFiles(all ? new Set(entry.files.map(f => f.name)) : new Set())}
+                      setAllContextFiles={(all) => setSelectedContextFiles(all ? new Set((entry.files || []).map(f => f.name)) : new Set())}
                   />
               )}
           </div>

@@ -130,5 +130,10 @@
   "applyAndCheckpoint": "Apply & Checkpoint",
   "changeApplied": "✅ Change applied! The preview has been updated.",
   "lastChangeReverted": "Last change reverted.",
-  "nothingToUndo": "Nothing to undo."
+  "nothingToUndo": "Nothing to undo.",
+  "builderTerminalTitle": "Builder Terminal",
+  "auditEstCost": "Est. Cost:",
+  "auditContextRead": "Context Read:",
+  "auditGenerated": "Generated:",
+  "manualCheckpoint": "Manual Checkpoint"
 }

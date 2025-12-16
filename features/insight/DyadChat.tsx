@@ -4,7 +4,7 @@ import { ChatMessage, JournalEntry, AppSettings } from '../../types';
 import { chatWithDyad } from '../../services/geminiService';
 import { dbFacade } from '../../services/dbFacade';
 import { ChatList } from './components/ChatList';
-import { getLanguage } from '../../services/i18n';
+import { getLanguage, t } from '../../services/i18n';
 
 interface DyadChatProps { entries: JournalEntry[]; settings: AppSettings; }
 
@@ -28,11 +28,26 @@ export const DyadChat: React.FC<DyadChatProps> = ({ entries, settings }) => {
   };
 
   return (
-    <div className="flex flex-col h-[75vh] bg-yellow-50/30 rounded-2xl border border-yellow-400/30 overflow-hidden shadow-2xl relative">
+    <div className="flex flex-col h-full bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl border border-white/10 overflow-hidden shadow-2xl relative">
+      <div className="absolute inset-0 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay"></div>
       <ChatList messages={messages} loading={loading} onRollback={() => {}} />
-      <div className="p-4 bg-yellow-100/30 border-t border-yellow-400/20 flex gap-2">
-          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key==='Enter' && handleSend()} className="flex-1 rounded-full px-4 py-2 border border-yellow-400/30" placeholder="Ask Architect..." />
-          <button onClick={handleSend} className="bg-orange-500 text-white rounded-full px-4 py-2">Send</button>
+      <div className="p-4 bg-black/20 border-t border-white/10 flex items-center gap-3 backdrop-blur-sm">
+          <input 
+            value={input} 
+            onChange={e => setInput(e.target.value)} 
+            onKeyDown={e => e.key==='Enter' && handleSend()} 
+            className="flex-1 bg-slate-800 text-slate-200 placeholder:text-slate-500 rounded-full px-5 py-3 border border-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all" 
+            placeholder={t('dyadPlaceholder', 'assistant')} 
+            disabled={loading}
+          />
+          <button 
+            onClick={handleSend} 
+            disabled={loading || !input.trim()}
+            className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-full h-12 w-12 flex-shrink-0 flex items-center justify-center transition-colors shadow-lg"
+            aria-label={t('send', 'common')}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
       </div>
     </div>
   );

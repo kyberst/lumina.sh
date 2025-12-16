@@ -8,7 +8,7 @@ import { t } from '../i18n';
  */
 export const changePassword = async (userId: string, currentPass: string, newPass: string): Promise<void> => {
     const user = await dbFacade.getUserById(userId);
-    if (!user) throw new Error("User context lost");
+    if (!user) throw new Error(t('error.userGeneric', 'auth'));
 
     // Verify Current Password (using the project's simple btoa hashing convention)
     const currentHash = btoa(currentPass);

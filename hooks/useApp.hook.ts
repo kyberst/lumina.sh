@@ -31,11 +31,11 @@ export const useApp = () => {
             const isValid = await authService.validateSession();
             if (!isValid) {
                 console.warn('[Security] Session expired in background. Logging out.');
-                toast.info(t('errorSessionExpired', 'auth'));
+                toast.info(t('error.sessionExpired', 'auth'));
                 handleLogout();
             }
         }
-    });
+    }, !!data.user); // Pass boolean indicating if user is loaded
 
     return {
         ...data,

@@ -1,5 +1,7 @@
+
 import { AppError, AppModule, GeneratedFile } from '../types';
 import { logger } from './logger';
+import { t } from './i18n';
 
 export const readDirectoryFiles = async (files: FileList): Promise<GeneratedFile[]> => {
   // Expanded list of allowed extensions
@@ -94,7 +96,10 @@ export const readDirectoryFiles = async (files: FileList): Promise<GeneratedFile
     if (generatedFiles.length === 0) {
       // Provide more detailed error for debugging
       const fileSample = Array.from(files).slice(0, 3).map(f => f.name).join(', ');
-      throw new Error(`No valid code files found. Checked ${files.length} files (e.g., ${fileSample}). ensure files are < 2MB and have standard extensions.`);
+      const errorMessage = t('noValidFilesError', 'import')
+          .replace('{count}', files.length.toString())
+          .replace('{sample}', fileSample);
+      throw new Error(errorMessage);
     }
 
     return generatedFiles;

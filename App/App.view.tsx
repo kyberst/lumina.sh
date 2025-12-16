@@ -17,7 +17,7 @@ interface AppViewProps {
     selectedProject: JournalEntry | null;
     settings: AppSettings;
     updateEntry: (entry: JournalEntry) => void;
-    closeWorkspace: () => void;
+    onCloseWorkspace: () => void;
     saveSettings: (s: AppSettings) => void;
     currentView: string;
     setCurrentView: (view: any) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -36,7 +36,7 @@ interface AppViewProps {
 
 export const AppView: React.FC<AppViewProps> = ({
     loading, loadingMessage, user, onLogin, selectedProject, settings,
-    updateEntry, closeWorkspace, saveSettings, currentView, setCurrentView,
+    updateEntry, onCloseWorkspace, saveSettings, currentView, setCurrentView,
     // FIX: Removed duplicate `updateEntry` identifier.
     onLanguageChange, onLogout, entries, createEntry, deleteEntry,
     selectProject, setUser, searchQuery, setSearch, isOffline, setIsOffline
@@ -56,7 +56,7 @@ export const AppView: React.FC<AppViewProps> = ({
                     entry={selectedProject}
                     settings={settings}
                     onUpdate={updateEntry}
-                    onClose={closeWorkspace}
+                    onCloseWorkspace={onCloseWorkspace}
                     onSaveSettings={saveSettings}
                     isOffline={isOffline}
                     setIsOffline={setIsOffline}

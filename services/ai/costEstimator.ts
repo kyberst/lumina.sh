@@ -7,9 +7,9 @@ export const estimateCost = (inputTokens: number, outputTokens: number, modelId:
     // Pricing in USD per 1M tokens (Snapshots as of late 2024/Early 2025)
     let rates = { input: 0.075, output: 0.30 }; // Default (Flash)
 
-    if (modelId.includes('pro')) {
+    if (modelId?.includes('pro')) {
         rates = { input: 3.50, output: 10.50 }; // Gemini Pro pricing tier
-    } else if (modelId.includes('flash')) {
+    } else if (modelId?.includes('flash')) {
         rates = { input: 0.075, output: 0.30 }; // Gemini Flash pricing tier
     }
 

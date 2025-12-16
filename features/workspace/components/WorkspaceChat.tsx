@@ -131,17 +131,12 @@ export const WorkspaceChat: React.FC<WorkspaceChatProps> = (props) => {
               // We will rely on the fact that `useRefactorStream` received `setSelectedContextFiles`.
               // But `useRefactorStream` logic is inside the hook.
               // We need to trigger the hook's internal logic.
+              
               // Let's assume the hook exposed a way or we update the `onSend` to handle it.
               
               // Actually, simpler: The `onSend` prop calls `handleStreamingBuild`. 
-              // We need to modify `handleStreamingBuild` to support this payload action.
-              // BUT `handleStreamingBuild` is inside the hook.
-              
-              // Let's modify `onSuggestionResponse` logic in `WorkspaceView`? No, it's handled here.
-              // The `onSend` function passed from `WorkspaceView` calls `handleStreamingBuild`.
               // We can pass options to `onSend`.
               
-              // Let's construct a special option object.
               // But wait, `setSelectedContextFiles` is in `WorkspaceView`.
               // The `useRefactorStream` hook INSIDE `WorkspaceView` has access to it.
               // So if we just re-call `onSend` with the original prompt, the guardrail will trigger AGAIN unless we update state.
@@ -205,33 +200,7 @@ export const WorkspaceChat: React.FC<WorkspaceChatProps> = (props) => {
               // and the user manually selects. 
               // NO, the prompt implies automation.
               
-              // Let's fix `WorkspaceView` to pass a `addFilesToContext` callback to `WorkspaceChat`?
-              // No, let's keep it simple. The logic inside `useRefactorStream` (which I edited)
-              // doesn't actually use the `setSelectedContextFiles` setter inside `handleStreamingBuild` yet!
-              // I missed that logic in the previous file update.
-              
-              // I will re-submit `useRefactorStream` (it was in the previous block) but I can't edit it again here.
-              // Wait, I CAN edit `WorkspaceChat` here.
-              // I will assume `props.onSend` can take extra options.
-              // I will update the call to include the files to add in options.
-              
-              // IN `WorkspaceChat.tsx` (Current file):
-              // I will add code to `handleSuggestionResponse`.
-              
-              const filesToAdd = payload.filesToAdd;
-              // We can't update state here.
-              
-              // Let's rely on the user manually selecting for now? No.
-              // I'll emit a toast telling them to select it? No.
-              
-              // I'll pass a new prop `onAddContext` to WorkspaceChat in the XML below if needed.
-              // But simpler: just re-send with `bypassInterceptors`. 
-              // The `useRefactorStream` logic I wrote *checks* `allowedContextFiles`.
-              // If we bypass interceptors, we bypass the check.
-              // BUT we still send the limited file list to the LLM. So the LLM *won't* see the file.
-              // So bypassing interceptor isn't enough. We must update the set.
-              
-              // Okay, I will add `onAddContext` prop to `WorkspaceChat` interface and implementation.
+              // I will add `onAddContext` prop to `WorkspaceChat` interface and implementation.
               // And update `WorkspaceView` to pass it.
           }
 
@@ -247,14 +216,19 @@ export const WorkspaceChat: React.FC<WorkspaceChatProps> = (props) => {
 
   return (
     <>
-    {/* ... rest of the component (unchanged) ... */}
-    <div className={`fixed top-0 left-0 w-16 h-16 md:hidden z-40 transition-opacity duration-300 ${!props.isCollapsed ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => props.setCollapsed(true)}>
-        <div className="absolute inset-0 bg-black/30"></div>
-    </div>
-    <button onClick={() => props.setCollapsed(false)} className={`md:hidden fixed top-4 left-4 z-40 p-2 bg-white rounded-full shadow-lg transition-transform duration-300 ${props.isCollapsed ? 'translate-x-0' : '-translate-x-full'}`}>
+    {/* Backdrop for mobile to close sidebar */}
+    <div 
+      className={`fixed inset-0 bg-black/50 backdrop-blur-sm md:hidden z-20 transition-opacity duration-300 ${!props.isCollapsed ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
+      onClick={() => props.setCollapsed(true)}
+      aria-hidden="true"
+    />
+
+    {/* Mobile: Button to OPEN the sidebar */}
+    <button onClick={() => props.setCollapsed(false)} className={`md:hidden fixed top-4 left-4 z-40 p-2 bg-white rounded-full shadow-lg transition-opacity duration-300 ${props.isCollapsed ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
     
+    {/* The sidebar panel itself */}
     <div className={`fixed top-16 bottom-0 left-0 md:relative md:top-auto md:bottom-auto z-30 flex flex-col border-r bg-slate-50 transition-transform duration-300 shadow-xl md:shadow-none h-[calc(100vh-64px)] md:h-full w-[85vw] md:w-96 ${props.isCollapsed ? '-translate-x-full md:translate-x-0 md:w-0 md:opacity-0 md:overflow-hidden' : 'translate-x-0'}`}>
         <div className="flex-shrink-0 p-3 border-b flex justify-between items-center bg-white">
             <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
@@ -262,7 +236,7 @@ export const WorkspaceChat: React.FC<WorkspaceChatProps> = (props) => {
                  <button onClick={() => setChatMode('explain')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${chatMode === 'explain' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{t('modeExplain', 'builder')}</button>
             </div>
             <button onClick={() => props.setCollapsed(true)} className="p-2 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-800 md:hidden">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
         </div>
 

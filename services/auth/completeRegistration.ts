@@ -2,6 +2,7 @@
 import { dbFacade } from '../dbFacade';
 import { User, Transaction } from '../../types';
 import { startSession } from './startSession';
+import { t } from '../i18n';
 
 export const completeRegistration = async (name: string, email: string, password: string, telemetryConsent: boolean): Promise<User> => {
     const user: User = {
@@ -18,7 +19,7 @@ export const completeRegistration = async (name: string, email: string, password
 
     const bonus: Transaction = {
         id: crypto.randomUUID(), userId: user.id, amount: 0, credits: 50,
-        type: 'bonus', description: 'Welcome Bonus', timestamp: Date.now()
+        type: 'bonus', description: t('bonus.welcome', 'profile'), timestamp: Date.now()
     };
     await dbFacade.addTransaction(bonus);
 

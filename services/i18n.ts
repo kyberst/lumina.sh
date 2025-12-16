@@ -9,7 +9,7 @@ let isInitialized = false;
 const MODULES = [
   'common', 'auth', 'nav', 'builder', 'assistant', 'graph', 
   'settings', 'onboarding', 'workspace', 'project', 'profile', 
-  'import', 'creation', 'markdown', 'env'
+  'import', 'creation', 'markdown', 'env', 'validation'
 ];
 
 async function loadAllTranslations(): Promise<void> {
@@ -68,16 +68,32 @@ export const t = (key: string, module: string = 'common'): string => {
   if (module === 'journal') modFile = 'builder';
   if (module === 'insight') modFile = 'assistant';
   
+  const resolveKey = (dict: any, keyPath: string): string | undefined => {
+    const keys = keyPath.split('.');
+    let current = dict;
+    for (const k of keys) {
+      if (current && typeof current === 'object' && k in current) {
+        current = current[k];
+      } else {
+        return undefined;
+      }
+    }
+    return typeof current === 'string' ? current : undefined;
+  };
+
   const dict = translations[currentLang] as any;
-  if (dict && dict[modFile] && dict[modFile][key]) {
-    return dict[modFile][key];
+  if (dict && dict[modFile]) {
+    const translation = resolveKey(dict[modFile], key);
+    if (translation) return translation;
   }
+  
   // Fallback to English if key not found in current language
   if (currentLang !== 'en') {
       const enDict = translations['en'] as any;
-      if (enDict && enDict[modFile] && enDict[modFile][key]) {
-          return enDict[modFile][key];
+      if (enDict && enDict[modFile]) {
+          const translation = resolveKey(enDict[modFile], key);
+          if (translation) return translation;
       }
   }
-  return key;
+  return key; // Return the key itself if not found anywhere
 };

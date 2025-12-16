@@ -70,5 +70,17 @@
   "selectModel": "Selecciona un modelo para añadir...",
   "add": "Añadir",
   "archContextTitle": "Anulación de Contexto de Arquitectura",
-  "archContextDesc": "Proporciona reglas de arquitectura específicas (ej. 'Usar siempre Redux') para guiar a la IA. Esto se añade a cada solicitud."
+  "archContextDesc": "Proporciona reglas de arquitectura específicas (ej. 'Usar siempre Redux') para guiar a la IA. Esto se añade a cada solicitud.",
+  "archContextPlaceholder": "ej. Usar siempre Redux para el estado global. Usar styled-components para los estilos.",
+  "apiKeyNotFound": "No se encontró la clave de API para el proveedor",
+  "ollamaPlaceholder": "ej. Ollama Local",
+  "baseUrlPlaceholder": "http://localhost:11434/v1",
+  "serverNamePlaceholder": "ej. Filesystem",
+  "commandPlaceholder": "npx",
+  "argsPlaceholder": "-y @modelcontextprotocol/server-filesystem",
+  "stdio": "STDIO",
+  "websocket": "WebSocket",
+  "googleGemini": "Google Gemini",
+  "geminiFlashName": "Gemini Flash",
+  "geminiProName": "Gemini Pro"
 }

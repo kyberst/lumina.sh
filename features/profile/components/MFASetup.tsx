@@ -31,7 +31,7 @@ export const MFASetup: React.FC<Props> = ({ user, onUpdate }) => {
     };
 
     const handleVerify = async () => {
-        if (code.length !== 6) return toast.error(t('errorInvalidCodeLength', 'auth'));
+        if (code.length !== 6) return toast.error(t('error.invalidCodeLength', 'auth'));
         
         setLoading(true);
         try {
@@ -87,7 +87,7 @@ export const MFASetup: React.FC<Props> = ({ user, onUpdate }) => {
                         disabled={loading}
                         className="text-xs font-bold text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded transition-colors"
                     >
-                        {loading ? 'Processing...' : t('disableMFA', 'profile')}
+                        {loading ? t('processing', 'common') : t('disableMFA', 'profile')}
                     </button>
                 </div>
             </div>
@@ -112,7 +112,7 @@ export const MFASetup: React.FC<Props> = ({ user, onUpdate }) => {
                         disabled={loading}
                         className="shadcn-btn shadcn-btn-primary h-9 text-xs"
                     >
-                        {loading ? 'Processing...' : t('setupMFA', 'profile')}
+                        {loading ? t('processing', 'common') : t('setupMFA', 'profile')}
                     </button>
                 </div>
             ) : (
@@ -154,7 +154,7 @@ export const MFASetup: React.FC<Props> = ({ user, onUpdate }) => {
                                         disabled={loading || code.length !== 6}
                                         className="shadcn-btn shadcn-btn-primary"
                                     >
-                                        {loading ? '...' : t('verify', 'auth')}
+                                        {loading ? '...' : t('login.action.verify', 'auth')}
                                     </button>
                                 </div>
                             </div>

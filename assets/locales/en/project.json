@@ -4,5 +4,9 @@
     "rename": "Rename",
     "openStudio": "Open Studio",
     "enteringAsRole": "Entering project as {role}.",
-    "inviteNotFound": "Project from invitation link not found."
+    "inviteNotFound": "Project from invitation link not found.",
+    "initializing": "Initializing Project...",
+    "projectsTitle": "Projects",
+    "noProjectsFound": "No projects found matching \"{query}\"",
+    "clearSearch": "Clear Search"
 }

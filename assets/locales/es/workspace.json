@@ -50,5 +50,16 @@
     "restoreTitle": "¿Restaurar Instantánea?",
     "restoreDesc": "Esto revertirá tu proyecto al estado seleccionado. Los cambios actuales se guardarán como una nueva instantánea antes de revertir.",
     "restoreConfirm": "Restaurar",
-    "changeApplied": "¡Instantánea Restaurada!"
+    "changeApplied": "¡Instantánea Restaurada!",
+    "contextTooltip": "Incluir en el Contexto de la IA",
+    "selectAll": "Seleccionar Todo",
+    "deselectAll": "Deseleccionar Todo",
+    "selectFileToEdit": "Selecciona un archivo para editar",
+    "aiEditing": "IA Editando...",
+    "contextUsageTooltip": "Contexto: {used}k / {total}k tokens",
+    "contextAlertDesc": "⚠️ **Alerta de Contexto**: Mencionaste {files}, pero no está en el contexto activo. Para asegurar una refactorización precisa, necesito leer este archivo.",
+    "contextAlertAddAndContinue": "Añadir {file} y Continuar",
+    "contextAlertIgnore": "Ignorar y Continuar (Riesgoso)",
+    "attachFile": "Adjuntar Archivo",
+    "patchFailedError": "Falló la aplicación del parche"
 }

@@ -70,5 +70,17 @@
   "selectModel": "Select a model to add...",
   "add": "Add",
   "archContextTitle": "Architecture Context Override",
-  "archContextDesc": "Provide specific architectural rules (e.g., 'Always use Redux') to guide the AI. This is appended to every request."
+  "archContextDesc": "Provide specific architectural rules (e.g., 'Always use Redux') to guide the AI. This is appended to every request.",
+  "archContextPlaceholder": "e.g. Always use Redux for global state. Use styled-components for styling.",
+  "apiKeyNotFound": "API Key not found for provider",
+  "ollamaPlaceholder": "e.g. Ollama Local",
+  "baseUrlPlaceholder": "http://localhost:11434/v1",
+  "serverNamePlaceholder": "e.g. Filesystem",
+  "commandPlaceholder": "npx",
+  "argsPlaceholder": "-y @modelcontextprotocol/server-filesystem",
+  "stdio": "STDIO",
+  "websocket": "WebSocket",
+  "googleGemini": "Google Gemini",
+  "geminiFlashName": "Gemini Flash",
+  "geminiProName": "Gemini Pro"
 }

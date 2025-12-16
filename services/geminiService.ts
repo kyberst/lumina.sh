@@ -128,7 +128,7 @@ export const analyzeSecurity = async (files: GeneratedFile[], prompt: string): P
 export const chatWithDyad = async (history: ChatMessage[], msg: string, entries: JournalEntry[], lang: 'en' | 'es'): Promise<string> => {
     try {
         const entriesContext = entries.map(e => 
-          `- Project: ${e.project || 'Untitled'}\n  Description: ${e.description || 'No description'}\n  Tags: ${e.tags.join(', ')}\n  Complexity: ${e.mood}`
+          `- Project: ${e.project || 'Untitled'}\n  Description: ${e.description || 'No description'}\n  Tags: ${(e.tags || []).join(', ')}\n  Complexity: ${e.mood}`
         ).join('\n\n');
         
         // --- Memory Integration for Dyad ---
@@ -174,6 +174,6 @@ export const chatWithDyad = async (history: ChatMessage[], msg: string, entries:
 
     } catch (e: any) {
         logger.error(AppModule.INSIGHT, "Dyad Chat failed", e);
-        return "Unable to access project archives.";
+        return t('dyadError', 'assistant');
     }
 };

@@ -55,5 +55,9 @@
     "step3Enter": "Introduce el código de 6 dígitos generado por la app.",
     "mfaActivated": "¡Autenticación de Dos Factores activada!",
     "registerPasskey": "Registrar este Dispositivo (Passkey)",
-    "passkeyRegistered": "¡Dispositivo registrado con éxito!"
+    "passkeyRegistered": "¡Dispositivo registrado con éxito!",
+    "passwordPlaceholder": "Mín 8 car., 1 número",
+    "updating": "Actualizando...",
+    "bonus.welcome": "Bono de Bienvenida",
+    "bonus.ssoWelcome": "Bienvenida vía {provider}"
 }

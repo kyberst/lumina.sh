@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { JournalEntry, ChatMessage, AppSettings, EditorContext, DependencyDetails, AIAudit, GeneratedFile } from '../../../types';
+import { JournalEntry, ChatMessage, AppSettings, EditorContext, DependencyDetails, AIAudit, GeneratedFile, AppModule } from '../../../types';
 import { streamChatRefactor, simplifyUserPrompt } from '../../../services/geminiService';
 import { createInitialStreamState, parseStreamChunk, finalizeStream, StreamState } from '../../../services/ai/streamParser';
 import { dbFacade } from '../../../services/dbFacade';
@@ -11,6 +11,7 @@ import { formattingService } from '../../../../services/formattingService';
 import { findSimilarCode } from '../../../../services/memory/retrieval';
 import { getEmbedding } from '../../../../services/memory/embedding';
 import { extractComponentProps } from '../../../../services/ai/analysis';
+import { logger } from '../../../../services/logger';
 
 interface UseRefactorStreamProps {
     entry: JournalEntry;
@@ -41,7 +42,7 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
     ) => {
         setIsOffline(false); // Reset offline state on every new attempt
         const isInitial = !userMessage && entry.pendingGeneration;
-        let originalPrompt = userMessage || entry.prompt;
+        let originalPrompt = userMessage || entry.prompt || '';
         let promptText = originalPrompt;
         let simplifiedText: string | undefined = undefined;
 
@@ -52,17 +53,18 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
         }
         
         setIsProcessing(true);
+        const safeFiles = entry.files || [];
 
         // --- INTELLIGENT INTERCEPTORS (Guardrails & Suggestions) ---
         if (mode === 'modify' && !options?.bypassInterceptors && !isInitial) {
             
             // 0. Context Guardrail (Path 1)
             // If Developer Mode is ON and a file is mentioned but NOT selected, ask to add it.
-            if (settings.developerMode && options?.allowedContextFiles && options.allowedContextFiles.size < entry.files.length) {
+            if (settings.developerMode && options?.allowedContextFiles && options.allowedContextFiles.size < safeFiles.length) {
                 // Regex to find filenames in prompt (basic heuristic)
                 const filenameRegex = /\b[\w-]+\.(tsx|ts|js|jsx|css|html|json)\b/g;
                 const mentions = new Set(promptText.match(filenameRegex) || []);
-                const missingFiles = Array.from(mentions).filter(name => entry.files.some(f => f.name === name) && !options.allowedContextFiles!.has(name));
+                const missingFiles = Array.from(mentions).filter(name => safeFiles.some(f => f.name === name) && !options.allowedContextFiles!.has(name));
 
                 if (missingFiles.length > 0) {
                     const guardMsg: ChatMessage = {
@@ -113,7 +115,7 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
             const componentMatch = promptText.match(/(?:add|use|insert|render)\s+(?:a|an|the)\s+<(\w+)/i);
             const componentName = componentMatch ? componentMatch[1] : null;
             if (componentName) {
-                const componentFile = entry.files.find(f => f.name.includes(`${componentName}.tsx`));
+                const componentFile = safeFiles.find(f => f.name.includes(`${componentName}.tsx`));
                 if (componentFile) {
                     const props = extractComponentProps(componentFile.content);
                     if (props.length > 0) {
@@ -150,12 +152,12 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
         
         if (editorContext) { /* ... (unchanged context injection) ... */ }
         
-        const previousFiles = entry.files.map(f => ({...f}));
+        const previousFiles = safeFiles.map(f => ({...f}));
 
-        setStreamState(createInitialStreamState(entry.files));
+        setStreamState(createInitialStreamState(safeFiles));
         abortControllerRef.current = new AbortController();
 
-        let currentState = createInitialStreamState(entry.files);
+        let currentState = createInitialStreamState(safeFiles);
         // ... (unchanged dependency normalization) ...
 
         let finalUsage = { inputTokens: 0, outputTokens: 0 };
@@ -163,8 +165,8 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
 
         // FILTER FILES BASED ON SELECTION
         const filesToSend = options?.allowedContextFiles 
-            ? entry.files.filter(f => options.allowedContextFiles!.has(f.name))
-            : entry.files;
+            ? safeFiles.filter(f => options.allowedContextFiles!.has(f.name))
+            : safeFiles;
 
         try {
             const promptType = isInitial ? 'builder' : (mode === 'explain' ? 'explain' : 'refactor');
@@ -245,8 +247,18 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
             }
             
         } catch (e: any) {
-            if (e.message.includes("Patch failed") && currentState.patchError) {
-                 const confirmed = await dialogService.confirm(
+            // Safely get the error message as a string for robust inspection.
+            let errorMessageString = '';
+            if (typeof e === 'string') {
+                errorMessageString = e;
+            } else if (e && typeof e.message === 'string') {
+                errorMessageString = e.message;
+            } else if (e) {
+                try { errorMessageString = JSON.stringify(e); } catch { /* ignore circular refs */ }
+            }
+
+            if (errorMessageString.includes("Patch failed") && currentState.patchError) {
+                const confirmed = await dialogService.confirm(
                     t('patchErrorTitle', 'builder'),
                     t('patchErrorDesc', 'builder').replace('{filename}', currentState.patchError.file),
                     { confirmText: t('patchRetryButton', 'builder') }
@@ -256,7 +268,14 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
                 } else {
                     setIsProcessing(false);
                 }
-            } else if (e.message !== 'Aborted') {
+            } else if (!errorMessageString.includes('Aborted')) {
+                // The logger in geminiService automatically logs the full error to the DB.
+                // We just need to show a generic, user-friendly message for any connection-related issue.
+                const lowerCaseMessage = errorMessageString.toLowerCase();
+                if (lowerCaseMessage.includes('resource_exhausted') || lowerCaseMessage.includes('429') || lowerCaseMessage.includes('rate limit')) {
+                     logger.error(AppModule.BUILDER, "API Quota Exceeded", { rawError: errorMessageString });
+                }
+                
                 toast.error(t('error.aiConnection', 'builder'));
                 setIsOffline(true);
             }
@@ -270,7 +289,10 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onUpda
     const handleEnvVarSave = async (messageId: string, values: Record<string, string>) => {
         await onUpdate({ ...entry, envVars: { ...entry.envVars, ...values } });
         setHistory(prev => prev.map(m => m.id === messageId ? { ...m, envVarsSaved: true, isAwaitingInput: false } : m));
-        await dbFacade.updateRefactorMessage(entry.id, history.find(m => m.id === messageId)!);
+        const messageToUpdate = history.find(m => m.id === messageId);
+        if (messageToUpdate) {
+            await dbFacade.updateRefactorMessage(entry.id, { ...messageToUpdate, envVarsSaved: true, isAwaitingInput: false });
+        }
         const followUpPrompt = "The user has provided the required environment variables. Now, generate the code that uses them.";
         handleStreamingBuild(followUpPrompt, [], undefined, 'modify', { isFollowUp: true });
     };

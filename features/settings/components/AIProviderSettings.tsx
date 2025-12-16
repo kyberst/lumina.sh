@@ -11,7 +11,7 @@ export const AIProviderSettings: React.FC<Props> = ({ settings, onChange }) => {
 
     const save = () => {
         if (!editing?.name || !editing?.baseUrl) return toast.error(t('errorRequiredFields', 'settings'));
-        const list = [...settings.customProviders];
+        const list = [...(settings.customProviders || [])];
         const idx = list.findIndex(p => p.id === editing.id);
         
         // Simple heuristic for models if empty
@@ -26,7 +26,7 @@ export const AIProviderSettings: React.FC<Props> = ({ settings, onChange }) => {
     };
 
     const remove = (id: string) => {
-        const list = settings.customProviders.filter(p => p.id !== id);
+        const list = (settings.customProviders || []).filter(p => p.id !== id);
         onChange('customProviders', list);
         // If active provider was deleted, reset to Gemini
         if (settings.activeProviderId === id) {
@@ -38,10 +38,10 @@ export const AIProviderSettings: React.FC<Props> = ({ settings, onChange }) => {
     const activeModels = useMemo(() => {
         const providerId = settings.activeProviderId || 'gemini';
         if (providerId === 'gemini') {
-            return [{ id: 'flash', name: 'Gemini Flash' }, { id: 'pro', name: 'Gemini Pro' }];
+            return [{ id: 'flash', name: t('geminiFlashName', 'settings') }, { id: 'pro', name: t('geminiProName', 'settings') }];
         }
-        return settings.customProviders.find(p => p.id === providerId)?.models || [];
-    }, [settings.activeProviderId, settings.customProviders]);
+        return (settings.customProviders || []).find(p => p.id === providerId)?.models || [];
+    }, [settings.activeProviderId, settings.customProviders, settings.language]);
 
     const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         onChange('activeProviderId', e.target.value);
@@ -60,8 +60,8 @@ export const AIProviderSettings: React.FC<Props> = ({ settings, onChange }) => {
                      <div>
                          <label className="text-xs font-bold uppercase text-slate-500">{t('activeProvider', 'settings')}</label>
                          <select className="shadcn-input" value={settings.activeProviderId || 'gemini'} onChange={handleProviderChange}>
-                             <option value="gemini">Google Gemini</option>
-                             {settings.customProviders.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                             <option value="gemini">{t('googleGemini', 'settings')}</option>
+                             {(settings.customProviders || []).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                          </select>
                      </div>
                      <div>
@@ -78,11 +78,11 @@ export const AIProviderSettings: React.FC<Props> = ({ settings, onChange }) => {
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className="text-xs font-bold uppercase text-slate-500">{t('name', 'common')}</label>
-                            <input className="shadcn-input" placeholder="e.g. Ollama Local" value={editing.name} onChange={e => setEditing({...editing, name: e.target.value})} />
+                            <input className="shadcn-input" placeholder={t('ollamaPlaceholder', 'settings')} value={editing.name} onChange={e => setEditing({...editing, name: e.target.value})} />
                         </div>
                         <div>
                             <label className="text-xs font-bold uppercase text-slate-500">{t('baseUrl', 'settings')}</label>
-                            <input className="shadcn-input" placeholder="http://localhost:11434/v1" value={editing.baseUrl} onChange={e => setEditing({...editing, baseUrl: e.target.value})} />
+                            <input className="shadcn-input" placeholder={t('baseUrlPlaceholder', 'settings')} value={editing.baseUrl} onChange={e => setEditing({...editing, baseUrl: e.target.value})} />
                         </div>
                     </div>
                     <div>
@@ -96,9 +96,9 @@ export const AIProviderSettings: React.FC<Props> = ({ settings, onChange }) => {
                 </div>
             ) : (
                 <div className="space-y-2">
-                    {settings.customProviders.length === 0 && <div className="text-sm text-slate-400 italic text-center py-4">{t('noCustomProviders', 'settings')}</div>}
+                    {(settings.customProviders || []).length === 0 && <div className="text-sm text-slate-400 italic text-center py-4">{t('noCustomProviders', 'settings')}</div>}
                     
-                    {settings.customProviders.map(p => (
+                    {(settings.customProviders || []).map(p => (
                         <div key={p.id} className="flex justify-between items-center p-3 border rounded-lg bg-white shadow-sm hover:border-indigo-200 transition-colors">
                             <div className="flex flex-col">
                                 <span className="font-bold text-sm text-slate-700">{p.name}</span>
