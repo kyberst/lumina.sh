@@ -1,4 +1,5 @@
 
+
 {
   "loading": "Generating Code...",
   "error": "Build Failed",
@@ -17,28 +18,5 @@
   },
   "editor": {
     "quickFix": "Quick Fix Available"
-  },
-  "loading.init": "Loading Lumina Studio...",
-  "loading.db": "Connecting to local database (SurrealDB)...",
-  "loading.engine": "Initializing Lumina's refactoring engine...",
-  "saveChanges": "Save Changes",
-  "note": "Note:",
-  "clear": "Clear",
-  "close": "Close",
-  "deleted": "Deleted",
-  "errorLoadData": "Failed to load data",
-  "name": "Name",
-  "type": "Type",
-  "unknownError": "An unknown error occurred",
-  "errorSyncHistory": "Failed to sync history state",
-  "errorMicPermission": "Microphone access denied. Please enable it in your browser settings.",
-  "toastSuccess": "Success",
-  "toastError": "Error",
-  "toastProcessing": "Processing",
-  "toastNotification": "Notification",
-  "processing": "Processing...",
-  "edit": "Edit",
-  "error.speechRecognitionNotSupported": "Browser does not support Speech Recognition",
-  "ok": "OK",
-  "tryAgain": "Try Again"
+  }
 }

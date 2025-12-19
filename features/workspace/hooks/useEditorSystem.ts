@@ -11,13 +11,13 @@ export const useEditorSystem = (entry: JournalEntry, onUpdateEntry: (e: JournalE
     const editorApiRef = useRef<CodeEditorApi | null>(null);
 
     useEffect(() => {
-        const files = entry.files || [];
-        if (!selectedFile && files.length > 0) {
-            const f = files.find(x => x.name === 'index.html') || files[0];
+        // Safely check entry.files before accessing length
+        if (!selectedFile && (entry.files?.length ?? 0) > 0) {
+            const f = entry.files.find(x => x.name === 'index.html') || entry.files[0];
             setSelectedFile(f);
             setEditorContent(f.content);
         }
-    }, [(entry.files || []).length]);
+    }, [entry.files?.length]); // Depend on entry.files.length, safely accessing it
 
     const selectFile = (f: GeneratedFile) => {
         setSelectedFile(f);
@@ -28,7 +28,8 @@ export const useEditorSystem = (entry: JournalEntry, onUpdateEntry: (e: JournalE
 
     const saveChanges = async () => {
         if (selectedFile) {
-            const updatedFiles = (entry.files || []).map(x => x.name === selectedFile.name ? { ...x, content: editorContent } : x);
+            // Safely map over entry.files
+            const updatedFiles = (entry.files ?? []).map(x => x.name === selectedFile.name ? { ...x, content: editorContent } : x);
             if (await onUpdateEntry({ ...entry, files: updatedFiles })) {
                 setHasChanges(false);
                 if (onSaveSuccess) onSaveSuccess();

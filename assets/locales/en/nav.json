@@ -1,14 +1,9 @@
 
+
 {
   "journal": "Builder",
   "memories": "Projects",
   "graph": "Map",
   "chat": "Assistant",
-  "settings": "Config",
-  "profile": "My Profile",
-  "logout": "Logout",
-  "english": "English",
-  "spanish": "Español",
-  "copyright": "lumina.sh © {year}",
-  "profileAlt": "Profile"
+  "settings": "Config"
 }

@@ -1,5 +1,5 @@
 
-import { GeneratedFile, CodeAnnotation, AIPlan, DependencyDetails, EnvVarRequest } from '../../../types';
+import { GeneratedFile, CodeAnnotation, AIPlan, DependencyDetails } from '../../../types';
 
 export type StreamMode = 'TEXT' | 'REASONING' | 'SUMMARY' | 'FILE' | 'PATCH' | 'COMMAND';
 
@@ -16,7 +16,5 @@ export interface StreamState {
   dependencies: Record<string, DependencyDetails>;
   annotations: CodeAnnotation[]; // Visual feedback/errors from AI
   aiPlan?: AIPlan; // Structured plan progress
-  patches: Record<string, string>;
-  patchError?: { file: string; message: string; patch: string; };
-  requiredEnvVars: EnvVarRequest[];
+  suggestions: string[]; // Contextual suggestions for the next user prompt
 }

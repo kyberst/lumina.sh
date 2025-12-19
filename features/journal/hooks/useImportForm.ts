@@ -20,8 +20,8 @@ export const useImportForm = (settings: AppSettings, onImport: (e: JournalEntry)
     if (e.target.files?.length) {
         setIsProcessing(true);
         try {
-            const files = await readDirectoryFiles(e.target.files);
-            onImport({ id: crypto.randomUUID(), prompt: 'Imported from Folder', timestamp: Date.now(), files, tags: ['Local'], mood: 50, project: 'Imported Project' });
+            const { files, projectName } = await readDirectoryFiles(e.target.files);
+            onImport({ id: crypto.randomUUID(), prompt: 'Imported from Folder', timestamp: Date.now(), files, tags: ['Local'], mood: 50, project: projectName || 'Imported Project' });
         } catch (err: any) { setError(err.message); } finally { setIsProcessing(false); }
     }
   };
@@ -40,7 +40,6 @@ export const useImportForm = (settings: AppSettings, onImport: (e: JournalEntry)
       setIsProcessing(true);
       try {
           // Extract owner/repo from URL
-          // Supports: https://github.com/owner/repo or https://github.com/owner/repo/tree/branch
           const match = urlInput.match(/github\.com\/([^\/]+)\/([^\/]+)/);
           if (!match) throw new Error("Invalid GitHub URL");
           

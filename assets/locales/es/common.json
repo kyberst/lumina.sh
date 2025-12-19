@@ -1,4 +1,5 @@
 
+
 {
   "loading": "Generando Código...",
   "error": "Fallo de Construcción",
@@ -17,28 +18,5 @@
   },
   "editor": {
     "quickFix": "Solución Rápida Disponible"
-  },
-  "loading.init": "Cargando Lumina Studio...",
-  "loading.db": "Conectando a tu base de datos local (SurrealDB)...",
-  "loading.engine": "Inicializando el motor de refactorización Lumina...",
-  "saveChanges": "Guardar Cambios",
-  "note": "Nota:",
-  "clear": "Limpiar",
-  "close": "Cerrar",
-  "deleted": "Eliminado",
-  "errorLoadData": "Error al cargar datos",
-  "name": "Nombre",
-  "type": "Tipo",
-  "unknownError": "Ocurrió un error desconocido",
-  "errorSyncHistory": "No se pudo sincronizar el estado del historial",
-  "errorMicPermission": "Acceso al micrófono denegado. Por favor, actívalo en la configuración de tu navegador.",
-  "toastSuccess": "Éxito",
-  "toastError": "Error",
-  "toastProcessing": "Procesando",
-  "toastNotification": "Notificación",
-  "processing": "Procesando...",
-  "edit": "Editar",
-  "error.speechRecognitionNotSupported": "El navegador no soporta Reconocimiento de Voz",
-  "ok": "Aceptar",
-  "tryAgain": "Intentar de Nuevo"
+  }
 }

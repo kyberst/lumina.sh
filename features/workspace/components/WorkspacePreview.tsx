@@ -1,11 +1,7 @@
-
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { PreviewToolbar } from './preview/PreviewToolbar';
 import { ConsolePanel } from './preview/ConsolePanel';
-import { EnvVarRequest, AppSettings } from '../../../types';
-import { ErrorOverlay } from './preview/ErrorOverlay';
-import { t } from '../../../services/i18n';
+import { EnvVarRequest } from '../../../types';
 
 interface WorkspacePreviewProps {
   iframeSrc: string;
@@ -18,24 +14,22 @@ interface WorkspacePreviewProps {
   errorCount: number;
   onClearLogs: () => void;
   onNavigateError?: (file: string, line: number) => void;
-  settings: AppSettings;
-  onAskToFix: (errors: any[]) => void;
+  iframeRef: React.RefObject<HTMLIFrameElement>;
+  isSelectionModeActive: boolean;
+  onToggleSelectionMode: () => void;
 }
 
 export const WorkspacePreview: React.FC<WorkspacePreviewProps> = ({
-  iframeSrc, iframeKey, deviceMode, setDeviceMode, showConsole, setShowConsole, consoleLogs, errorCount, onClearLogs, onNavigateError, settings, onAskToFix
+  iframeSrc, iframeKey, deviceMode, setDeviceMode, showConsole, setShowConsole, consoleLogs, errorCount, onClearLogs, onNavigateError,
+  iframeRef, isSelectionModeActive, onToggleSelectionMode
 }) => {
   const [depStatus, setDepStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [failedDeps, setFailedDeps] = useState<string[]>([]);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-  useEffect(() => {
-      if (iframeKey > 0) { // Don't trigger on initial load
-        setIsRefreshing(true);
-        const timer = setTimeout(() => setIsRefreshing(false), 800);
-        return () => clearTimeout(timer);
-      }
-  }, [iframeKey]);
+  const handleToggleFullscreen = () => {
+    setIsFullscreen(prev => !prev);
+  };
 
   useEffect(() => {
       setDepStatus('idle');
@@ -57,23 +51,46 @@ export const WorkspacePreview: React.FC<WorkspacePreviewProps> = ({
       return () => window.removeEventListener('message', handler);
   }, []);
 
-  const iframeContainerClass = `bg-white transition-all duration-300 ${
-    isRefreshing ? 'shadow-[0_0_0_4px_rgba(79,70,229,0.5)] shadow-indigo-500/50' : 'shadow-2xl'
-  } ${
-    deviceMode === 'mobile' ? 'w-[375px] h-[667px] shrink-0 rounded-[30px] border-8 border-slate-800' : 
-    deviceMode === 'tablet' ? 'w-[768px] h-[1024px] shrink-0 rounded-[20px] border-8 border-slate-800' : 
-    'w-full h-full rounded-none border-0'
-  }`;
+  if (isFullscreen) {
+    return (
+      <div className="fixed inset-0 z-[500] bg-slate-900 animate-in fade-in p-4 flex items-center justify-center">
+        <button 
+          onClick={handleToggleFullscreen}
+          title="Exit Fullscreen"
+          className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/50 text-white hover:bg-black/80 transition-all"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+        </button>
+        <iframe 
+            ref={iframeRef}
+            key={iframeKey}
+            srcDoc={iframeSrc}
+            className="w-full h-full border-0 bg-white rounded-lg shadow-2xl"
+            title="Preview"
+            sandbox="allow-scripts allow-modals allow-same-origin"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full flex flex-col relative bg-slate-100">
-        <PreviewToolbar deviceMode={deviceMode} setDeviceMode={setDeviceMode} depStatus={depStatus} />
+        <PreviewToolbar 
+            deviceMode={deviceMode} 
+            setDeviceMode={setDeviceMode} 
+            depStatus={depStatus}
+            isSelectionModeActive={isSelectionModeActive}
+            onToggleSelectionMode={onToggleSelectionMode}
+            onToggleFullscreen={handleToggleFullscreen}
+            isFullscreen={isFullscreen}
+        />
 
         <div className="flex-1 flex items-center justify-center p-4 overflow-auto bg-slate-200/50 relative">
             <iframe 
+                ref={iframeRef}
                 key={iframeKey}
                 srcDoc={iframeSrc}
-                className={iframeContainerClass}
+                className={`bg-white shadow-2xl transition-all duration-300 ${deviceMode === 'mobile' ? 'w-[375px] h-[667px] shrink-0 rounded-[30px] border-8 border-slate-800' : deviceMode === 'tablet' ? 'w-[768px] h-[1024px] shrink-0 rounded-[20px] border-8 border-slate-800' : 'w-full h-full rounded-none border-0'}`}
                 title="Preview"
                 sandbox="allow-scripts allow-modals allow-same-origin"
             />
@@ -81,7 +98,7 @@ export const WorkspacePreview: React.FC<WorkspacePreviewProps> = ({
             {depStatus === 'loading' && (
                 <div className="absolute inset-0 z-10 bg-white/60 backdrop-blur-sm flex items-center justify-center flex-col gap-4 animate-in fade-in">
                     <div className="relative"><div className="w-12 h-12 rounded-full border-4 border-slate-200"></div><div className="absolute inset-0 w-12 h-12 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin"></div></div>
-                    <div className="text-slate-800 font-bold tracking-wide text-sm">{t('dependencies.resolve', 'common')}</div>
+                    <div className="text-slate-800 font-bold tracking-wide text-sm">Resolving Dependencies...</div>
                 </div>
             )}
 
@@ -89,25 +106,21 @@ export const WorkspacePreview: React.FC<WorkspacePreviewProps> = ({
                 <div className="absolute inset-0 z-10 bg-white/90 backdrop-blur-md flex items-center justify-center flex-col gap-4 animate-in zoom-in-95">
                      <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mb-2">⚠</div>
                      <div className="text-center">
-                         <h3 className="text-slate-900 font-bold mb-1">{t('dependencies.error', 'common')}</h3>
+                         <h3 className="text-slate-900 font-bold mb-1">Dependency Load Failed</h3>
                          <div className="bg-red-50 border border-red-100 rounded p-2 text-xs font-mono text-red-700 max-w-xs mx-auto">{failedDeps.join(', ')}</div>
                      </div>
                 </div>
             )}
         </div>
         
-        {settings.developerMode ? (
-            <div className="absolute bottom-4 right-4 z-50">
-                <button onClick={() => setShowConsole(!showConsole)} className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg flex items-center gap-2 border transition-all ${errorCount > 0 ? 'bg-red-500 text-white border-red-600 animate-pulse' : 'bg-slate-900 text-slate-300 border-slate-800'}`}>
-                    <div className={`w-2 h-2 rounded-full ${errorCount > 0 ? 'bg-white' : 'bg-emerald-500'}`}></div>
-                    {t('consoleLabel', 'workspace')}: {errorCount > 0 ? t('consoleErrors', 'workspace').replace('{count}', errorCount.toString()) : t('consoleClean', 'workspace')}
-                </button>
-            </div>
-        ) : (
-            errorCount > 0 && <ErrorOverlay logs={consoleLogs} onFix={onAskToFix} />
-        )}
+        <div className="absolute bottom-4 right-4 z-50">
+            <button onClick={() => setShowConsole(!showConsole)} className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg flex items-center gap-2 border transition-all ${errorCount > 0 ? 'bg-red-500 text-white border-red-600 animate-pulse' : 'bg-slate-900 text-slate-300 border-slate-800'}`}>
+                <div className={`w-2 h-2 rounded-full ${errorCount > 0 ? 'bg-white' : 'bg-emerald-500'}`}></div>
+                Console: {errorCount > 0 ? `${errorCount} Errors` : 'Clean'}
+            </button>
+        </div>
         
-        {showConsole && settings.developerMode && (
+        {showConsole && (
             <ConsolePanel 
                 logs={consoleLogs} 
                 onClear={onClearLogs} 

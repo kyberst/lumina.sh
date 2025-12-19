@@ -1,9 +1,8 @@
 
 import { AppError, AppModule, GeneratedFile } from '../types';
 import { logger } from './logger';
-import { t } from './i18n';
 
-export const readDirectoryFiles = async (files: FileList): Promise<GeneratedFile[]> => {
+export const readDirectoryFiles = async (files: FileList): Promise<{ files: GeneratedFile[], projectName: string | null }> => {
   // Expanded list of allowed extensions
   const allowedExtensions = [
     '.ts', '.tsx', '.js', '.jsx', '.json', '.md', '.txt', '.css', '.html', 
@@ -13,6 +12,7 @@ export const readDirectoryFiles = async (files: FileList): Promise<GeneratedFile
   ];
   
   const generatedFiles: GeneratedFile[] = [];
+  let detectedProjectName: string | null = null;
 
   try {
     logger.info(AppModule.INTEGRATION, `Processing selection of ${files.length} files`);
@@ -23,7 +23,6 @@ export const readDirectoryFiles = async (files: FileList): Promise<GeneratedFile
       const path = file.webkitRelativePath || file.name;
 
       // Skip node_modules, .git, dist, build, coverage folders explicitly
-      // checking for /node_modules/ ensures we don't skip "my_node_modules_test.js"
       if (
           path.includes('/node_modules/') || 
           path.includes('/.git/') || 
@@ -38,7 +37,6 @@ export const readDirectoryFiles = async (files: FileList): Promise<GeneratedFile
       // Determine extension
       let ext = '';
       if (file.name.startsWith('.') && !file.name.includes('.', 1)) {
-          // Handle dotfiles like .env, .gitignore where the name is essentially the extension
           ext = file.name; 
       } else {
           const parts = file.name.split('.');
@@ -47,14 +45,12 @@ export const readDirectoryFiles = async (files: FileList): Promise<GeneratedFile
           }
       }
 
-      // Check allow list or specific filenames like Dockerfile
       const isAllowed = allowedExtensions.includes(ext) || 
                         file.name === 'Dockerfile' || 
                         file.name === 'package' || 
                         file.name === 'LICENSE' ||
                         file.name === 'README';
 
-      // Limit 2MB per file (increased from 100KB)
       if (isAllowed && file.size < 2000000) { 
         try {
             const text = await readFileAsText(file);
@@ -67,25 +63,21 @@ export const readDirectoryFiles = async (files: FileList): Promise<GeneratedFile
             if (ext === '.ts' || ext === '.tsx') lang = 'typescript';
             if (ext === '.py') lang = 'python';
 
-            // Clean relative path: remove the top-level folder name if it exists to make paths relative to project root
-            // e.g. "MyProject/src/index.js" -> "src/index.js"
             let relativePath = file.name;
             if (file.webkitRelativePath) {
                 const parts = file.webkitRelativePath.split('/');
                 if (parts.length > 1) {
+                    if (!detectedProjectName) {
+                        detectedProjectName = parts[0];
+                    }
                     relativePath = parts.slice(1).join('/');
                 } else {
                     relativePath = file.webkitRelativePath;
                 }
             }
 
-            // Don't add if path is empty
             if (relativePath) {
-                generatedFiles.push({
-                    name: relativePath,
-                    content: text,
-                    language: lang
-                });
+                generatedFiles.push({ name: relativePath, content: text, language: lang });
             }
         } catch (readErr) {
             console.warn(`Failed to read file ${file.name}`, readErr);
@@ -94,15 +86,11 @@ export const readDirectoryFiles = async (files: FileList): Promise<GeneratedFile
     }
 
     if (generatedFiles.length === 0) {
-      // Provide more detailed error for debugging
       const fileSample = Array.from(files).slice(0, 3).map(f => f.name).join(', ');
-      const errorMessage = t('noValidFilesError', 'import')
-          .replace('{count}', files.length.toString())
-          .replace('{sample}', fileSample);
-      throw new Error(errorMessage);
+      throw new Error(`No valid code files found. Checked ${files.length} files (e.g., ${fileSample}). ensure files are < 2MB and have standard extensions.`);
     }
 
-    return generatedFiles;
+    return { files: generatedFiles, projectName: detectedProjectName };
 
   } catch (error: any) {
     logger.error(AppModule.INTEGRATION, 'File read failed', error);

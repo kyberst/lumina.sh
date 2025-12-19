@@ -1,5 +1,4 @@
-
-const CACHE_NAME = 'lumina-cache-v7';
+const CACHE_NAME = 'lumina-cache-v2';
 
 // Core "Shell" assets to pre-cache immediately
 // Using relative paths ./ to ensure they resolve relative to the SW location
@@ -7,39 +6,8 @@ const PRECACHE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  // English locales
-  './assets/locales/en/common.json',
-  './assets/locales/en/auth.json',
-  './assets/locales/en/nav.json',
-  './assets/locales/en/builder.json',
-  './assets/locales/en/assistant.json',
-  './assets/locales/en/graph.json',
-  './assets/locales/en/settings.json',
-  './assets/locales/en/onboarding.json',
-  './assets/locales/en/workspace.json',
-  './assets/locales/en/project.json',
-  './assets/locales/en/profile.json',
-  './assets/locales/en/import.json',
-  './assets/locales/en/creation.json',
-  './assets/locales/en/markdown.json',
-  './assets/locales/en/env.json',
-  // Spanish locales
-  './assets/locales/es/common.json',
-  './assets/locales/es/auth.json',
-  './assets/locales/es/nav.json',
-  './assets/locales/es/builder.json',
-  './assets/locales/es/assistant.json',
-  './assets/locales/es/graph.json',
-  './assets/locales/es/settings.json',
-  './assets/locales/es/onboarding.json',
-  './assets/locales/es/workspace.json',
-  './assets/locales/es/project.json',
-  './assets/locales/es/profile.json',
-  './assets/locales/es/import.json',
-  './assets/locales/es/creation.json',
-  './assets/locales/es/markdown.json',
-  './assets/locales/es/env.json',
-  // Prompts
+  './assets/locales/en.json',
+  './assets/locales/es.json',
   './assets/prompts/builder_system.md',
   './assets/prompts/refactor_system.md',
   './assets/prompts/protocol.md',

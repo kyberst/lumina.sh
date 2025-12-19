@@ -1,3 +1,4 @@
+
 import { AppError, AppModule, JournalEntry } from '../../types';
 import { logger } from '../logger';
 import { getHeaders } from './api';
@@ -27,8 +28,9 @@ export const publishToGitHub = async (
       htmlUrl = `https://github.com/${owner}/${repoName}`;
     }
 
-    logger.info(AppModule.INTEGRATION, `Uploading ${entry.files.length} files...`);
-    for (const file of entry.files) {
+    const filesToPublish = entry.files ?? [];
+    logger.info(AppModule.INTEGRATION, `Uploading ${filesToPublish.length} files...`);
+    for (const file of filesToPublish) {
        let sha;
        try {
          const r = await fetch(`https://api.github.com/repos/${owner}/${repoName}/contents/${file.name}?ref=${branch}`, { headers });

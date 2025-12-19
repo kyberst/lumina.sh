@@ -1,10 +1,9 @@
-
 {
-    "initialPromptTitle": "Let's Build!",
-    "initialPromptDesc": "Describe the web application you want to create. The more detail you provide, the better the result.",
-    "firstBlockTitle": "App Properties",
-    "firstBlockDesc": "Here you can change your app's name, review the original prompt, and manage its tags and environment variables.",
-    "skip": "Skip Tutorial",
-    "next": "Next",
-    "finish": "Finish"
+  "skip": "Skip Tutorial",
+  "next": "Next",
+  "finish": "Finish",
+  "chatTitle": "AI Assistant",
+  "chatDesc": "Here is the chat: ask Lumina what you want your app to do.",
+  "panelTitle": "Workspace Panel",
+  "panelDesc": "This is the panel where you can view your app's preview and edit the code properties directly."
 }

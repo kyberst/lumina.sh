@@ -1,8 +1,6 @@
 
-
-
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { GeneratedFile, EnvVarRequest, DependencyDetails, AppSettings } from '../../../types';
+import { GeneratedFile, EnvVarRequest, DependencyDetails } from '../../../types';
 import { generateIframeHtml } from '../utils/iframeBuilder';
 
 interface SourceMapEntry { start: number; end: number; file: string; }
@@ -11,12 +9,10 @@ export const usePreviewSystem = (
     files: GeneratedFile[], 
     dependencies: Record<string, string | DependencyDetails> | undefined, 
     iframeKey: number,
-    settings: AppSettings,
-    envVars: Record<string, string> | undefined,
-    requiredRequests: EnvVarRequest[] | undefined,
-    onElementSelected: (element: any) => void
+    envVars?: Record<string, string>,
+    requiredRequests?: EnvVarRequest[]
 ) => {
-    const [showConsole, setShowConsole] = useState(settings.developerMode);
+    const [showConsole, setShowConsole] = useState(false);
     const [consoleLogs, setConsoleLogs] = useState<any[]>([]);
     const [errorCount, setErrorCount] = useState(0);
     const sourceMapRef = useRef<Record<string, SourceMapEntry>>({});
@@ -30,8 +26,10 @@ export const usePreviewSystem = (
 
     useEffect(() => {
         const handler = (e: MessageEvent) => {
+            // 1. Secure Env Injection Handshake
             if (e.data?.type === 'PREVIEW_READY') {
                 if (envVars && requiredRequests) {
+                    // Filter: Only inject keys that were explicitly requested by the AI
                     const allowedKeys = requiredRequests.map(r => r.key);
                     const safeEnv: Record<string, string> = {};
                     
@@ -41,13 +39,13 @@ export const usePreviewSystem = (
                         }
                     });
 
+                    // Send to specific iframe window
                     const target = iframeRef.current?.contentWindow || (e.source as Window);
                     target.postMessage({ type: 'ENV_INJECTION', env: safeEnv }, '*');
                 }
             }
-            else if (e.data?.type === 'ELEMENT_SELECTED') {
-                onElementSelected(e.data.element);
-            }
+            
+            // 2. Console Logs
             else if (e.data?.type === 'CONSOLE_LOG') {
                 const rawLine = e.data.line || 0;
                 let mappedSource: any = undefined;
@@ -60,7 +58,7 @@ export const usePreviewSystem = (
                         }
                     }
                 }
-                setConsoleLogs(p => [...p, { type: e.data.level, msg: e.data.message, time: new Date().toLocaleTimeString(), source: mappedSource, stack: e.data.stack }]);
+                setConsoleLogs(p => [...p, { type: e.data.level, msg: e.data.message, time: new Date().toLocaleTimeString(), source: mappedSource }]);
                 if (e.data.level === 'error') setErrorCount(c => c + 1);
             }
         };
@@ -68,7 +66,7 @@ export const usePreviewSystem = (
         setConsoleLogs([]); setErrorCount(0);
         window.addEventListener('message', handler);
         return () => window.removeEventListener('message', handler);
-    }, [iframeKey, envVars, requiredRequests, onElementSelected]);
+    }, [iframeKey, envVars, requiredRequests]);
 
     return { 
         iframeSrc, 
@@ -77,6 +75,6 @@ export const usePreviewSystem = (
         showConsole, 
         setShowConsole, 
         clearLogs: () => setConsoleLogs([]),
-        iframeRef
+        iframeRef // Expose ref to bind to iframe element
     };
 };

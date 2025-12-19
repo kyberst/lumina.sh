@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { ILLMProvider, GenerationOptions, StreamChunk } from "./interface";
 import { ChatMessage } from "../../../types";
@@ -7,10 +8,13 @@ export class GeminiProvider implements ILLMProvider {
     private ai: GoogleGenAI;
     private model: string;
 
-    constructor(apiKey: string, model: string = 'gemini-2.5-flash') {
+    constructor(apiKey: string, model: string = 'gemini-3-flash-preview') {
+        if (!apiKey) {
+            throw new Error("Google Gemini API key is missing. Please ensure the API_KEY environment variable is set.");
+        }
         this.ai = new GoogleGenAI({ apiKey });
         // Map common names to actual model IDs based on guidelines
-        if (model === 'flash') this.model = 'gemini-2.5-flash';
+        if (model === 'flash') this.model = 'gemini-3-flash-preview';
         else if (model === 'pro') this.model = 'gemini-3-pro-preview';
         else this.model = model;
     }

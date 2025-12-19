@@ -1,6 +1,5 @@
 
 export enum AppModule {
-  AUTH = 'auth',
   BUILDER = 'builder',
   INSIGHT = 'insight',
   SETTINGS = 'settings',
@@ -19,15 +18,13 @@ export class AppError extends Error {
   public readonly code: string;
   public readonly module: AppModule;
   public readonly timestamp: number;
-  public readonly meta?: Record<string, any>;
 
-  constructor(message: string, code: string, module: AppModule, meta?: Record<string, any>) {
+  constructor(message: string, code: string, module: AppModule) {
     super(message);
     this.name = 'AppError';
     this.code = code;
     this.module = module;
     this.timestamp = Date.now();
-    this.meta = meta;
   }
 }
 

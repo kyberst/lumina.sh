@@ -1,4 +1,3 @@
-
 /**
  * Script injected to capture errors and send them to parent.
  */
@@ -19,8 +18,7 @@ export const ERROR_HANDLER_SCRIPT = `<script>
     return 0;
   }
   window.onerror = function(msg, url, line, col, error) {
-    const stack = error ? error.stack : (new Error()).stack;
-    window.parent.postMessage({ type: "CONSOLE_LOG", level: "error", message: msg, line: line || getStackLine(), column: col, stack: stack }, "*");
+    window.parent.postMessage({ type: "CONSOLE_LOG", level: "error", message: msg, line: line || getStackLine(), column: col }, "*");
     return false;
   };
   const _log = console.log;
@@ -32,8 +30,7 @@ export const ERROR_HANDLER_SCRIPT = `<script>
   const _error = console.error;
   console.error = function(...args) {
     const msg = args.map(a => { try { return typeof a === 'object' ? JSON.stringify(a) : String(a); } catch(e) { return String(a); } }).join(' ');
-    const stack = new Error().stack;
-    window.parent.postMessage({ type: "CONSOLE_LOG", level: "error", message: msg, line: getStackLine(), stack: stack }, "*");
+    window.parent.postMessage({ type: "CONSOLE_LOG", level: "error", message: msg, line: getStackLine() }, "*");
     _error.apply(console, args);
   };
 })();
@@ -81,84 +78,133 @@ export const DEPENDENCY_VALIDATOR_SCRIPT = (imports: Record<string, string>) => 
 `;
 
 /**
- * Script injected to allow element inspection in the preview iframe.
+ * Script for visual element selection within the iframe.
  */
-export const ELEMENT_INSPECTOR_SCRIPT = `<script>
+export const ELEMENT_SELECTOR_SCRIPT = `
+<style>
+  body[data-lumina-select-mode="true"] *:not(#lumina-element-inspector-menu):not(#lumina-element-inspector-menu *):hover {
+    outline: 2px solid #4f46e5 !important;
+    outline-offset: 2px;
+    cursor: crosshair;
+  }
+  #lumina-element-inspector-menu {
+    position: absolute;
+    z-index: 999999;
+    background: #1e293b; /* slate-800 */
+    border: 1px solid #334155; /* slate-700 */
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.2), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    border-radius: 8px;
+    padding: 4px;
+    display: flex;
+    gap: 4px;
+    font-family: sans-serif;
+  }
+  #lumina-element-inspector-menu button {
+    background: transparent;
+    border: none;
+    color: #cbd5e1; /* slate-300 */
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  #lumina-element-inspector-menu button:hover {
+    background: #334155; /* slate-700 */
+    color: #ffffff; /* white */
+    transform: scale(1.05);
+  }
+</style>
+<script>
 (function() {
-    if (window._luminaInspectorAttached) return;
-    window._luminaInspectorAttached = true;
+  let menu = null;
 
-    const style = document.createElement('style');
-    style.innerHTML = \`
-        [data-lumina-highlight] {
-            outline: 2px solid #4f46e5 !important;
-            box-shadow: 0 0 10px rgba(79, 70, 229, 0.5) !important;
-            cursor: pointer;
+  function getCssSelector(el) {
+    if (!(el instanceof Element)) return;
+    const path = [];
+    while (el.nodeType === Node.ELEMENT_NODE) {
+      let selector = el.nodeName.toLowerCase();
+      if (el.id) {
+        selector += '#' + el.id;
+        path.unshift(selector);
+        break;
+      } else {
+        let sib = el, nth = 1;
+        while (sib = sib.previousElementSibling) {
+          if (sib.nodeName.toLowerCase() == selector) nth++;
         }
-        [data-lumina-selected] {
-            outline: 2px solid #10b981 !important;
-            box-shadow: 0 0 0 4px #fff, 0 0 10px 4px rgba(16, 185, 129, 0.5) !important;
-        }
-    \`;
-    document.head.appendChild(style);
-
-    let highlightedEl = null;
-    let selectedEl = null;
-
-    function generateSelector(el) {
-        if (!(el instanceof Element)) return;
-        const path = [];
-        while (el.nodeType === Node.ELEMENT_NODE) {
-            let selector = el.nodeName.toLowerCase();
-            if (el.id) {
-                selector += '#' + el.id;
-                path.unshift(selector);
-                break;
-            } else {
-                let sib = el, nth = 1;
-                while (sib = sib.previousElementSibling) {
-                    if (sib.nodeName.toLowerCase() == selector) nth++;
-                }
-                if (nth !== 1) selector += ":nth-of-type("+nth+")";
-            }
-            path.unshift(selector);
-            el = el.parentNode;
-        }
-        return path.join(" > ");
+        if (nth != 1) selector += ":nth-of-type("+nth+")";
+      }
+      path.unshift(selector);
+      el = el.parentNode;
     }
+    return path.join(" > ");
+  }
 
-    document.body.addEventListener('mouseover', function(e) {
-        if (highlightedEl) highlightedEl.removeAttribute('data-lumina-highlight');
-        highlightedEl = e.target;
-        if (highlightedEl && highlightedEl.nodeType === 1 && highlightedEl !== selectedEl) {
-            highlightedEl.setAttribute('data-lumina-highlight', 'true');
-        }
-    });
+  function createMenu(target, selector) {
+    if (menu) menu.remove();
+    const rect = target.getBoundingClientRect();
+    menu = document.createElement('div');
+    menu.id = 'lumina-element-inspector-menu';
+    menu.innerHTML = \`
+      <button id="lumina-btn-chat" title="Use in Chat">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+      </button>
+      <button id="lumina-btn-edit" title="Edit Element">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+      </button>
+    \`;
+    document.body.appendChild(menu);
+    menu.style.top = (window.scrollY + rect.bottom + 5) + 'px';
+    menu.style.left = (window.scrollX + rect.left) + 'px';
 
-    document.body.addEventListener('mouseout', function(e) {
-        if (highlightedEl) {
-            highlightedEl.removeAttribute('data-lumina-highlight');
-            highlightedEl = null;
-        }
-    });
-    
-    document.body.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
+    document.getElementById('lumina-btn-chat').onclick = (e) => {
+      e.stopPropagation();
+      window.parent.postMessage({ type: 'ELEMENT_SELECTED_FOR_CHAT', selector }, '*');
+      if (menu) menu.remove();
+      menu = null;
+    };
+    document.getElementById('lumina-btn-edit').onclick = (e) => {
+      e.stopPropagation();
+      window.parent.postMessage({ type: 'ELEMENT_SELECTED_FOR_EDIT', selector }, '*');
+      cleanup();
+    };
+  }
+  
+  function handleClick(e) {
+    if (e.target.closest('#lumina-element-inspector-menu')) {
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    if (menu) {
+        menu.remove();
+        menu = null;
+    }
+    const selector = getCssSelector(e.target);
+    createMenu(e.target, selector);
+  }
 
-        if (selectedEl) selectedEl.removeAttribute('data-lumina-selected');
-        selectedEl = e.target;
-        selectedEl.setAttribute('data-lumina-selected', 'true');
-        if (highlightedEl) highlightedEl.removeAttribute('data-lumina-highlight');
+  function cleanup() {
+    if (menu) menu.remove();
+    menu = null;
+    document.body.removeAttribute('data-lumina-select-mode');
+    document.body.removeEventListener('click', handleClick, true);
+  }
 
-        const data = {
-            selector: generateSelector(selectedEl),
-            tagName: selectedEl.tagName,
-            textContent: selectedEl.children.length === 0 ? selectedEl.textContent.trim() : '',
-            className: typeof selectedEl.className === 'string' ? selectedEl.className : '',
-            outerHTML: selectedEl.outerHTML,
-        };
-        window.parent.postMessage({ type: 'ELEMENT_SELECTED', element: data }, '*');
-    }, true);
+  window.addEventListener('message', (e) => {
+    if (e.data.type === 'TOGGLE_SELECTION_MODE') {
+      if (e.data.active) {
+        document.body.setAttribute('data-lumina-select-mode', 'true');
+        document.body.addEventListener('click', handleClick, true);
+      } else {
+        cleanup();
+      }
+    }
+  });
 })();
-</script>`;
+</script>
+`;

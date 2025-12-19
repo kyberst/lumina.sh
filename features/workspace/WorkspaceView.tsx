@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { JournalEntry, ChatMessage, AppSettings, GeneratedFile } from '../../types';
 import { analyzeSecurity } from '../../services/geminiService';
 import { publishToGitHub } from '../../services/githubService';
@@ -11,203 +10,266 @@ import { useVoiceInput } from '../../hooks/useVoiceInput';
 import { useRefactorStream } from './hooks/useRefactorStream';
 import { useOnboarding } from '../../hooks/useOnboarding';
 import { OnboardingOverlay, Step } from '../../components/ui/OnboardingOverlay';
-import { t } from '../../services/i18n';
 
 import { WorkspaceHeader } from './components/WorkspaceHeader';
 import { WorkspaceChat } from './components/WorkspaceChat';
 import { WorkspacePreview } from './components/WorkspacePreview';
 import { WorkspaceCode } from './components/WorkspaceCode';
 import { WorkspaceInfo } from './components/WorkspaceInfo';
-import { PublishStatusCard } from './components/PublishStatusCard';
-import { InviteCollaboratorDialog } from './components/InviteCollaboratorDialog';
-import { ReviewFocusModal } from './components/ReviewFocusModal';
+import { WorkspaceHistory } from './components/WorkspaceHistory';
+import { ElementEditorPanel } from './components/editor/ElementEditorPanel';
 
 import { useWorkspaceLayout } from './hooks/useWorkspaceLayout';
 import { usePreviewSystem } from './hooks/usePreviewSystem';
 import { useEditorSystem } from './hooks/useEditorSystem';
-import { findOrphanedFiles } from './utils/codeHealth';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 interface WorkspaceViewProps {
   entry: JournalEntry;
-  onUpdate: (updatedEntry: JournalEntry) => void;
-  onCloseWorkspace: () => void;
+  onUpdate: (updatedEntry: JournalEntry) => Promise<void>;
+  onClose: () => void;
   settings: AppSettings;
-  onSaveSettings: (s: AppSettings) => void;
-  isOffline: boolean;
-  setIsOffline: (isOffline: boolean) => void;
 }
 
-type PublishStatus = 'idle' | 'saving' | 'packaging' | 'published' | 'error';
-
-const ONBOARDING_STAGE2_STEPS: Step[] = [
-    { target: '[data-tour="properties-tab"]', titleKey: 'firstBlockTitle', descKey: 'firstBlockDesc', position: 'bottom' },
+const ONBOARDING_STEPS: Step[] = [
+    { target: '[data-tour="chat-input"]', titleKey: 'chatTitle', descKey: 'chatDesc', position: 'top' },
+    { target: '[data-tour="workspace-panel"]', titleKey: 'panelTitle', descKey: 'panelDesc', position: 'left' }
 ];
 
-export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, onCloseWorkspace, settings, onSaveSettings, isOffline, setIsOffline }) => {
+export const WorkspaceView: React.FC<WorkspaceViewProps> = ({ entry, onUpdate, onClose, settings }) => {
   const layout = useWorkspaceLayout();
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const [chatInput, setChatInput] = useState('');
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [chatAttachments, setChatAttachments] = useState<any[]>([]);
   const [totalUsage, setTotalUsage] = useState({ input: 0, output: 0 });
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
-  const [publishState, setPublishState] = useState<{ status: PublishStatus; message: string; url?: string; }>({ status: 'idle', message: '' });
-  const [reviewData, setReviewData] = useState<{ msg: ChatMessage, prevSnapshot?: GeneratedFile[] } | null>(null);
-  const [selectedElement, setSelectedElement] = useState<any | null>(null);
-  
-  // Active Context Mapping (Selection)
-  const [selectedContextFiles, setSelectedContextFiles] = useState<Set<string>>(new Set());
+  const isResizing = useRef(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [isSelectionModeActive, setIsSelectionModeActive] = useState(false);
+  const [editorPanel, setEditorPanel] = useState({ isOpen: false, selector: null as string | null });
+  const [chatContextSelectors, setChatContextSelectors] = useState<string[]>([]);
 
-  // Initialize context with all files on load or file change
-  useEffect(() => {
-      setSelectedContextFiles(prev => {
-          // If purely new load (size 0), select all. 
-          // If files changed (add/delete), try to maintain selection but add new files by default.
-          const newSet = new Set(prev);
-          const currentNames = (entry.files || []).map(f => f.name);
-          
-          if (prev.size === 0) return new Set(currentNames);
+  const { isActive, currentStep, next, finish, skip } = useOnboarding();
 
-          // Add new files automatically to context
-          currentNames.forEach(name => {
-              if (!prev.has(name) && !prev.has('__deleted__'+name)) newSet.add(name);
-          });
-          
-          return newSet;
-      });
-  }, [(entry.files || []).length, entry.id]);
-
-  const isFirstGenComplete = history.some(m => m.role === 'model') && (entry.tags || []).includes('Generated');
-  const onboarding = useOnboarding('first_generation', { enabled: isFirstGenComplete, delay: 1500 });
-
-  const handleUpdate = async (updatedEntry: JournalEntry) => {
+  const handleTurnComplete = async (data: { updatedEntry: JournalEntry; userMessage: ChatMessage; modelMessage: ChatMessage; oldFiles: GeneratedFile[]; newFiles: GeneratedFile[]; }) => {
       setSaveStatus('saving');
-      try { 
-          await onUpdate(updatedEntry); 
+      try {
+          await dbFacade.atomicUpdateProjectWithHistory(data.updatedEntry, data.modelMessage, data.oldFiles, data.newFiles, data.userMessage);
+          await onUpdate(data.updatedEntry);
           setTimeout(() => setSaveStatus('saved'), 800);
-          return true; 
-      } catch (e: any) { 
-          setSaveStatus('error');
-          toast.error(e.message); 
-          return false; 
-      }
+      } catch (e: any) { setSaveStatus('error'); toast.error(e.message); }
   };
 
-  const { isProcessing, streamState, handleStreamingBuild, cancelStream, handleEnvVarSave } = useRefactorStream({ 
-      entry, settings, history, setHistory, onUpdate: handleUpdate, setTotalUsage, setIframeKey: layout.setIframeKey, setIsOffline,
-      // Pass setter to allow the AI (Guardrail) to auto-select files if user approves
-      setSelectedContextFiles 
-  });
-
-  useEffect(() => {
-    if (!settings.developerMode && layout.rightTab === 'code') layout.setRightTab('preview');
-  }, [settings.developerMode, layout.rightTab]);
-
-  const handleApply = async (messageId: string, snapshot: GeneratedFile[], isCheckpoint: boolean) => {
-    const success = await handleUpdate({ ...entry, files: snapshot });
-    if (success) {
-        layout.refreshPreview();
-        toast.success(t('changeApplied', 'builder'));
-        const messageIndex = history.findIndex(m => m.id === messageId);
-        if (messageIndex > -1) {
-            const messageToUpdate = history[messageIndex];
-            const updatedMessage: ChatMessage = { ...messageToUpdate, applied: true };
-            if (isCheckpoint) {
-                const userPromptMsg = history.slice(0, messageIndex).reverse().find(m => m.role === 'user');
-                const promptSummary = userPromptMsg ? userPromptMsg.text.substring(0, 40) + '...' : 'Manual Checkpoint';
-                updatedMessage.checkpointName = `${t('checkpoint', 'builder')}: "${promptSummary}"`;
-                toast.success(t('checkpointSet', 'builder'));
-            }
-            setHistory(prev => prev.map(m => m.id === messageId ? updatedMessage : m));
-            dbFacade.updateRefactorMessage(entry.id, updatedMessage).catch(err => { toast.error(t('errorSyncHistory', 'common')); console.error(err); });
-        }
-    }
-  };
-  
-  const handleRollback = async (snap: GeneratedFile[]) => {
-      const success = await handleUpdate({...entry, files: snap});
-      if (success) { layout.refreshPreview(); toast.info(t('changesDiscarded', 'builder')); }
-  };
-
-  const handlePublish = async () => { /* ... existing publish logic ... */ };
-  const handleInvite = () => { dialogService.custom(t('inviteCollaborator', 'builder'), <InviteCollaboratorDialog projectId={entry.id} onClose={() => dialogService.close()} />); };
-
-  const preview = usePreviewSystem(entry.files, entry.dependencies, layout.iframeKey, settings, entry.envVars, entry.requiredEnvVars, setSelectedElement);
-  const editor = useEditorSystem(entry, handleUpdate, layout.refreshPreview);
+  const preview = usePreviewSystem(entry.files ?? [], entry.dependencies, layout.iframeKey, entry.envVars, entry.requiredEnvVars);
+  const editor = useEditorSystem(entry, (e) => onUpdate(e).then(() => true), layout.refreshPreview);
   const voice = useVoiceInput();
+  const { isProcessing, streamState, handleStreamingBuild, cancelStream } = useRefactorStream({ entry, settings, history, setHistory, onTurnComplete: handleTurnComplete, setTotalUsage, setIframeKey: layout.setIframeKey });
 
-  const handleAskToFix = (errorLogs: any[]) => {
-      const errorMessages = errorLogs.map(log => log.msg).join('\n');
-      handleStreamingBuild(`Fix errors:\n\`\`\`\n${errorMessages}\n\`\`\``, [], editor.getContext(), 'modify', { allowedContextFiles: selectedContextFiles });
-      toast.info(t('askingToFix', 'workspace'));
-  };
+  const toggleSelectionMode = useCallback((forceState?: boolean) => {
+    const newMode = forceState ?? !isSelectionModeActive;
+    setIsSelectionModeActive(newMode);
+    iframeRef.current?.contentWindow?.postMessage({ type: 'TOGGLE_SELECTION_MODE', active: newMode }, '*');
+    if (!newMode) {
+        if (editorPanel.isOpen) setEditorPanel({ isOpen: false, selector: null });
+        setChatContextSelectors([]);
+    }
+  }, [isSelectionModeActive, editorPanel.isOpen]);
 
-  const handlePropertyChange = async (changes: { textContent?: string; className?: string }) => { /* ... existing prop logic ... */ };
-
-  useEffect(() => { if(voice.transcript) { setChatInput(p => p + ' ' + voice.transcript); voice.resetTranscript(); } }, [voice.transcript]);
+  useEffect(() => { if (voice.transcript) { setChatInput(p => p + ' ' + voice.transcript); voice.resetTranscript(); } }, [voice.transcript]);
+  
+  // Effect 1: Fetch history on mount/entry change
   useEffect(() => {
+    let isMounted = true;
     dbFacade.getRefactorHistory(entry.id).then(msgs => {
-        setHistory(msgs);
-        if(entry.pendingGeneration && msgs.length === 0) handleStreamingBuild(); 
+      if (isMounted) setHistory(msgs);
     });
+    return () => { isMounted = false; };
   }, [entry.id]);
 
-  const activeFilesForContextBar = settings.developerMode 
-      ? (entry.files || []).filter(f => selectedContextFiles.has(f.name))
-      : (entry.files || []);
+  // Effect 2: Trigger initial build when history is loaded for a pending project
+  useEffect(() => {
+    if (entry.pendingGeneration && history.length > 0 && history.length <= 1 && !isProcessing) {
+      handleStreamingBuild();
+    }
+  }, [entry.pendingGeneration, history, handleStreamingBuild, isProcessing]);
+  
+  // Effect 3: Handle iframe messages
+  useEffect(() => {
+    const messageHandler = (event: MessageEvent) => {
+        if (event.data.type === 'ELEMENT_SELECTED_FOR_CHAT') {
+            setChatContextSelectors(prev => [...new Set([...prev, event.data.selector])]);
+            if (isMobile) {
+                layout.setMobileView('chat');
+            }
+        }
+        if (event.data.type === 'ELEMENT_SELECTED_FOR_EDIT') {
+            setEditorPanel({ isOpen: true, selector: event.data.selector });
+            toggleSelectionMode(false);
+            if (isMobile) {
+                layout.setMobileView('chat');
+            }
+        }
+    };
+    window.addEventListener('message', messageHandler);
+    return () => window.removeEventListener('message', messageHandler);
+  }, [isMobile, layout.setMobileView, toggleSelectionMode]);
+
+  const handleApplyDirectStyle = async (selector: string, styles: Record<string, string>) => {
+    const indexFile = entry.files.find(f => f.name === 'index.html');
+    if (!indexFile) {
+        toast.error("Could not find index.html to apply styles.");
+        return;
+    }
+
+    const styleProperties = Object.entries(styles)
+        .map(([key, value]) => `  ${key}: ${value};`)
+        .join('\n');
+
+    const newRule = `\n${selector} {\n${styleProperties}\n}\n`;
+
+    let newContent = '';
+    const styleTagRegex = /<style id="lumina-direct-styles">([\s\S]*?)<\/style>/;
+    const match = indexFile.content.match(styleTagRegex);
+
+    if (match) {
+        const existingRules = match[1];
+        newContent = indexFile.content.replace(styleTagRegex, `<style id="lumina-direct-styles">${existingRules}${newRule}</style>`);
+    } else {
+        const newStyleTag = `\n<style id="lumina-direct-styles">${newRule}</style>\n</head>`;
+        newContent = indexFile.content.replace('</head>', newStyleTag);
+    }
+    
+    const updatedFiles = entry.files.map(f => f.name === 'index.html' ? { ...f, content: newContent } : f);
+    const updatedEntry = { ...entry, files: updatedFiles };
+    await onUpdate(updatedEntry);
+
+    setEditorPanel({ isOpen: false, selector: null });
+    toast.success("Direct style applied!");
+    layout.refreshPreview();
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => { e.preventDefault(); isResizing.current = true; };
+  const handleMouseUp = useCallback(() => { isResizing.current = false; }, []);
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (isResizing.current) {
+        const newWidth = Math.max(320, Math.min(e.clientX, window.innerWidth - 320));
+        layout.setChatPanelWidth(newWidth);
+    }
+  }, [layout.setChatPanelWidth]);
+
+  const handleRevert = async (messageId: string) => {
+    const confirmed = await dialogService.confirm("Revert This Change?", "This will restore the project to the state *before* this change and delete all subsequent history. Are you sure?", { destructive: true, confirmText: "Revert" });
+    if (!confirmed) return;
+
+    const targetIndex = history.findIndex(m => m.id === messageId);
+    if (targetIndex < 1) { toast.error("Cannot revert the initial prompt."); return; }
+
+    const prevState = history[targetIndex - 1];
+    if (!prevState || !prevState.snapshot) { toast.error("Could not find the previous state to revert to."); return; }
+    
+    try {
+        await dbFacade.revertToSnapshot(entry.id, prevState.snapshot, prevState.timestamp);
+        const [updatedProject, updatedHistory] = await Promise.all([dbFacade.getProjectById(entry.id), dbFacade.getRefactorHistory(entry.id)]);
+        if (updatedProject) {
+            await onUpdate(updatedProject);
+            setHistory(updatedHistory);
+            layout.refreshPreview();
+            toast.success("Project reverted!");
+        }
+    } catch (e: any) { toast.error("Failed to revert: " + e.message); }
+  };
+  
+  const handleUseSelectorsInChat = () => {
+    if (chatContextSelectors.length === 0) return;
+    const selectorsText = chatContextSelectors.map(s => `"${s}"`).join(', ');
+    const prefix = chatContextSelectors.length > 1 ? 'For the elements ' : 'For the element ';
+    setChatInput(prev => `${prev}${prefix}${selectorsText}, `);
+    toggleSelectionMode(false);
+  };
+
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [handleMouseMove, handleMouseUp]);
+
+  const ChatContent = (
+    <div className="relative h-full w-full">
+        {editorPanel.isOpen && editorPanel.selector && (
+            <ElementEditorPanel 
+                selector={editorPanel.selector}
+                onClose={() => setEditorPanel({ isOpen: false, selector: null })}
+                onApplyAI={(prompt) => {
+                    setChatInput(prompt);
+                    handleStreamingBuild(prompt, [], editor.getContext());
+                    setEditorPanel({ isOpen: false, selector: null });
+                }}
+                onApplyDirectly={handleApplyDirectStyle}
+            />
+        )}
+        <WorkspaceChat history={history} chatInput={chatInput} setChatInput={setChatInput} isProcessing={isProcessing} thinkTime={0} fileStatuses={streamState.fileStatuses} currentReasoning={streamState.reasoningBuffer} currentText={streamState.textBuffer} onSend={() => { handleStreamingBuild(chatInput, chatAttachments, editor.getContext()); setChatInput(''); setChatAttachments([]); }} onStop={cancelStream} onEnvVarSave={(v) => onUpdate({ ...entry, envVars: { ...entry.envVars, ...v } })} isListening={voice.isListening} toggleListening={voice.toggleListening} attachments={chatAttachments} setAttachments={setChatAttachments} aiPlan={streamState.aiPlan} suggestions={streamState.suggestions} onRevert={handleRevert} 
+          chatContextSelectors={chatContextSelectors}
+          onUseSelectorsInChat={handleUseSelectorsInChat}
+          onRemoveSelector={(s) => setChatContextSelectors(p => p.filter(x => x !== s))}
+          onClearSelectors={() => setChatContextSelectors([])}
+        />
+    </div>
+  );
+  
+  const RightPanelContent = (
+    <div className="flex-1 overflow-hidden relative h-full">
+        {layout.rightTab === 'info' && <WorkspaceInfo entry={entry} onUpdate={onUpdate} />}
+        {layout.rightTab === 'preview' && <WorkspacePreview iframeSrc={preview.iframeSrc} iframeKey={layout.iframeKey} deviceMode={layout.deviceMode} setDeviceMode={layout.setDeviceMode} showConsole={preview.showConsole} setShowConsole={preview.setShowConsole} consoleLogs={preview.consoleLogs} errorCount={preview.errorCount} onClearLogs={preview.clearLogs} onNavigateError={(f, l) => { layout.setRightTab('code'); editor.selectFile(entry.files.find(x => x.name === f) || entry.files[0]); editor.setScrollToLine(l); }} iframeRef={iframeRef} isSelectionModeActive={isSelectionModeActive} onToggleSelectionMode={toggleSelectionMode} />}
+        {layout.rightTab === 'code' && <WorkspaceCode files={entry.files} selectedFile={editor.selectedFile} editorContent={editor.editorContent} hasChanges={editor.hasChanges} onFileSelect={editor.selectFile} onCodeChange={editor.handleContentChange} onSave={editor.saveChanges} scrollToLine={editor.scrollToLine} onEditorMount={(api) => editor.editorApiRef.current = api} annotations={streamState.annotations} readOnly={isProcessing} />}
+        {layout.rightTab === 'history' && <WorkspaceHistory history={history} onRevert={(id) => handleRevert(id)} />}
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 bg-white z-[100] flex flex-col animate-in fade-in duration-300">
-      {onboarding.isActive && <OnboardingOverlay steps={ONBOARDING_STAGE2_STEPS} currentStep={onboarding.currentStep} onNext={onboarding.next} onFinish={onboarding.finish} onSkip={onboarding.skip} />}
-
-      <WorkspaceHeader 
-        entry={entry} rightTab={layout.rightTab} setRightTab={layout.setRightTab} onCloseWorkspace={onCloseWorkspace} 
-        onSecurityScan={async () => dialogService.alert(t('reportTitle', 'workspace'), <MarkdownRenderer content={await analyzeSecurity(entry.files || [], t('check', 'workspace'))}/>)}
-        onPublish={handlePublish} onInvite={handleInvite} onDownload={() => toast.success(t('downloading', 'workspace'))} onRefresh={layout.refreshPreview} totalUsage={totalUsage}
-        saveStatus={saveStatus} settings={settings} isProcessing={isProcessing}
-      />
-      <div className="flex-1 flex overflow-hidden relative">
-          <WorkspaceChat 
-            history={history} chatInput={chatInput} setChatInput={setChatInput} isProcessing={isProcessing} thinkTime={0} 
-            fileStatuses={streamState.fileStatuses} currentReasoning={streamState.reasoningBuffer} currentText={streamState.textBuffer}
-            onSend={(mode) => { 
-                handleStreamingBuild(chatInput, chatAttachments, editor.getContext(), mode, { allowedContextFiles: selectedContextFiles }); 
-                setChatInput(''); setChatAttachments([]); 
-            }} 
-            onStop={cancelStream} onRollback={handleRollback} 
-            onRegenerate={() => {}}
-            onReview={(msg, prev) => setReviewData({ msg, prevSnapshot: prev })}
-            onEnvVarSave={handleEnvVarSave} isListening={voice.isListening} toggleListening={voice.toggleListening} 
-            attachments={chatAttachments} setAttachments={setChatAttachments} isCollapsed={layout.isSidebarCollapsed} setCollapsed={layout.setIsSidebarCollapsed} aiPlan={streamState.aiPlan}
-            settings={settings} onSaveSettings={onSaveSettings}
-            isOffline={isOffline} setIsOffline={setIsOffline}
-            files={activeFilesForContextBar}
-          />
-          <div className={`flex-1 flex flex-col bg-slate-100 overflow-hidden relative ${layout.isSidebarCollapsed ? 'w-full' : 'hidden md:flex'}`} data-tour="workspace-panel">
-              {layout.rightTab === 'info' && <WorkspaceInfo entry={entry} onUpdate={handleUpdate} settings={settings} selectedElement={selectedElement} onPropertyChange={handlePropertyChange} />}
-              {layout.rightTab === 'preview' && (
-                  <WorkspacePreview 
-                      iframeSrc={preview.iframeSrc} iframeKey={layout.iframeKey} deviceMode={layout.deviceMode} setDeviceMode={layout.setDeviceMode} 
-                      showConsole={preview.showConsole} setShowConsole={preview.setShowConsole} consoleLogs={preview.consoleLogs} errorCount={preview.errorCount} onClearLogs={preview.clearLogs} 
-                      onNavigateError={(f, l) => { layout.setRightTab('code'); editor.selectFile((entry.files || []).find(x => x.name === f) || (entry.files || [])[0]); editor.setScrollToLine(l); }}
-                      settings={settings} onAskToFix={handleAskToFix}
-                  />
-              )}
-              {layout.rightTab === 'code' && settings.developerMode && (
-                  <WorkspaceCode 
-                      files={entry.files || []} selectedFile={editor.selectedFile} editorContent={editor.editorContent} hasChanges={editor.hasChanges} 
-                      onFileSelect={editor.selectFile} onCodeChange={editor.handleContentChange} onSave={editor.saveChanges} scrollToLine={editor.scrollToLine}
-                      onEditorMount={(api) => editor.editorApiRef.current = api} annotations={streamState.annotations}
-                      readOnly={isProcessing}
-                      contextFiles={selectedContextFiles}
-                      toggleContextFile={(name) => setSelectedContextFiles(prev => { const n = new Set(prev); if(n.has(name)) n.delete(name); else n.add(name); return n; })}
-                      setAllContextFiles={(all) => setSelectedContextFiles(all ? new Set((entry.files || []).map(f => f.name)) : new Set())}
-                  />
-              )}
-          </div>
-      </div>
+      {isActive && <OnboardingOverlay steps={ONBOARDING_STEPS} currentStep={currentStep} onNext={next} onFinish={finish} onSkip={skip} />}
+      <WorkspaceHeader entry={entry} rightTab={layout.rightTab} setRightTab={layout.setRightTab} onClose={onClose} onSecurityScan={async () => dialogService.alert("Report", <MarkdownRenderer content={await analyzeSecurity(entry.files, "Check")} />)} onPublish={() => publishToGitHub(entry, 'app', settings.githubToken!, false).then(u => window.open(u))} onDownload={() => toast.success("Downloading...")} onRefresh={layout.refreshPreview} totalUsage={totalUsage} saveStatus={saveStatus} isMobile={isMobile} mobileView={layout.mobileView} setMobileView={layout.setMobileView} />
       
-      {publishState.status !== 'idle' && <PublishStatusCard status={publishState.status} message={publishState.message} url={publishState.url} onClose={() => setPublishState({ status: 'idle', message: '', url: '' })} />}
-      {reviewData && <ReviewFocusModal reviewData={reviewData} settings={settings} onApply={(snapshot, isCheckpoint) => { handleApply(reviewData.msg.id, snapshot, isCheckpoint); setReviewData(null); }} onRollback={(snapshot) => { handleRollback(snapshot); setReviewData(null); }} onClose={() => setReviewData(null)} />}
+      <div className="flex-1 flex overflow-hidden">
+        {isMobile ? (
+          <div className="w-full h-full">
+            {layout.mobileView === 'chat' && <div className="h-full">{ChatContent}</div>}
+            {layout.mobileView === 'panel' && (layout.rightTab ? <div className="h-full flex flex-col bg-slate-100">{RightPanelContent}</div> : <div className="p-8 text-center text-slate-400">Select a panel to view.</div>)}
+          </div>
+        ) : (
+          <>
+            <div style={{ width: layout.isChatCollapsed ? '48px' : (layout.rightTab ? layout.chatPanelWidth : '100%'), flexShrink: 0 }} className="h-full relative transition-all duration-300 ease-in-out">
+                {layout.isChatCollapsed ? (
+                    <div className="h-full flex items-center justify-center bg-slate-50 border-r border-slate-200">
+                         <button onClick={layout.toggleChatCollapse} className="p-2 rounded-full hover:bg-slate-200 text-slate-500" title="Expand Chat">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                         </button>
+                    </div>
+                ) : (
+                    ChatContent
+                )}
+            </div>
+            
+            {layout.rightTab && !layout.isChatCollapsed && (
+                <div onMouseDown={handleMouseDown} className={`w-1.5 cursor-col-resize bg-slate-200 transition-colors group relative ${isResizing.current ? 'bg-indigo-400' : 'hover:bg-indigo-300'}`}>
+                   <button onClick={layout.toggleChatCollapse} className="absolute top-1/2 -translate-y-1/2 -left-2.5 z-10 w-5 h-8 bg-white border border-slate-300 rounded-sm shadow-md flex items-center justify-center text-slate-500 hover:bg-indigo-50 hover:border-indigo-200 opacity-0 group-hover:opacity-100 transition-opacity" title="Collapse Chat">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                   </button>
+                </div>
+            )}
+
+            {layout.rightTab && (
+              <div className="flex-1 flex flex-col bg-slate-100 min-w-0" data-tour="workspace-panel">
+                  {RightPanelContent}
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 };

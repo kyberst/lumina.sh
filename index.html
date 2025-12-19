@@ -1,17 +1,31 @@
 
+<script type="importmap">
+{
+  "imports": {
+    "@surrealdb/wasm": "https://esm.sh/@surrealdb/wasm@^1.4.1",
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/client": "https://esm.sh/react-dom@^19.2.3/client",
+    "react-dom": "https://esm.sh/react-dom@^19.2.3",
+    "surrealdb": "https://esm.sh/surrealdb@^1.3.2",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
+  }
+}
+</script>
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>lumina.sh // AI Architect</title>
+    <title>Lumina Studio</title>
     <link rel="manifest" href="./manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- PrismJS for Syntax Highlighting (Tomorrow Night Theme) -->
+    <!-- PrismJS for Syntax Highlighting -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js" crossorigin="anonymous"></script>
@@ -19,50 +33,84 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-diff.min.js" crossorigin="anonymous"></script>
 
     <!-- JSZip for Exporting -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
     
-    <!-- Prettier for Code Formatting (MUST be before Monaco Loader) -->
-    <script src="https://unpkg.com/prettier@2.8.8/standalone.js"></script>
-    <script src="https://unpkg.com/prettier@2.8.8/parser-typescript.js"></script>
-    <script src="https://unpkg.com/prettier@2.8.8/parser-html.js"></script>
-    <script src="https://unpkg.com/prettier@2.8.8/parser-postcss.js"></script>
-
     <!-- Monaco Editor Loader -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js" crossorigin="anonymous"></script>
 
     <style>
       :root {
+        /* Original Lumina Theme (Slate & Indigo) */
         --background: 0 0% 100%;
         --foreground: 222.2 84% 4.9%;
+        
         --card: 0 0% 100%;
         --card-foreground: 222.2 84% 4.9%;
+        
         --popover: 0 0% 100%;
         --popover-foreground: 222.2 84% 4.9%;
+        
         --primary: 243.4 75.4% 58.6%; /* Indigo 600 */
         --primary-foreground: 210 40% 98%;
+        
         --secondary: 210 40% 96.1%;
         --secondary-foreground: 222.2 47.4% 11.2%;
+        
         --muted: 210 40% 96.1%;
         --muted-foreground: 215.4 16.3% 46.9%;
+        
         --accent: 210 40% 96.1%;
         --accent-foreground: 222.2 47.4% 11.2%;
+        
         --destructive: 0 84.2% 60.2%;
         --destructive-foreground: 210 40% 98%;
+        
         --border: 214.3 31.8% 91.4%;
         --input: 214.3 31.8% 91.4%;
-        --ring: 243.4 75.4% 58.6%;
+        --ring: 222.2 84% 4.9%;
+        
         --radius: 0.5rem;
       }
-      
+
+      .dark {
+        --background: 222.2 84% 4.9%;
+        --foreground: 210 40% 98%;
+        
+        --card: 222.2 84% 4.9%;
+        --card-foreground: 210 40% 98%;
+        
+        --popover: 222.2 84% 4.9%;
+        --popover-foreground: 210 40% 98%;
+        
+        --primary: 210 40% 98%;
+        --primary-foreground: 222.2 47.4% 11.2%;
+        
+        --secondary: 217.2 32.6% 17.5%;
+        --secondary-foreground: 210 40% 98%;
+        
+        --muted: 217.2 32.6% 17.5%;
+        --muted-foreground: 215 20.2% 65.1%;
+        
+        --accent: 217.2 32.6% 17.5%;
+        --accent-foreground: 210 40% 98%;
+        
+        --destructive: 0 62.8% 30.6%;
+        --destructive-foreground: 210 40% 98%;
+        
+        --border: 217.2 32.6% 17.5%;
+        --input: 217.2 32.6% 17.5%;
+        --ring: 212.7 26.8% 83.9%;
+      }
+
       body {
+        font-family: 'Inter', sans-serif;
         background-color: hsl(var(--background));
         color: hsl(var(--foreground));
-        font-family: 'Inter', sans-serif;
-        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-        background-attachment: fixed;
+        overflow-y: auto; /* Ensure vertical scrolling is always possible */
+        overflow-x: hidden;
+        min-height: 100vh;
       }
 
       /* Custom Scrollbar */
@@ -71,44 +119,17 @@
         height: 8px;
       }
       ::-webkit-scrollbar-track {
-        background: transparent;
+        background: transparent; 
       }
       ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 99px;
+        background: #cbd5e1; 
+        border-radius: 4px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+        background: #94a3b8; 
       }
 
-      /* Utilities mimicking shadcn classes */
-      .shadcn-input {
-        display: flex;
-        height: 2.5rem;
-        width: 100%;
-        border-radius: var(--radius);
-        border: 1px solid hsl(var(--input));
-        background-color: transparent;
-        padding-left: 0.75rem;
-        padding-right: 0.75rem;
-        padding-top: 0.5rem;
-        padding-bottom: 0.5rem;
-        font-size: 0.875rem;
-        line-height: 1.25rem;
-        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
-        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        transition-duration: 300ms;
-      }
-      .shadcn-input:focus-visible {
-        outline: 2px solid transparent;
-        outline-offset: 2px;
-        box-shadow: 0 0 0 2px hsl(var(--ring)), 0 0 0 4px hsl(var(--background));
-      }
-      .shadcn-input:disabled {
-        cursor: not-allowed;
-        opacity: 0.5;
-      }
-
+      /* Shadcn-like utility classes */
       .shadcn-btn {
         display: inline-flex;
         align-items: center;
@@ -116,76 +137,142 @@
         border-radius: var(--radius);
         font-size: 0.875rem;
         font-weight: 500;
-        transition-colors: 0.2s;
-        height: 2.5rem;
-        padding-left: 1rem;
-        padding-right: 1rem;
-        outline: none;
-      }
-      .shadcn-btn:focus-visible {
-        outline: 2px solid transparent;
-        outline-offset: 2px;
-        box-shadow: 0 0 0 2px hsl(var(--ring)), 0 0 0 4px hsl(var(--background));
+        transition: colors 0.2s;
+        cursor: pointer;
+        padding: 0.5rem 1rem;
       }
       .shadcn-btn-primary {
-        background-color: hsl(var(--primary));
-        color: hsl(var(--primary-foreground));
+        background-color: var(--primary);
+        color: var(--primary-foreground);
       }
       .shadcn-btn-primary:hover {
-        background-color: #4338ca; /* Indigo 700 manually since we cant calc hsl in css var easily here */
+        opacity: 0.9;
       }
       .shadcn-btn-outline {
-        border: 1px solid hsl(var(--input));
-        background-color: hsl(var(--background));
+        border: 1px solid var(--border);
+        background-color: transparent;
       }
       .shadcn-btn-outline:hover {
-        background-color: hsl(var(--accent));
-        color: hsl(var(--accent-foreground));
+        background-color: var(--accent);
+        color: var(--accent-foreground);
       }
       .shadcn-btn-ghost {
         background-color: transparent;
       }
       .shadcn-btn-ghost:hover {
-        background-color: hsl(var(--accent));
-        color: hsl(var(--accent-foreground));
+        background-color: var(--accent);
+        color: var(--accent-foreground);
       }
       .shadcn-btn-destructive {
-        background-color: hsl(var(--destructive));
-        color: hsl(var(--destructive-foreground));
+        background-color: var(--destructive);
+        color: var(--destructive-foreground);
       }
-      .shadcn-btn-destructive:hover {
-        background-color: #dc2626;
+      
+      .shadcn-input {
+        display: flex;
+        height: 2.5rem;
+        width: 100%;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        background-color: transparent;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        transition: colors 0.2s;
+      }
+      .shadcn-input:focus {
+        outline: none;
+        ring: 2px solid var(--ring);
+        border-color: var(--ring);
+      }
+      .shadcn-input::placeholder {
+        color: var(--muted-foreground);
+      }
+
+      /* Animation utilities */
+      .no-scrollbar::-webkit-scrollbar {
+          display: none;
+      }
+      .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
       }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
-    "jszip": "https://aistudiocdn.com/jszip@^3.10.1",
-    "surrealdb": "https://esm.sh/surrealdb",
-    "@surrealdb/wasm": "https://esm.sh/@surrealdb/wasm",
-    "vitest": "https://aistudiocdn.com/vitest@^4.0.15",
-    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.1"
-  }
-}
-</script>
-</head>
-  <body>
-    <div id="root"></div>
+    
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          // Check for http/https to avoid errors in blob/data schemes or obscure preview envs
-          if (!window.location.protocol.startsWith('http')) return;
-
-          navigator.serviceWorker.register('./sw.js', { scope: './' })
-            .then(reg => console.log('[Lumina] SW registered:', reg.scope))
-            .catch(err => console.error('[Lumina] SW failed:', err));
-        });
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              border: "hsl(var(--border))",
+              input: "hsl(var(--input))",
+              ring: "hsl(var(--ring))",
+              background: "hsl(var(--background))",
+              foreground: "hsl(var(--foreground))",
+              primary: {
+                DEFAULT: "hsl(var(--primary))",
+                foreground: "hsl(var(--primary-foreground))",
+              },
+              secondary: {
+                DEFAULT: "hsl(var(--secondary))",
+                foreground: "hsl(var(--secondary-foreground))",
+              },
+              destructive: {
+                DEFAULT: "hsl(var(--destructive))",
+                foreground: "hsl(var(--destructive-foreground))",
+              },
+              muted: {
+                DEFAULT: "hsl(var(--muted))",
+                foreground: "hsl(var(--muted-foreground))",
+              },
+              accent: {
+                DEFAULT: "hsl(var(--accent))",
+                foreground: "hsl(var(--accent-foreground))",
+              },
+              popover: {
+                DEFAULT: "hsl(var(--popover))",
+                foreground: "hsl(var(--popover-foreground))",
+              },
+              card: {
+                DEFAULT: "hsl(var(--card))",
+                foreground: "hsl(var(--card-foreground))",
+              },
+            },
+            borderRadius: {
+              lg: "var(--radius)",
+              md: "calc(var(--radius) - 2px)",
+              sm: "calc(var(--radius) - 4px)",
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            }
+          },
+        },
       }
+    </script>
+  </head>
+  <body class="bg-background text-foreground antialiased selection:bg-indigo-100 selection:text-indigo-900">
+    <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                try {
+                    navigator.serviceWorker.register('./sw.js')
+                        .then(registration => {
+                            console.log('Lumina SW registered');
+                        })
+                        .catch(err => {
+                            if (!err.message.includes('SecurityError')) {
+                                console.warn('Lumina SW failed: ', err);
+                            }
+                        });
+                } catch (e) {
+                    console.debug('SW registration skipped');
+                }
+            });
+        }
     </script>
   </body>
 </html>

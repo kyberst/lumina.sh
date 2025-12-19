@@ -9,22 +9,5 @@
   "restore": "Restore this version",
   "listening": "Listening...",
   "dictate": "Dictate",
-  "sendCommand": "Send Command",
-  "suggestions": {
-    "makeItGreen": "Make it Green",
-    "addEmailInput": "Add an email input",
-    "undoLastChange": "Undo last change"
-  },
-  "typing": "AI is typing...",
-  "regenerateResponse": "Regenerate response",
-  "reuseSuggestionUser": "I found a component that seems to do something very similar (`{file}`). Shall I reuse that instead of creating a new one?",
-  "reuseSuggestionDev": "High semantic similarity (>_85_%) detected with `{file}`. To optimize, reuse is recommended. What is your preference?",
-  "reuseAction": "Reuse Component",
-  "createAction": "Create New",
-  "propsNeededUser": "Great! To add this component, I need a few details. Please tell me:",
-  "propsNeededDev": "Component `{component}` requires the following props. Please provide values to proceed:",
-  "continue": "Continue",
-  "dyadError": "Unable to access project archives.",
-  "dyadPlaceholder": "Ask Architect...",
-  "aiWorking": "AI is working..."
+  "sendCommand": "Send Command"
 }

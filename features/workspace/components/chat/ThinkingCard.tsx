@@ -32,22 +32,17 @@ export const ThinkingCard: React.FC<Props> = ({ aiPlan, thinkTime, currentReason
 
     // Mapeo de Estados Amigables (Ocultar Jerga Técnica)
     const displayStatus = useMemo(() => {
-        // Priority 1: Use the specific task from the AI plan if available
-        if (aiPlan?.currentTask) {
-            return aiPlan.currentTask;
-        }
-
         const hasFiles = Object.keys(fileStatuses).length > 0;
         
         // Fase 1: Inicio
-        if (progress < 15 && !hasFiles) return t('thinking.analyzing', 'builder');
+        if (progress < 15 && !hasFiles) return t('thinking.analyzing', 'journal');
         
         // Fase 3: Finalización / Generación de Archivos
-        if (progress > 85 || hasFiles) return t('thinking.generating', 'builder');
+        if (progress > 85 || hasFiles) return t('thinking.generating', 'journal');
         
         // Fase 2: Proceso
-        return t('thinking.evaluating', 'builder');
-    }, [progress, fileStatuses, aiPlan]);
+        return t('thinking.evaluating', 'journal');
+    }, [progress, fileStatuses]);
 
     return (
         <div className="flex justify-start w-full">
@@ -86,7 +81,7 @@ export const ThinkingCard: React.FC<Props> = ({ aiPlan, thinkTime, currentReason
                                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                                 </div>
                                 <span className="text-[10px] uppercase font-bold text-slate-400 group-hover:text-indigo-500 transition-colors tracking-widest">
-                                    {t('thinking.details', 'builder')}
+                                    {t('thinking.details', 'journal')}
                                 </span>
                             </div>
                             

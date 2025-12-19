@@ -1,10 +1,9 @@
-
 {
-    "initialPromptTitle": "¡A Construir!",
-    "initialPromptDesc": "Describe la aplicación web que quieres crear. Cuantos más detalles proporciones, mejor será el resultado.",
-    "firstBlockTitle": "Propiedades de la App",
-    "firstBlockDesc": "Aquí puedes cambiar el nombre de tu aplicación, revisar el prompt original y gestionar sus etiquetas y variables de entorno.",
-    "skip": "Saltar Tutorial",
-    "next": "Siguiente",
-    "finish": "Finalizar"
+  "skip": "Saltar Tutorial",
+  "next": "Siguiente",
+  "finish": "Terminar",
+  "chatTitle": "Asistente IA",
+  "chatDesc": "Aquí está el chat: pídele a Lumina lo que quieres que tu aplicación haga.",
+  "panelTitle": "Panel de Trabajo",
+  "panelDesc": "Este es el panel donde puedes ver la vista previa y editar las propiedades del código de tu aplicación."
 }

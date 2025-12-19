@@ -24,13 +24,6 @@ export interface CommandLog {
     status: 'pending' | 'approved' | 'executed' | 'skipped';
 }
 
-export interface Snapshot {
-  id: string;
-  timestamp: number;
-  description: string;
-  files: GeneratedFile[];
-}
-
 export interface JournalEntry {
   id: string;
   prompt: string;
@@ -48,6 +41,5 @@ export interface JournalEntry {
   installCommand?: string;
   startCommand?: string;
   requiredEnvVars?: EnvVarRequest[];
-  pendingGeneration?: boolean;
-  history?: Snapshot[];
+  pendingGeneration?: boolean; 
 }

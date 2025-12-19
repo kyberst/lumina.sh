@@ -9,22 +9,5 @@
   "restore": "Restaurar versión",
   "listening": "Escuchando...",
   "dictate": "Dictar",
-  "sendCommand": "Enviar Comando",
-  "suggestions": {
-    "makeItGreen": "Hazlo Verde",
-    "addEmailInput": "Añade un campo de email",
-    "undoLastChange": "Deshacer último cambio"
-  },
-  "typing": "IA está escribiendo...",
-  "regenerateResponse": "Regenerar respuesta",
-  "reuseSuggestionUser": "He encontrado un componente que parece hacer algo muy similar (`{file}`). ¿Quieres que lo reutilice en lugar de crear uno nuevo?",
-  "reuseSuggestionDev": "Alta similitud semántica (>85%) detectada con `{file}`. Para optimizar, se recomienda reutilizar. ¿Cuál es tu preferencia?",
-  "reuseAction": "Reutilizar Componente",
-  "createAction": "Crear Nuevo",
-  "propsNeededUser": "¡Genial! Para añadir este componente, necesito algunos detalles. Por favor, dime:",
-  "propsNeededDev": "El componente `{component}` requiere las siguientes `props`. Por favor, proporciona los valores para continuar:",
-  "continue": "Continuar",
-  "dyadError": "No se puede acceder a los archivos del proyecto.",
-  "dyadPlaceholder": "Pregúntale al Arquitecto...",
-  "aiWorking": "La IA está trabajando..."
+  "sendCommand": "Enviar Comando"
 }

@@ -1,6 +1,6 @@
 
 import { GeneratedFile, DependencyDetails } from "../../../types";
-import { ERROR_HANDLER_SCRIPT, DEPENDENCY_VALIDATOR_SCRIPT, ENV_HANDLING_SCRIPT, ELEMENT_INSPECTOR_SCRIPT } from "./previewScripts";
+import { ERROR_HANDLER_SCRIPT, DEPENDENCY_VALIDATOR_SCRIPT, ENV_HANDLING_SCRIPT, ELEMENT_SELECTOR_SCRIPT } from "./previewScripts";
 
 interface SourceMapEntry {
     start: number;
@@ -17,8 +17,7 @@ export const generateIframeHtml = (
     dependencies: Record<string, string | DependencyDetails> | undefined
 ): { html: string; sourceMap: Record<string, SourceMapEntry> } => {
     
-    const safeFiles = files || [];
-    const indexFile = safeFiles.find(x => x.name === 'index.html'); 
+    const indexFile = files.find(x => x.name === 'index.html'); 
     if(!indexFile) return { html: '', sourceMap: {} };
     
     let finalHtml = indexFile.content;
@@ -47,29 +46,30 @@ export const generateIframeHtml = (
     const validatorScript = DEPENDENCY_VALIDATOR_SCRIPT(imports);
     
     // 2. Prepare Injection Assets
-    const styles = safeFiles.filter(x => x.name.endsWith('.css')).map(f => ({ name: f.name, content: `<style>/* ${f.name} */\n${f.content}\n</style>` }));
-    const modules = safeFiles.filter(x => /\.(js|jsx|ts|tsx)$/.test(x.name)).map(f => {
+    const styles = files.filter(x => x.name.endsWith('.css')).map(f => ({ name: f.name, content: `<style>/* ${f.name} */\n${f.content}\n</style>` }));
+    const modules = files.filter(x => /\.(js|jsx|ts|tsx)$/.test(x.name)).map(f => {
         return { name: f.name, content: `<script type="module">\n// ${f.name}\n${f.content}\n</script>` };
     });
 
     const countLines = (str: string) => (str.match(/\n/g) || []).length;
 
     // 3. Split HTML for Injection
+    const parts = finalHtml.split('</head>');
+    let headPart = parts[0];
+    if (!headPart.includes('<head>')) headPart = '<head>' + headPart;
+
     const headCloseIndex = finalHtml.indexOf('</head>');
-    if (headCloseIndex === -1) {
-        // No head tag, inject one
-        finalHtml = `<html><head></head>${finalHtml}</html>`;
-    }
     const bodyCloseIndex = finalHtml.indexOf('</body>');
     
     let currentLine = 1;
     
     // A. Pre-Head
-    const preHead = finalHtml.substring(0, headCloseIndex > -1 ? headCloseIndex : 0);
+    const preHead = finalHtml.substring(0, headCloseIndex);
     currentLine += countLines(preHead);
     
     // B. Injections in Head
-    let headInjections = ENV_HANDLING_SCRIPT + '\n' + ERROR_HANDLER_SCRIPT + '\n' + importMapScript + '\n' + validatorScript + '\n' + '<script src="https://cdn.tailwindcss.com"></script>\n';
+    // Order: Selector -> EnvHandler -> ErrorHandler -> ImportMap -> Validator -> Tailwind -> Styles
+    let headInjections = ELEMENT_SELECTOR_SCRIPT + '\n' + ENV_HANDLING_SCRIPT + '\n' + ERROR_HANDLER_SCRIPT + '\n' + importMapScript + '\n' + validatorScript + '\n' + '<script src="https://cdn.tailwindcss.com"></script>\n';
     currentLine += countLines(headInjections);
     
     let styleInjections = "";
@@ -95,7 +95,7 @@ export const generateIframeHtml = (
     // E. Post Body
     const postBody = finalHtml.substring(bodyCloseIndex);
     
-    const composedHtml = preHead + headInjections + styleInjections + '</head>' + bodyContent + scriptInjections + ELEMENT_INSPECTOR_SCRIPT + postBody;
+    const composedHtml = preHead + headInjections + styleInjections + '</head>' + bodyContent + scriptInjections + postBody;
     
     return { html: composedHtml, sourceMap: newSourceMap };
 };

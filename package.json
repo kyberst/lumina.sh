@@ -9,13 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.2.0",
-    "react-dom": "^19.2.1",
-    "@google/genai": "^1.30.0",
-    "jszip": "^3.10.1",
-    "surrealdb": "latest",
-    "@surrealdb/wasm": "latest",
-    "vitest": "^4.0.15"
+    "@surrealdb/wasm": "^1.4.1",
+    "@google/genai": "^1.34.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "surrealdb": "^1.3.2"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

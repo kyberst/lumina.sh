@@ -1,29 +1,5 @@
 import { GeneratedFile, EnvVarRequest, CommandLog } from './project';
 
-// FIX: Define and export AIProvider, MCPServer, and CodeSymbol types.
-export interface AIProvider {
-  id: string;
-  name: string;
-  baseUrl: string;
-  apiKeyConfigKey?: string;
-  models: { id: string; name: string }[];
-}
-
-export interface MCPServer {
-  id: string;
-  name: string;
-  type: 'stdio' | 'websocket';
-  command: string;
-  args: string[];
-}
-
-export interface CodeSymbol {
-  name: string;
-  type: string;
-  doc: string;
-  signature: string;
-}
-
 export interface EditorContext {
   activeFile: string;
   cursorLine: number;
@@ -42,14 +18,6 @@ export interface AIPlan {
   currentStep: number;
   totalSteps: number;
   currentTask: string;
-}
-
-export interface AIAudit {
-  tokenUsage: { input: number; output: number; };
-  model: string;
-  provider: string;
-  thinkingBudget?: 'low' | 'medium' | 'high';
-  contextSize?: 'economy' | 'default' | 'plus' | 'high' | 'max';
 }
 
 export interface ChatMessage {
@@ -74,15 +42,29 @@ export interface ChatMessage {
       inputTokens: number;
       outputTokens: number;
   };
-  patches?: Record<string, string>;
-  simplifiedText?: string;
-  audit?: AIAudit;
-  applied?: boolean;
-  checkpointName?: string;
-  
-  // For Intelligent Interceptors
-  suggestions?: Array<{ label: string; action: string; payload?: any; }>;
-  propInputs?: Array<{ name: string; type: string; isOptional: boolean; value?: string; }>;
-  isAwaitingInput?: boolean;
-  bypassInterceptors?: boolean; // If true, skips reuse/prop suggestions
+}
+
+export interface MCPServer {
+  id: string;
+  name: string;
+  type: 'stdio' | 'websocket';
+  command: string;
+  args: string[];
+  url?: string;
+}
+
+export interface AIProviderModel {
+    id: string;
+    name: string;
+    description?: string;
+    contextWindow?: number;
+    maxOutputTokens?: number;
+}
+
+export interface AIProvider {
+  id: string;
+  name: string;
+  baseUrl: string;
+  apiKeyConfigKey: string; 
+  models: AIProviderModel[];
 }

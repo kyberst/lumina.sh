@@ -1,25 +1,21 @@
 
-import { AppError, AppModule, JournalEntry, ChatMessage, User, GeneratedFile, Session, Transaction } from '../types';
+import { AppError, AppModule, JournalEntry, ChatMessage, GeneratedFile } from '../types';
 import { dbCore } from './db/dbCore';
 import { taskService } from './taskService';
-import { UserRepository } from './repositories/userRepository';
 import { ProjectRepository } from './repositories/projectRepository';
-import { SessionRepository } from './repositories/sessionRepository';
 import { ChatRepository } from './repositories/chatRepository';
+import { ragService } from './memory/ragService';
 
 /**
  * SurrealDB Facade.
  * Wraps SurrealDB repositories and provides a clean API for the application.
- * Previously known as sqliteService (renamed to reflect actual DB tech).
  */
 class DatabaseFacade {
     private static instance: DatabaseFacade;
     private locks = new Set<string>();
     
     // Repositories
-    public users = new UserRepository();
     public projects = new ProjectRepository();
-    public sessions = new SessionRepository();
     public chats = new ChatRepository();
 
     public static getInstance(): DatabaseFacade {
@@ -38,19 +34,22 @@ class DatabaseFacade {
 
     // --- Facade Methods ---
     
-    // Users
-    public async getUser(email: string) { return this.users.getByEmail(email); }
-    public async getUserById(id: string) { return this.users.getById(id); }
-    public async createUser(u: User) { return this.users.create(u); }
-    public async updateUser(u: User) { return this.users.update(u); }
-
     // Projects
     public async getAllProjects() { return this.projects.getAll(); }
     public async getProjectById(id: string) { return this.projects.getById(id); }
     
+    public async createProject(e: JournalEntry) {
+        return this.projects.create(e);
+    }
+    
     public async saveProject(e: JournalEntry, force = false) {
         if (this.locks.has(e.id) && !force) throw new AppError("Project is locked.", "LOCKED", AppModule.CORE);
-        return this.projects.save(e);
+        const result = await this.projects.save(e);
+        
+        // Trigger background indexing (Fire and forget to not block UI)
+        ragService.indexProject(e).catch(err => console.error("RAG Auto-Index Error", err));
+        
+        return result;
     }
     
     public async deleteProject(id: string) {
@@ -58,16 +57,32 @@ class DatabaseFacade {
         return this.projects.delete(id);
     }
 
-    /**
-     * Atomically updates a project and saves the refactor history message.
-     * Uses ACID transactions to ensure data consistency (Files + History).
-     */
+    public async atomicCreateProjectWithHistory(
+        entry: JournalEntry, 
+        userMessage: ChatMessage
+    ) {
+        if (this.locks.has(entry.id)) throw new AppError("Project is locked during atomic create.", "LOCKED", AppModule.CORE);
+
+        const ops = [];
+        ops.push(this.projects.getCreateOperation(entry));
+        
+        const userMessageWithSnapshot = { ...userMessage, snapshot: entry.files };
+        ops.push(this.chats.getSaveRefactorMessageOperation(entry.id, userMessageWithSnapshot));
+
+        const result = await dbCore.executeTransaction(ops);
+        
+        // Trigger background indexing
+        ragService.indexProject(entry).catch(err => console.error("RAG Auto-Index Error", err));
+
+        return result;
+    }
+
     public async atomicUpdateProjectWithHistory(
         entry: JournalEntry, 
-        message: ChatMessage, 
+        modelMessage: ChatMessage, 
         prevFiles?: GeneratedFile[], 
         newFiles?: GeneratedFile[],
-        auxMessage?: ChatMessage // Optional user message to save in same transaction
+        userMessage?: ChatMessage
     ) {
         if (this.locks.has(entry.id)) throw new AppError("Project is locked during atomic update.", "LOCKED", AppModule.CORE);
 
@@ -76,45 +91,64 @@ class DatabaseFacade {
         // 1. Update Project Content
         ops.push(this.projects.getSaveOperation(entry));
         
-        // 2. Save Refactor Message (with calculated Diff)
-        ops.push(this.chats.getSaveRefactorMessageOperation(entry.id, message, prevFiles, newFiles));
+        // 2. Save Model Message
+        ops.push(this.chats.getSaveRefactorMessageOperation(entry.id, modelMessage, prevFiles, newFiles));
         
-        // 3. Save User Message (if provided, e.g. the prompt that triggered this)
-        if (auxMessage) {
-            ops.push(this.chats.getSaveChatMessageOperation(auxMessage));
+        // 3. Save User Message
+        if (userMessage) {
+            ops.push(this.chats.getSaveRefactorMessageOperation(entry.id, userMessage));
         }
 
-        // Execute in single transaction
-        return dbCore.executeTransaction(ops);
-    }
+        const result = await dbCore.executeTransaction(ops);
 
-    // Sessions & Transactions
-    public async createSession(s: Session) { return this.sessions.create(s); }
-    public async getUserSessions(uid: string) { return this.sessions.getByUser(uid); }
-    public async revokeSession(sid: string) { return this.sessions.revoke(sid); }
-    public async extendSession(sid: string, expiresAt: number) { return this.sessions.extend(sid, expiresAt); }
-    public async addTransaction(t: Transaction) { return this.sessions.addTransaction(t); }
-    public async getUserTransactions(uid: string) { return this.sessions.getUserTransactions(uid); }
+        // Trigger background indexing
+        ragService.indexProject(entry).catch(err => console.error("RAG Auto-Index Error", err));
+
+        return result;
+    }
 
     // Chats
     public async getRefactorHistory(pid: string) { return this.chats.getRefactorHistory(pid, this.projects); }
     public async saveRefactorMessage(pid: string, m: ChatMessage, oldF?: GeneratedFile[], newF?: GeneratedFile[]) {
         return this.chats.saveRefactorMessage(pid, m, oldF, newF);
     }
-    public async updateRefactorMessage(pid: string, m: ChatMessage) {
-        return this.chats.updateRefactorMessage(pid, m);
-    }
     public async saveChatMessage(m: ChatMessage) { return this.chats.saveChatMessage(m); }
     public async getChatHistory() { return this.chats.getChatHistory(); }
 
-    // Config (Key-Value in Surreal)
-    public async setConfig(k: string, v: string) { 
-        // Use UPDATE for upsert behavior
-        await dbCore.query("UPDATE type::thing('app_config', $k) CONTENT { value: $v }", { k, v });
+    public async revertToSnapshot(projectId: string, snapshot: GeneratedFile[], targetTimestamp: number) {
+        const projectUpdateOp = {
+            query: "UPDATE type::thing('projects', $id) SET files = $files",
+            params: { id: projectId, files: snapshot }
+        };
+        
+        const historyDeleteOp = {
+            query: "DELETE refactor_history WHERE project_id = $projectId AND timestamp > <number>$targetTimestamp",
+            params: { projectId, targetTimestamp }
+        };
+        
+        return dbCore.executeTransaction([projectUpdateOp, historyDeleteOp]);
     }
+
+    // Config (Key-Value in Surreal)
+    public async setConfig(k: string, v: string) {
+        // Fix: Use type::thing for dynamic IDs
+        const query = `UPDATE type::thing('app_config', $k) SET value = $v`;
+        await dbCore.query(query, { k, v });
+    }
+    
     public async getConfig(k: string) { 
-        const r: any[] = await dbCore.query("SELECT * FROM type::thing('app_config', $k)", { k });
+        // Fix: Explicit field selection 'id, value' to avoid 'SELECT *' and ambiguity with 'SELECT value'
+        const r: any[] = await dbCore.query("SELECT id, value FROM type::thing('app_config', $k)", { k });
         return r.length ? r[0].value : null; 
+    }
+
+    public async clearAllData() {
+        return dbCore.executeTransaction([
+            { query: 'DELETE projects' },
+            { query: 'DELETE refactor_history' },
+            { query: 'DELETE chat_history' },
+            { query: 'DELETE app_config' }
+        ]);
     }
 }
 

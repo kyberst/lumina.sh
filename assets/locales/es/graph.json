@@ -1,9 +1,0 @@
-
-{
-    "nodes": "Nodos de Proyecto",
-    "pattern": "patrones encontrados.",
-    "initializing": "Inicializando...",
-    "indexingNodes": "Indexando {count} Nodos de Proyecto...",
-    "analyzingTopology": "Analizando Topología Semántica...",
-    "mappedDependencies": "{count} Dependencias Mapeadas."
-}

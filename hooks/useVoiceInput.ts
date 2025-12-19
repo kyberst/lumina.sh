@@ -1,6 +1,5 @@
-
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { getLanguage, t } from '../services/i18n';
+import { getLanguage } from '../services/i18n';
 
 interface UseVoiceInputReturn {
   isListening: boolean;
@@ -39,11 +38,7 @@ export const useVoiceInput = (): UseVoiceInputReturn => {
       recognition.onerror = (event: any) => {
         console.error("Speech recognition error", event.error);
         setIsListening(false);
-        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-            setError(t('errorMicPermission', 'common'));
-        } else {
-            setError(event.error);
-        }
+        setError(event.error);
       };
 
       recognition.onend = () => {
@@ -52,7 +47,7 @@ export const useVoiceInput = (): UseVoiceInputReturn => {
 
       recognitionRef.current = recognition;
     } else {
-      setError(t('error.speechRecognitionNotSupported', 'common'));
+      setError("Browser does not support Speech Recognition");
     }
   }, []);
 

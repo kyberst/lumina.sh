@@ -1,4 +1,5 @@
 
+
 import { AppModule, LogEntry, LogLevel } from '../types';
 import { taskService } from './taskService';
 
@@ -25,9 +26,7 @@ class LoggerService {
     // We suppress raw console.log as requested, but map to console.info/error for dev visibility
     // in a controlled manner if strictly necessary.
     if (entry.level === LogLevel.ERROR) {
-      // This was printing handled errors to the console, which is not ideal for a SaaS app
-      // where we want to silently log issues. The error will still be persisted to the DB.
-      // console.error(`[${entry.module.toUpperCase()}] ${entry.message}`, entry.meta);
+      console.error(`[${entry.module.toUpperCase()}] ${entry.message}`, entry.meta);
       this.persistErrorLog(entry);
     } else if (entry.message.includes('Perf') || entry.message.includes('Telemetry')) {
       // Allow specific info logs to show in console for debugging performance

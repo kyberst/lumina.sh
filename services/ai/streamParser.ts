@@ -14,14 +14,12 @@ export const createInitialStreamState = (initialFiles: GeneratedFile[]): StreamS
   reasoningBuffer: '',
   textBuffer: '',
   fileStatuses: {},
-  workingFiles: [...(initialFiles || [])],
+  workingFiles: [...initialFiles],
   commands: [],
   dependencies: {},
   annotations: [],
   aiPlan: undefined,
-  patches: {},
-  patchError: undefined,
-  requiredEnvVars: []
+  suggestions: []
 });
 
 export const finalizeStream = (state: StreamState): StreamState => ({ ...state, buffer: '', mode: 'TEXT', currentCommandType: undefined });

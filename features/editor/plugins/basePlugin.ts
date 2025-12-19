@@ -1,3 +1,4 @@
+
 import { IEditorPlugin } from './interface';
 import { CodeAnnotation } from '../../../types';
 
@@ -31,9 +32,9 @@ export class BasePlugin implements IEditorPlugin {
           );
 
           // If annotation has a suggestion, create a Quick Fix action
-          if (anno && anno.suggestion) {
+          if (anno && anno.suggestion) { // Ensure anno and suggestion exist
             actions.push({
-              title: `✨ Lumina Fix: ${anno.suggestion.slice(0, 50)}${anno.suggestion.length > 50 ? '...' : ''}`,
+              title: `✨ Lumina Fix: ${(anno.suggestion || '').slice(0, 50)}${anno.suggestion && anno.suggestion.length > 50 ? '...' : ''}`,
               kind: "quickfix",
               isPreferred: true,
               edit: {

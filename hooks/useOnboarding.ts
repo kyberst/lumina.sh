@@ -1,34 +1,52 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { dbFacade } from '../services/dbFacade';
+import { logger } from '../services/logger';
+import { AppModule } from '../types';
+import { eventBus } from '../services/eventBus';
 
-interface OnboardingOptions {
-    enabled?: boolean;
-    delay?: number;
-}
-
-export const useOnboarding = (stageId: string, options: OnboardingOptions = {}) => {
-    const { enabled = true, delay = 1000 } = options;
-    const storageKey = `lumina_onboarding_${stageId}_completed`;
-
-    const [isCompleted, setIsCompleted] = useState(() => {
-        try { return localStorage.getItem(storageKey) === 'true'; } catch { return true; }
-    });
+export const useOnboarding = () => {
     const [isActive, setIsActive] = useState(false);
     const [currentStep, setCurrentStep] = useState(0);
 
+    const start = useCallback(() => {
+        setIsActive(true);
+        setCurrentStep(0);
+    }, []);
+
     useEffect(() => {
-        if (!isCompleted && enabled) {
-            const timer = setTimeout(() => setIsActive(true), delay);
-            return () => clearTimeout(timer);
-        }
-    }, [isCompleted, enabled, delay]);
+        const loadOnboardingStatus = async () => {
+            try {
+                const completed = await dbFacade.getConfig('onboarding_completed');
+                if (!completed) {
+                    const timer = setTimeout(() => start(), 1500);
+                    // This cleanup is crucial for when the component unmounts before timeout
+                    return () => clearTimeout(timer);
+                }
+            } catch (e) {
+                logger.error(AppModule.CORE, "Failed to load onboarding status from DB", e);
+            }
+        };
+        loadOnboardingStatus();
+    }, []); // Dependency array changed to [] to run only once on mount
+
+    useEffect(() => {
+        eventBus.on('start-tutorial', start);
+        return () => {
+            eventBus.off('start-tutorial', start);
+        };
+    }, []); // Dependency array changed to [] to run only once on mount
 
     const next = () => setCurrentStep(p => p + 1);
     
-    const finish = () => {
+    const finish = async () => {
         setIsActive(false);
-        setIsCompleted(true);
-        try { localStorage.setItem(storageKey, 'true'); } catch {}
+        setCurrentStep(0);
+        try {
+            await dbFacade.setConfig('onboarding_completed', 'true');
+        } catch (e) {
+            logger.error(AppModule.CORE, "Failed to save onboarding completed status to DB", e);
+        }
     };
     
     const skip = finish;

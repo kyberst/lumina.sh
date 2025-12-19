@@ -1,6 +1,6 @@
-# lumina.sh ⚡️
+# Lumina Studio ⚡️
 
-**lumina.sh** is a sophisticated, local-first AI Integrated Development Environment (IDE) designed to architect, build, and refactor full-stack web applications using natural language.
+**Lumina Studio** is a sophisticated, local-first AI Integrated Development Environment (IDE) designed to architect, build, and refactor full-stack web applications using natural language.
 
 Unlike standard code assistants, Lumina operates as an **Autonomous Architect**. It adheres to strict structural rules, manages a semantic knowledge graph of your project, and executes complex refactors using a proprietary streaming protocol.
 
@@ -19,7 +19,7 @@ Unlike standard code assistants, Lumina operates as an **Autonomous Architect**.
 
 ## 🏗 System Architecture
 
-lumina.sh is built on a modular, Client-Side architecture ensuring privacy, speed, and maintainability.
+Lumina Studio is built on a modular, Client-Side architecture ensuring privacy, speed, and maintainability.
 
 ### 1. The Core (React + Vite)
 The application is a Progressive Web App (PWA) built with **React 19** and **TypeScript**. It uses a recursive directory structure where no source file exceeds **200 lines of code** (Atomic Modularity Rule).

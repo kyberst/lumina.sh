@@ -1,6 +1,3 @@
-
-import { createAuthTables } from './schema/authSchema';
-import { createAppTables } from './schema/appSchema';
 import { createHistoryTables } from './schema/historySchema';
 import { logger } from '../logger';
 import { AppModule } from '../../types';
@@ -16,19 +13,11 @@ interface Migration {
 const MIGRATIONS: Migration[] = [
     {
         version: 1,
-        description: 'Initial Schema Setup (Auth, App, History)',
+        description: 'Set Initial DB Version',
         up: async (db) => {
-            await createAuthTables(db);
-            await createAppTables(db);
-            await createHistoryTables(db, false);
+            // Schema creation handled in dbCore.init
         }
     }
-    // Future migrations example:
-    // {
-    //    version: 2,
-    //    description: 'Add Vector Index to Memories',
-    //    up: async (db) => { ... }
-    // }
 ];
 
 export const runMigrations = async (dbCore: any) => {
@@ -37,15 +26,13 @@ export const runMigrations = async (dbCore: any) => {
         
         // 1. Check current version from DB
         try {
-            // Access app_config table directly via raw query to get version
-            // Fix: Select specific record directly using ID syntax (table:id)
-            // Fix: Use SELECT * to avoid conflict with 'value' keyword
-            const result: any[] = await dbCore.query("SELECT * FROM app_config:db_version");
+            // Fix: Use SELECT id, value (Explicit) and type::thing
+            const result: any[] = await dbCore.query("SELECT id, value FROM type::thing('app_config', 'db_version')");
             if (result && result.length > 0 && result[0].value) {
-                currentVersion = result[0].value;
+                currentVersion = Number(result[0].value);
             }
         } catch (e) {
-            // Table might not exist yet on fresh install, default to 0
+            logger.warn(AppModule.CORE, "Could not read db_version, assuming v0.", e);
             currentVersion = 0;
         }
 
@@ -62,8 +49,9 @@ export const runMigrations = async (dbCore: any) => {
                 
                 await migration.up(dbCore);
                 
-                // 3. Update version
-                await dbCore.query("UPDATE type::thing('app_config', 'db_version') CONTENT { value: $v, timestamp: time::now() }", { v: migration.version });
+                // 3. Update version using type::thing
+                const query = `UPDATE type::thing('app_config', 'db_version') SET value = $v, timestamp = time::now()`;
+                await dbCore.query(query, { v: migration.version });
                 
                 logger.info(AppModule.CORE, `Migration v${migration.version} Success`);
             }

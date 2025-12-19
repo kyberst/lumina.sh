@@ -1,26 +1,9 @@
-
 import { AIProvider, MCPServer } from './ai';
 
-export type ViewMode = 'builder' | 'projects' | 'graph' | 'chat' | 'settings' | 'profile';
+export type ViewMode = 'builder' | 'projects' | 'graph' | 'chat' | 'settings';
 
 export interface MemorySettings {
   enabled: boolean;
-  // SurrealDB Embedded handles vector and graph internally
-  // No external configuration needed
-  
-  // Legacy fields kept optional for migration compatibility if needed, 
-  // but strictly we don't need them for the new architecture.
-  qdrantUrl?: string;
-  qdrantKey?: string;
-  neo4jUrl?: string;
-  neo4jUser?: string;
-  neo4jPass?: string;
-}
-
-export interface SSOProviderConfig {
-    provider: 'google' | 'github';
-    clientId: string;
-    enabled: boolean;
 }
 
 export interface AppSettings {
@@ -28,7 +11,6 @@ export interface AppSettings {
   aiModel: 'flash' | 'pro';
   githubToken?: string;
   githubUsername?: string;
-  theme: 'dark' | 'matrix';
   zoomLevel: number; 
   compilerDir?: string;
   autoApprove: boolean;
@@ -38,14 +20,17 @@ export interface AppSettings {
   customProviders: AIProvider[];
   activeProviderId?: string;
   activeModelId?: string;
-  modelPriority?: string[];
-  systemContextOverride?: string;
   mcpServers: MCPServer[];
   telemetryId: string;
   memory: MemorySettings;
-  developerMode: boolean;
-  learningMode?: boolean;
-  ssoProviders?: SSOProviderConfig[];
+  releaseChannel: 'stable' | 'beta';
+  executionEnvironment: 'local' | 'docker';
+  nodePath?: string;
+  telemetryEnabled: boolean;
+  globalEnvVars: Record<string, string>;
+  experiments: {
+    nativeGit: boolean;
+  };
 }
 
 export interface GitHubRepo {
