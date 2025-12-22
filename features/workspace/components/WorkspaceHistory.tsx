@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ChatMessage } from '../../../types';
 import { t } from '../../../services/i18n';
@@ -23,8 +22,7 @@ export const WorkspaceHistory: React.FC<Props> = ({ history, onRevert }) => {
             
             <div className="space-y-4">
                 {modelTurns.map((turn, index) => (
-                    // FIX: Property 'id' does not exist on type 'ChatMessage', using 'mid'
-                    <div key={turn.mid} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-indigo-200 hover:shadow-md transition-all">
+                    <div key={turn.refactor_history_id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-indigo-200 hover:shadow-md transition-all">
                         <div className="flex justify-between items-start">
                              <div>
                                 <div className="text-xs font-bold text-indigo-600 mb-1">{new Date(turn.timestamp).toLocaleString()}</div>
@@ -41,8 +39,7 @@ export const WorkspaceHistory: React.FC<Props> = ({ history, onRevert }) => {
                                 {turn.modifiedFiles?.length || 0} {t('history.filesChanged', 'workspace')}
                              </div>
                              <button
-                                // FIX: Property 'id' does not exist on type 'ChatMessage', using 'mid'
-                                onClick={() => onRevert(turn.mid)}
+                                onClick={() => onRevert(turn.refactor_history_id)}
                                 disabled={index === 0}
                                 className="shadcn-btn shadcn-btn-outline h-8 px-3 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                              >

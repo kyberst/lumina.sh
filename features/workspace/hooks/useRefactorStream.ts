@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { JournalEntry, ChatMessage, AppSettings, EditorContext, DependencyDetails, GeneratedFile } from '../../../types';
 import { streamChatRefactor, generateSuggestions } from '../../../services/geminiService';
@@ -19,7 +18,6 @@ interface UseRefactorStreamProps {
         newFiles: GeneratedFile[];
     }) => Promise<void>;
     setIframeKey: React.Dispatch<React.SetStateAction<number>>;
-    // FIX: Add setTotalUsage to the interface to resolve TypeScript error in WorkspaceView
     setTotalUsage?: React.Dispatch<React.SetStateAction<{ input: number, output: number }>>;
 }
 
@@ -56,7 +54,6 @@ const cleanErrorMessage = (error: any): string => {
     return msg;
 };
 
-// FIX: Added setTotalUsage to the hook parameters
 export const useRefactorStream = ({ entry, settings, history, setHistory, onTurnComplete, setIframeKey, setTotalUsage }: UseRefactorStreamProps) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [streamState, setStreamState] = useState<StreamState>(createInitialStreamState(entry.files ?? []));
@@ -100,13 +97,11 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onTurn
                 snapshot: previousFiles,
                 pending: false 
             };
-            // FIX: Property 'id' does not exist on type 'ChatMessage', using 'mid'
-            setHistory(prev => prev.map(m => m.mid === optimisticMessage.mid ? userTurnMessage : m));
+            setHistory(prev => prev.map(m => m.refactor_history_id === optimisticMessage.refactor_history_id ? userTurnMessage : m));
             currentHistory = [...history, userTurnMessage];
         } else {
             userTurnMessage = { 
-                // FIX: Property 'id' does not exist on type 'ChatMessage', using 'mid'
-                mid: crypto.randomUUID(), role: 'user', text: userMessage || entry.prompt, timestamp: Date.now(), 
+                refactor_history_id: crypto.randomUUID(), role: 'user', text: userMessage || entry.prompt, timestamp: Date.now(), 
                 attachments, editorContext,
                 snapshot: previousFiles
             };
@@ -172,7 +167,6 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onTurn
             setStreamState({ ...currentState });
             let finalState = finalizeStream(currentState);
 
-            // FIX: Update the total usage in the view if a setter was provided
             if (setTotalUsage && (finalUsage.inputTokens > 0 || finalUsage.outputTokens > 0)) {
                 setTotalUsage(prev => ({
                     input: prev.input + finalUsage.inputTokens,
@@ -181,8 +175,7 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onTurn
             }
             
             const modelMessage: ChatMessage = {
-                // FIX: Property 'id' does not exist on type 'ChatMessage', using 'mid'
-                mid: crypto.randomUUID(), role: 'model', text: finalState.textBuffer,
+                refactor_history_id: crypto.randomUUID(), role: 'model', text: finalState.textBuffer,
                 reasoning: finalState.reasoningBuffer, timestamp: Date.now(),
                 modifiedFiles: Object.keys(finalState.fileStatuses), 
                 snapshot: finalState.workingFiles,

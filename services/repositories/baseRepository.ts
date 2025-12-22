@@ -1,8 +1,7 @@
-
 /**
  * Base Repository Class.
  * Normalizes how IDs and results are handled across repositories.
- * Renames database 'id' to application-friendly 'uid' or 'mid'.
+ * Maps database 'id' to application-friendly 'tableName_id'.
  */
 export class BaseRepository {
     
@@ -10,7 +9,7 @@ export class BaseRepository {
      * Normalizes a single result from SurrealDB.
      * Ensures primary ID is extracted as a clean string UUID and renamed.
      */
-    protected mapResult<T>(res: any, idKey: 'uid' | 'mid' = 'uid'): T {
+    protected mapResult<T>(res: any, idKey: string): T {
         if (!res || typeof res !== 'object') return res;
         
         // Handle "wrapped" objects from transactions if necessary
@@ -19,8 +18,8 @@ export class BaseRepository {
             data = res["0"];
         }
         
-        // Extract raw ID from common fields
-        const rawId = data.id !== undefined ? data.id : (data.uid !== undefined ? data.uid : data.mid);
+        // Extract raw ID from potential source fields
+        const rawId = data.id !== undefined ? data.id : data[idKey];
         const cleanIdString = this.cleanId(rawId);
         
         const normalized: any = {};
@@ -34,16 +33,20 @@ export class BaseRepository {
         normalized[idKey] = cleanIdString;
         if (normalized.id) delete normalized.id;
         
-        // Also ensure project relations use the clean uid string
+        // Handle related fields naming if they were using old conventions
         if (normalized.project_id) {
-            normalized.project_uid = this.cleanId(normalized.project_id);
+            normalized.projects_id = this.cleanId(normalized.project_id);
             delete normalized.project_id;
+        }
+        if (normalized.project_uid) {
+            normalized.projects_id = this.cleanId(normalized.project_uid);
+            delete normalized.project_uid;
         }
         
         return normalized as T;
     }
 
-    protected mapResults<T>(res: any[], idKey: 'uid' | 'mid' = 'uid'): T[] {
+    protected mapResults<T>(res: any[], idKey: string): T[] {
         if (!Array.isArray(res)) return [];
         return res.map(item => this.mapResult<T>(item, idKey));
     }

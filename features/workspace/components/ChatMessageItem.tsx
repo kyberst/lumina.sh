@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ChatMessage, GeneratedFile } from '../../../types';
 import { MarkdownRenderer } from '../../../components/ui/MarkdownRenderer';
@@ -184,8 +183,7 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, previousSnapshot, onEnvV
                     {isModel && hasFiles && (
                         <div className="px-4 pb-3 pt-0 flex justify-end">
                             <button
-                                // FIX: Property 'id' does not exist on type 'ChatMessage', using 'mid'
-                                onClick={() => onRevert(msg.mid)}
+                                onClick={() => onRevert(msg.refactor_history_id)}
                                 disabled={isLastModelMessage}
                                 className="text-[10px] font-bold text-muted-foreground hover:text-destructive transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
                                 title={isLastModelMessage ? "Current Version" : "Restore this version"}

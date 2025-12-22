@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { JournalEntry } from '../../types';
 import { t } from '../../services/i18n';
@@ -73,8 +72,7 @@ export const EntryCard: React.FC<EntryCardProps> = ({ entry, onDelete, onSelect,
            
            {!isEditing && onDelete && (
             <button 
-              // FIX: Property 'id' does not exist on type 'JournalEntry', using 'uid'
-              onClick={(e) => { e.stopPropagation(); onDelete(entry.uid); }}
+              onClick={(e) => { e.stopPropagation(); onDelete(entry.projects_id); }}
               className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive flex items-center justify-center transition-colors text-muted-foreground opacity-0 group-hover:opacity-100"
               title="Delete Project"
             >

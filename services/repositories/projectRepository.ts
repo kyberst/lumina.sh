@@ -1,27 +1,26 @@
-
 import { JournalEntry } from '../../types';
 import { dbCore } from '../db/dbCore';
 import { BaseRepository } from './baseRepository';
 
 export class ProjectRepository extends BaseRepository {
     
-    // Explicitly define all needed fields
-    private readonly FIELDS = "meta::id(id) AS uid, prompt, timestamp, description, files, tags, mood, sentimentScore, project, pendingGeneration, contextSource, envVars, dependencies, requiredEnvVars, installCommand, startCommand";
+    // Explicitly define all needed fields, mapping id to projects_id
+    private readonly FIELDS = "meta::id(id) AS projects_id, prompt, timestamp, description, files, tags, mood, sentimentScore, project, pendingGeneration, contextSource, envVars, dependencies, requiredEnvVars, installCommand, startCommand";
 
     public async getAll(): Promise<JournalEntry[]> {
         const r = await dbCore.query<JournalEntry>(`SELECT ${this.FIELDS} FROM projects ORDER BY timestamp DESC`);
-        return this.mapResults(r, 'uid');
+        return this.mapResults(r, 'projects_id');
     }
 
-    public async getById(uid: string): Promise<JournalEntry | null> {
-        const cleanUid = this.cleanId(uid);
-        if (!cleanUid) return null;
+    public async getById(projects_id: string): Promise<JournalEntry | null> {
+        const cleanId = this.cleanId(projects_id);
+        if (!cleanId) return null;
         
         const r = await dbCore.query<JournalEntry>(
-            `SELECT ${this.FIELDS} FROM projects WHERE id = type::thing('projects', $uid)`, 
-            { uid: cleanUid }
+            `SELECT ${this.FIELDS} FROM projects WHERE id = type::thing('projects', $id)`, 
+            { id: cleanId }
         );
-        return r.length ? this.mapResult(r[0], 'uid') : null;
+        return r.length ? this.mapResult(r[0], 'projects_id') : null;
     }
 
     public async create(e: JournalEntry): Promise<void> {
@@ -30,15 +29,14 @@ export class ProjectRepository extends BaseRepository {
     }
 
     public getCreateOperation(e: JournalEntry) {
-        const cleanUid = this.cleanId(e.uid);
-        if (!cleanUid) throw new Error("Project UID is missing for creation.");
+        const cleanId = this.cleanId(e.projects_id);
+        if (!cleanId) throw new Error("projects_id is missing for creation.");
 
-        // We use type::thing to force the primary key to be our UUID
-        const { uid, ...content } = e;
+        const { projects_id, ...content } = e;
         
         return { 
-            query: `CREATE type::thing('projects', $uid) CONTENT $content`, 
-            params: { uid: cleanUid, content } 
+            query: `CREATE type::thing('projects', $id) CONTENT $content`, 
+            params: { id: cleanId, content } 
         };
     }
 
@@ -48,11 +46,11 @@ export class ProjectRepository extends BaseRepository {
     }
 
     public getSaveOperation(e: JournalEntry) {
-        const cleanUid = this.cleanId(e.uid);
-        if (!cleanUid) throw new Error("Cannot save project without a valid UID.");
+        const cleanId = this.cleanId(e.projects_id);
+        if (!cleanId) throw new Error("Cannot save project without a valid projects_id.");
 
         const sql = `
-            UPDATE type::thing('projects', $uid) SET
+            UPDATE type::thing('projects', $id) SET
                 prompt = $prompt,
                 timestamp = <number>$timestamp,
                 description = $description,
@@ -71,7 +69,7 @@ export class ProjectRepository extends BaseRepository {
         `;
         
         const params = {
-            uid: cleanUid,
+            id: cleanId,
             prompt: e.prompt || "",
             timestamp: Number(e.timestamp) || Date.now(),
             description: e.description ?? "Initializing...",
@@ -91,9 +89,9 @@ export class ProjectRepository extends BaseRepository {
         return { query: sql, params };
     }
 
-    public async delete(uid: string): Promise<void> {
-        const cleanUid = this.cleanId(uid);
-        if (!cleanUid) return;
-        await dbCore.query("DELETE projects WHERE id = type::thing('projects', $uid)", { uid: cleanUid });
+    public async delete(projects_id: string): Promise<void> {
+        const cleanId = this.cleanId(projects_id);
+        if (!cleanId) return;
+        await dbCore.query("DELETE projects WHERE id = type::thing('projects', $id)", { id: cleanId });
     }
 }

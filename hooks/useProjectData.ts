@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { JournalEntry, AppSettings, ChatMessage } from '../types';
 import { dbFacade } from '../services/dbFacade';
@@ -95,11 +94,11 @@ export const useProjectData = () => {
 
     const openProject = async (entry: JournalEntry) => {
         try {
-            const cleanUid = dbFacade.projects.cleanId(entry.uid);
-            if (!cleanUid) return toast.error("Invalid project identity.");
+            const cleanId = dbFacade.projects.cleanId(entry.projects_id);
+            if (!cleanId) return toast.error("Invalid project identity.");
             
-            setSelectedProject({ ...entry, uid: cleanUid });
-            const freshEntry = await dbFacade.getProjectById(cleanUid);
+            setSelectedProject({ ...entry, projects_id: cleanId });
+            const freshEntry = await dbFacade.getProjectById(cleanId);
             if (freshEntry) setSelectedProject(freshEntry);
         } catch (e) {
             toast.error("Could not load project.");
@@ -107,18 +106,18 @@ export const useProjectData = () => {
     };
 
     const createEntry = async (e: JournalEntry) => { 
-        const cleanUid = dbFacade.projects.cleanId(e.uid);
-        if (!cleanUid) return toast.error("Failed to create project: Invalid UID");
+        const cleanId = dbFacade.projects.cleanId(e.projects_id);
+        if (!cleanId) return toast.error("Failed to create project: Invalid ID");
 
         const initialMessage: ChatMessage = {
-          mid: crypto.randomUUID(),
+          refactor_history_id: crypto.randomUUID(),
           role: 'user',
           text: e.prompt,
           timestamp: e.timestamp,
         };
 
         try {
-            const entryWithCleanId = { ...e, uid: cleanUid };
+            const entryWithCleanId = { ...e, projects_id: cleanId };
             await dbFacade.atomicCreateProjectWithHistory(entryWithCleanId, initialMessage);
             const allProjects = await dbFacade.getAllProjects();
             setEntries(allProjects);
@@ -129,15 +128,15 @@ export const useProjectData = () => {
     };
 
     const updateEntry = async (updatedEntry: JournalEntry) => { 
-        const cleanUid = dbFacade.projects.cleanId(updatedEntry.uid) || dbFacade.projects.cleanId(selectedProject?.uid);
-        if (!cleanUid) return toast.error("Save failed: Project identity lost.");
+        const cleanId = dbFacade.projects.cleanId(updatedEntry.projects_id) || dbFacade.projects.cleanId(selectedProject?.projects_id);
+        if (!cleanId) return toast.error("Save failed: Project identity lost.");
 
-        const finalEntry: JournalEntry = { ...updatedEntry, uid: cleanUid };
+        const finalEntry: JournalEntry = { ...updatedEntry, projects_id: cleanId };
         try {
             await dbFacade.saveProject(finalEntry); 
-            if (selectedProject?.uid === cleanUid) setSelectedProject(finalEntry); 
+            if (selectedProject?.projects_id === cleanId) setSelectedProject(finalEntry); 
             setEntries(prev => {
-                const idx = prev.findIndex(x => x.uid === cleanUid);
+                const idx = prev.findIndex(x => x.projects_id === cleanId);
                 if (idx === -1) return prev;
                 const next = [...prev];
                 next[idx] = finalEntry;
@@ -148,12 +147,12 @@ export const useProjectData = () => {
         }
     };
 
-    const deleteEntry = async (uid: string) => { 
-        const cleanUid = dbFacade.projects.cleanId(uid);
-        if (!cleanUid) return;
-        await dbFacade.deleteProject(cleanUid); 
-        setEntries(p => p.filter(x => x.uid !== cleanUid)); 
-        if (selectedProject?.uid === cleanUid) setSelectedProject(null); 
+    const deleteEntry = async (projects_id: string) => { 
+        const cleanId = dbFacade.projects.cleanId(projects_id);
+        if (!cleanId) return;
+        await dbFacade.deleteProject(cleanId); 
+        setEntries(p => p.filter(x => x.projects_id !== cleanId)); 
+        if (selectedProject?.projects_id === cleanId) setSelectedProject(null); 
         toast.success("Deleted"); 
     };
 

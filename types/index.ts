@@ -1,4 +1,3 @@
-
 // --- Core Types ---
 
 export enum AppModule {
@@ -76,7 +75,7 @@ export interface CommandLog {
 }
 
 export interface JournalEntry {
-  uid: string; // Changed from id to uid
+  projects_id: string; // Changed from uid to projects_id
   prompt: string;
   timestamp: number;
   description?: string;
@@ -118,7 +117,7 @@ export interface AIPlan {
 }
 
 export interface ChatMessage {
-  mid: string; // Changed from id to mid
+  refactor_history_id: string; // Changed from mid to refactor_history_id
   role: 'user' | 'model';
   text: string;
   timestamp: number;
@@ -140,7 +139,7 @@ export interface ChatMessage {
       outputTokens: number;
   };
   pending?: boolean;
-  project_uid?: string; // Relation field
+  projects_id?: string; // Relation field updated to projects_id
 }
 
 // --- Settings Types ---
@@ -151,7 +150,6 @@ export interface MemorySettings {
   enabled: boolean;
 }
 
-// Added AIProviderModel interface
 export interface AIProviderModel {
   id: string;
   name: string;
@@ -160,7 +158,6 @@ export interface AIProviderModel {
   maxOutputTokens?: number;
 }
 
-// Added AIProvider interface
 export interface AIProvider {
   id: string;
   name: string;
@@ -169,7 +166,6 @@ export interface AIProvider {
   models: AIProviderModel[];
 }
 
-// Added MCPServer interface
 export interface MCPServer {
   id: string;
   name: string;

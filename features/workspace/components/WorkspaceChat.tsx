@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { ChatMessage, AIPlan } from '../../../types';
 import { ChatMessageItem } from './ChatMessageItem';
@@ -47,8 +46,7 @@ export const WorkspaceChat: React.FC<WorkspaceChatProps> = (props) => {
       if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; 
   }, [props.history, props.isProcessing, props.currentReasoning, props.currentText, props.aiPlan]);
 
-  // FIX: Property 'id' does not exist on type 'ChatMessage', using 'mid'
-  const lastModelMessageId = [...props.history].reverse().find(m => m.role === 'model' && m.modifiedFiles && m.modifiedFiles.length > 0)?.mid;
+  const lastModelMessageId = [...props.history].reverse().find(m => m.role === 'model' && m.modifiedFiles && m.modifiedFiles.length > 0)?.refactor_history_id;
 
   return (
     <div className="flex flex-col border-r border-border bg-background/50 backdrop-blur-sm h-full w-full">
@@ -57,15 +55,13 @@ export const WorkspaceChat: React.FC<WorkspaceChatProps> = (props) => {
             <div className="flex-1 overflow-y-auto p-4 space-y-2 scroll-smooth custom-scrollbar" ref={scrollRef}>
                 {props.history.map((msg, index) => (
                     <ChatMessageItem 
-                        // FIX: Property 'id' does not exist on type 'ChatMessage', using 'mid'
-                        key={msg.mid} 
+                        key={msg.refactor_history_id} 
                         msg={msg} 
                         index={index}
                         previousSnapshot={index > 0 ? props.history[index - 1].snapshot : undefined}
                         onEnvVarSave={props.onEnvVarSave} 
                         onRevert={props.onRevert} 
-                        // FIX: Property 'id' does not exist on type 'ChatMessage', using 'mid'
-                        isLastModelMessage={msg.mid === lastModelMessageId}
+                        isLastModelMessage={msg.refactor_history_id === lastModelMessageId}
                     />
                 ))}
                 

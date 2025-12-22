@@ -44,19 +44,19 @@ export class RAGService {
      * Uses local embeddings and SurrealDB.
      */
     public async indexProject(entry: JournalEntry): Promise<void> {
-        // FIX: Property 'id' does not exist on type 'JournalEntry', using 'uid'
+        // FIX: Property 'uid' does not exist on type 'JournalEntry', using 'projects_id'
         // Prevent indexing if generation is still pending (incomplete files) or no ID
-        if (entry.pendingGeneration || !entry.uid) return;
+        if (entry.pendingGeneration || !entry.projects_id) return;
 
         // Fire and forget - don't block
         setTimeout(async () => {
             try {
-                // FIX: Property 'id' does not exist on type 'JournalEntry', using 'uid'
-                logger.info(AppModule.CORE, `Starting Local RAG Indexing for project ${entry.project} (${entry.uid})`);
+                // FIX: Property 'uid' does not exist on type 'JournalEntry', using 'projects_id'
+                logger.info(AppModule.CORE, `Starting Local RAG Indexing for project ${entry.project} (${entry.projects_id})`);
                 
                 // 1. Clear old memories for this project
-                // FIX: Property 'id' does not exist on type 'JournalEntry', using 'uid'
-                await vectorStore.deleteProjectMemories(entry.uid);
+                // FIX: Property 'uid' does not exist on type 'JournalEntry', using 'projects_id'
+                await vectorStore.deleteProjectMemories(entry.projects_id);
 
                 const memories: MemoryVector[] = [];
                 const options: ChunkingOptions = { maxSize: 1500, overlap: 300 };
@@ -73,8 +73,8 @@ export class RAGService {
                         // Only save valid vectors
                         if (embedding.some(v => v !== 0)) {
                             memories.push({
-                                // FIX: Property 'id' does not exist on type 'JournalEntry', using 'uid'
-                                project_id: entry.uid,
+                                // FIX: Property 'uid' does not exist on type 'JournalEntry', using 'projects_id'
+                                project_id: entry.projects_id,
                                 content: chunk,
                                 metadata: { filename: file.name, language: file.language },
                                 type: 'code_chunk',

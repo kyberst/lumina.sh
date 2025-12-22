@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ViewMode, JournalEntry, AppSettings } from '../../types';
 import { JournalInput } from '../journal/JournalInput';
@@ -65,8 +64,7 @@ export const MainNavigator: React.FC<Props> = ({ view, entries, settings, action
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filtered.map(e => (
-                            // FIX: Property 'id' does not exist on type 'JournalEntry', using 'uid'
-                            <div key={e.uid}>
+                            <div key={e.projects_id}>
                                 <EntryCard 
                                     entry={e} 
                                     onDelete={actions.deleteEntry} 

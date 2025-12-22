@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { JournalEntry, ChatMessage, AppSettings, GeneratedFile } from '../../../types';
 import { analyzeSecurity } from '../../../services/geminiService';
@@ -31,7 +30,6 @@ export const useWorkspaceLogic = (props: { entry: JournalEntry; onUpdate: (e: Jo
   const [editorPanel, setEditorPanel] = useState({ isOpen: false, selector: null as string | null });
   const [chatContextSelectors, setChatContextSelectors] = useState<string[]>([]);
   const [activeModel, setActiveModel] = useState<string>(entry.envVars?._INIT_MODEL || settings.aiModel || 'flash');
-  // Track reasoning time for visual feedback
   const [thinkTime, setThinkTime] = useState(0);
   const timerRef = useRef<any>(null);
   const onboarding = useOnboarding();
@@ -51,7 +49,6 @@ export const useWorkspaceLogic = (props: { entry: JournalEntry; onUpdate: (e: Jo
   const voice = useVoiceInput();
   const stream = useRefactorStream({ entry, settings: { ...settings, aiModel: activeModel as any }, history, setHistory, onTurnComplete: handleTurnComplete, setTotalUsage, setIframeKey: layout.setIframeKey });
 
-  // Track thinking time during AI streaming
   useEffect(() => {
     if (stream.isProcessing) {
       setThinkTime(0);
@@ -66,12 +63,11 @@ export const useWorkspaceLogic = (props: { entry: JournalEntry; onUpdate: (e: Jo
   
   useEffect(() => {
     let isMounted = true;
-    // FIX: Property 'id' does not exist on type 'JournalEntry', using 'uid'
-    if (entry.uid) {
-        dbFacade.getRefactorHistory(entry.uid).then(msgs => { if (isMounted) setHistory(msgs); });
+    if (entry.projects_id) {
+        dbFacade.getRefactorHistory(entry.projects_id).then(msgs => { if (isMounted) setHistory(msgs); });
     }
     return () => { isMounted = false; };
-  }, [entry.uid]);
+  }, [entry.projects_id]);
 
   useEffect(() => { if (entry.pendingGeneration && history.length > 0 && history.length <= 1 && !stream.isProcessing) stream.handleStreamingBuild(); }, [entry.pendingGeneration, history, stream.isProcessing]);
   
@@ -82,29 +78,23 @@ export const useWorkspaceLogic = (props: { entry: JournalEntry; onUpdate: (e: Jo
   }, [isSelectionModeActive]);
 
   const handleSend = () => {
-      // FIX: Property 'id' does not exist on type 'ChatMessage', using 'mid'
-      const msg: ChatMessage = { mid: crypto.randomUUID(), role: 'user', text: chatInput, timestamp: Date.now(), attachments: chatAttachments, pending: true };
+      const msg: ChatMessage = { refactor_history_id: crypto.randomUUID(), role: 'user', text: chatInput, timestamp: Date.now(), attachments: chatAttachments, pending: true };
       setHistory(prev => [...prev, msg]);
       const inp = chatInput; const atts = chatAttachments;
       setChatInput(''); setChatAttachments([]);
       stream.handleStreamingBuild(inp, atts, editor.getContext(), msg);
   };
 
-  const handleRevert = async (mid: string) => {
+  const handleRevert = async (refactor_history_id: string) => {
     const ok = await dialogService.confirm(t('dialog.revertTitle', 'builder'), t('dialog.revertDesc', 'builder'), { destructive: true });
     if (!ok) return;
-    // FIX: Property 'id' does not exist on type 'ChatMessage', using 'mid'
-    const idx = history.findIndex(m => m.mid === mid);
+    const idx = history.findIndex(m => m.refactor_history_id === refactor_history_id);
     if (idx < 1) return;
-    // FIX: Property 'id' does not exist on type 'JournalEntry', using 'uid'
-    await dbFacade.revertToSnapshot(entry.uid, history[idx-1].snapshot!, history[idx-1].timestamp);
-    // FIX: Property 'id' does not exist on type 'JournalEntry', using 'uid'
-    const updated = await dbFacade.getProjectById(entry.uid);
-    // FIX: Property 'id' does not exist on type 'JournalEntry', using 'uid'
-    if (updated) { await onUpdate(updated); setHistory(await dbFacade.getRefactorHistory(entry.uid)); layout.refreshPreview(); }
+    await dbFacade.revertToSnapshot(entry.projects_id, history[idx-1].snapshot!, history[idx-1].timestamp);
+    const updated = await dbFacade.getProjectById(entry.projects_id);
+    if (updated) { await onUpdate(updated); setHistory(await dbFacade.getRefactorHistory(entry.projects_id)); layout.refreshPreview(); }
   };
 
-  // Aggregated Props for Components to resolve View errors
   const onboardingProps = {
     isActive: onboarding.isActive, currentStep: onboarding.currentStep, onNext: onboarding.next, onFinish: onboarding.finish, onSkip: onboarding.skip,
     steps: [
