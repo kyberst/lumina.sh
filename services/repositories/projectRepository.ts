@@ -1,21 +1,27 @@
+
 import { JournalEntry } from '../../types';
 import { dbCore } from '../db/dbCore';
 import { BaseRepository } from './baseRepository';
 
 export class ProjectRepository extends BaseRepository {
     
-    private readonly FIELDS = "id, prompt, timestamp, description, files, tags, mood, sentimentScore, project, pendingGeneration, contextSource, envVars, dependencies, requiredEnvVars, installCommand, startCommand";
+    // Explicitly define all needed fields
+    private readonly FIELDS = "meta::id(id) AS uid, prompt, timestamp, description, files, tags, mood, sentimentScore, project, pendingGeneration, contextSource, envVars, dependencies, requiredEnvVars, installCommand, startCommand";
 
     public async getAll(): Promise<JournalEntry[]> {
-        // No SELECT *
         const r = await dbCore.query<JournalEntry>(`SELECT ${this.FIELDS} FROM projects ORDER BY timestamp DESC`);
-        return this.mapResults(r);
+        return this.mapResults(r, 'uid');
     }
 
-    public async getById(id: string): Promise<JournalEntry | null> {
-        // Fix: Use type::thing and explicit fields
-        const r = await dbCore.query<JournalEntry>(`SELECT ${this.FIELDS} FROM type::thing('projects', $id)`, { id });
-        return r.length ? this.mapResult(r[0]) : null;
+    public async getById(uid: string): Promise<JournalEntry | null> {
+        const cleanUid = this.cleanId(uid);
+        if (!cleanUid) return null;
+        
+        const r = await dbCore.query<JournalEntry>(
+            `SELECT ${this.FIELDS} FROM projects WHERE id = type::thing('projects', $uid)`, 
+            { uid: cleanUid }
+        );
+        return r.length ? this.mapResult(r[0], 'uid') : null;
     }
 
     public async create(e: JournalEntry): Promise<void> {
@@ -24,10 +30,16 @@ export class ProjectRepository extends BaseRepository {
     }
 
     public getCreateOperation(e: JournalEntry) {
-        // Fix: Use type::thing
-        const sql = `CREATE type::thing('projects', $id) CONTENT $content`;
-        const params = { id: e.id, content: e };
-        return { query: sql, params };
+        const cleanUid = this.cleanId(e.uid);
+        if (!cleanUid) throw new Error("Project UID is missing for creation.");
+
+        // We use type::thing to force the primary key to be our UUID
+        const { uid, ...content } = e;
+        
+        return { 
+            query: `CREATE type::thing('projects', $uid) CONTENT $content`, 
+            params: { uid: cleanUid, content } 
+        };
     }
 
     public async save(e: JournalEntry): Promise<void> {
@@ -35,13 +47,12 @@ export class ProjectRepository extends BaseRepository {
         await dbCore.query(op.query, op.params);
     }
 
-    /**
-     * Returns the operation object for a save action (UPDATE), to be used in transactions.
-     */
     public getSaveOperation(e: JournalEntry) {
-        // Fix: Use type::thing
+        const cleanUid = this.cleanId(e.uid);
+        if (!cleanUid) throw new Error("Cannot save project without a valid UID.");
+
         const sql = `
-            UPDATE type::thing('projects', $id) SET
+            UPDATE type::thing('projects', $uid) SET
                 prompt = $prompt,
                 timestamp = <number>$timestamp,
                 description = $description,
@@ -58,16 +69,17 @@ export class ProjectRepository extends BaseRepository {
                 installCommand = $installCommand,
                 startCommand = $startCommand
         `;
+        
         const params = {
-            id: e.id,
-            prompt: e.prompt,
-            timestamp: e.timestamp,
+            uid: cleanUid,
+            prompt: e.prompt || "",
+            timestamp: Number(e.timestamp) || Date.now(),
             description: e.description ?? "Initializing...",
             files: e.files ?? [],
             tags: e.tags ?? [],
-            mood: e.mood,
+            mood: e.mood ?? 50,
             sentimentScore: e.sentimentScore ?? 0,
-            project: e.project ?? "",
+            project: e.project || "Untitled Project",
             pendingGeneration: e.pendingGeneration ?? false,
             contextSource: e.contextSource ?? 'manual',
             envVars: e.envVars ?? {},
@@ -79,7 +91,9 @@ export class ProjectRepository extends BaseRepository {
         return { query: sql, params };
     }
 
-    public async delete(id: string): Promise<void> {
-        await dbCore.query("DELETE type::thing('projects', $id)", { id });
+    public async delete(uid: string): Promise<void> {
+        const cleanUid = this.cleanId(uid);
+        if (!cleanUid) return;
+        await dbCore.query("DELETE projects WHERE id = type::thing('projects', $uid)", { uid: cleanUid });
     }
 }

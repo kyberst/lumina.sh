@@ -1,5 +1,5 @@
 {
-  "name": "Lumina Studio",
+  "name": "lumina.sh",
   "short_name": "Lumina",
   "start_url": "./index.html",
   "display": "standalone",

@@ -1,5 +1,7 @@
+
 import React, { useState } from 'react';
 import { AIProviderModel } from '../../../types';
+import { t } from '../../../services/i18n';
 
 interface Props {
   model?: Partial<AIProviderModel>;
@@ -22,33 +24,33 @@ export const AddModelForm: React.FC<Props> = ({ model, onSave, onCancel }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-4">
       <div>
-        <label className="text-xs font-bold uppercase text-slate-500">Model ID</label>
+        <label className="text-xs font-bold uppercase text-slate-500">{t('form.modelId', 'settings')}</label>
         <input className="shadcn-input" value={state.id || ''} onChange={e => setState({ ...state, id: e.target.value })} required />
-        <p className="text-xs text-slate-500 mt-1">This must match the model expected by the API.</p>
+        <p className="text-xs text-slate-500 mt-1">{t('form.modelIdDesc', 'settings')}</p>
       </div>
       <div>
-        <label className="text-xs font-bold uppercase text-slate-500">Human-Friendly Name</label>
+        <label className="text-xs font-bold uppercase text-slate-500">{t('form.displayName', 'settings')}</label>
         <input className="shadcn-input" value={state.name || ''} onChange={e => setState({ ...state, name: e.target.value })} required />
       </div>
       <div>
-        <label className="text-xs font-bold uppercase text-slate-500">Description</label>
+        <label className="text-xs font-bold uppercase text-slate-500">{t('form.description', 'settings')}</label>
         <input className="shadcn-input" value={state.description || ''} onChange={e => setState({ ...state, description: e.target.value })} />
-         <p className="text-xs text-slate-500 mt-1">Optional: Describe the model's capabilities.</p>
+         <p className="text-xs text-slate-500 mt-1">{t('form.descriptionDesc', 'settings')}</p>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="text-xs font-bold uppercase text-slate-500">Context Window</label>
+          <label className="text-xs font-bold uppercase text-slate-500">{t('form.contextWindow', 'settings')}</label>
           <input type="number" className="shadcn-input" placeholder="e.g., 4096" value={state.contextWindow || ''} onChange={e => setState({ ...state, contextWindow: Number(e.target.value) || undefined })} />
         </div>
         <div>
-          <label className="text-xs font-bold uppercase text-slate-500">Max Output Tokens</label>
+          <label className="text-xs font-bold uppercase text-slate-500">{t('form.maxTokens', 'settings')}</label>
           <input type="number" className="shadcn-input" placeholder="e.g., 8192" value={state.maxOutputTokens || ''} onChange={e => setState({ ...state, maxOutputTokens: Number(e.target.value) || undefined })} />
         </div>
       </div>
       <div className="flex justify-end pt-4 gap-2">
-        <button type="button" onClick={onCancel} className="shadcn-btn shadcn-btn-outline">Cancel</button>
+        <button type="button" onClick={onCancel} className="shadcn-btn shadcn-btn-outline">{t('form.cancel', 'settings')}</button>
         <button type="submit" className="shadcn-btn shadcn-btn-primary" disabled={!isFormValid}>
-          {model ? 'Save Model' : 'Add Model'}
+          {model ? t('form.save', 'settings') : t('form.add', 'settings')}
         </button>
       </div>
     </form>

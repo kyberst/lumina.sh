@@ -31,9 +31,11 @@ export const EntryCard: React.FC<EntryCardProps> = ({ entry, onDelete, onSelect,
 
   return (
     <div 
-        className="rounded-xl border bg-card text-card-foreground shadow-sm hover:shadow-md transition-all cursor-pointer group flex flex-col" 
+        className="rounded-2xl border border-border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group flex flex-col hover:-translate-y-1 relative overflow-hidden" 
         onClick={onSelect}
     >
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+      
       <div className="p-6 flex-1 flex flex-col">
         <div className="flex justify-between items-start mb-4">
            <div className="flex-1 mr-4">
@@ -50,8 +52,8 @@ export const EntryCard: React.FC<EntryCardProps> = ({ entry, onDelete, onSelect,
                  </div>
              ) : (
                 <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-lg font-semibold leading-none tracking-tight group-hover:text-primary transition-colors">
-                        {entry.project || 'Untitled App'}
+                    <h3 className="text-lg font-bold leading-none tracking-tight group-hover:text-primary transition-colors font-['Plus_Jakarta_Sans']">
+                        {entry.project || t('untitled', 'common')}
                     </h3>
                     {onUpdate && (
                         <button 
@@ -64,15 +66,16 @@ export const EntryCard: React.FC<EntryCardProps> = ({ entry, onDelete, onSelect,
                     )}
                 </div>
              )}
-             <div className="text-sm text-muted-foreground">
+             <div className="text-xs text-muted-foreground font-mono">
                 {new Date(entry.timestamp).toLocaleDateString()}
              </div>
            </div>
            
            {!isEditing && onDelete && (
             <button 
-              onClick={(e) => { e.stopPropagation(); onDelete(entry.id); }}
-              className="h-8 w-8 rounded-md hover:bg-destructive hover:text-destructive-foreground flex items-center justify-center transition-colors text-muted-foreground"
+              // FIX: Property 'id' does not exist on type 'JournalEntry', using 'uid'
+              onClick={(e) => { e.stopPropagation(); onDelete(entry.uid); }}
+              className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive flex items-center justify-center transition-colors text-muted-foreground opacity-0 group-hover:opacity-100"
               title="Delete Project"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -91,7 +94,7 @@ export const EntryCard: React.FC<EntryCardProps> = ({ entry, onDelete, onSelect,
                <span 
                  key={tag} 
                  onClick={(e) => { e.stopPropagation(); onTagClick && onTagClick(tag); }}
-                 className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                 className="inline-flex items-center rounded-md border border-transparent px-2 py-0.5 text-xs font-semibold transition-colors bg-secondary text-secondary-foreground hover:bg-secondary/80"
                >
                  #{tag}
                </span>
@@ -99,17 +102,17 @@ export const EntryCard: React.FC<EntryCardProps> = ({ entry, onDelete, onSelect,
            </div>
 
            <button 
-             className="shadcn-btn shadcn-btn-primary h-8 px-3 text-xs"
+             className="text-xs font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-wide opacity-0 group-hover:opacity-100"
            >
-             Open Studio 
+             {t('openStudio', 'common')} &rarr;
            </button>
         </div>
       </div>
       
-      {/* Visual Tech Bar */}
-      <div className="h-1 w-full flex opacity-80 rounded-b-xl overflow-hidden">
+      {/* Visual Tech Bar (Slim) */}
+      <div className="h-0.5 w-full flex opacity-50">
          <div className="h-full bg-primary" style={{ width: `${((entry.files ?? []).filter(f => f.name.endsWith('js')).length / ((entry.files ?? []).length || 1)) * 100}%` }}></div>
-         <div className="h-full bg-blue-400" style={{ width: `${((entry.files ?? []).filter(f => f.name.endsWith('html')).length / ((entry.files ?? []).length || 1)) * 100}%` }}></div>
+         <div className="h-full bg-sky-400" style={{ width: `${((entry.files ?? []).filter(f => f.name.endsWith('html')).length / ((entry.files ?? []).length || 1)) * 100}%` }}></div>
          <div className="h-full bg-slate-300" style={{ width: `${((entry.files ?? []).filter(f => f.name.endsWith('css')).length / ((entry.files ?? []).length || 1)) * 100}%` }}></div>
       </div>
     </div>

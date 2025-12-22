@@ -1,4 +1,3 @@
-
 <script type="importmap">
 {
   "imports": {
@@ -9,7 +8,11 @@
     "react-dom": "https://esm.sh/react-dom@^19.2.3",
     "surrealdb": "https://esm.sh/surrealdb@^1.3.2",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/"
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "clsx": "https://esm.sh/clsx@^2.1.0",
+    "tailwind-merge": "https://esm.sh/tailwind-merge@^2.2.1",
+    "class-variance-authority": "https://esm.sh/class-variance-authority@^0.7.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.344.0"
   }
 }
 </script>
@@ -18,12 +21,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lumina Studio</title>
+    <title>lumina.sh</title>
     <link rel="manifest" href="./manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- PrismJS for Syntax Highlighting -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
@@ -42,153 +45,217 @@
 
     <style>
       :root {
-        /* Original Lumina Theme (Slate & Indigo) */
-        --background: 0 0% 100%;
-        --foreground: 222.2 84% 4.9%;
-        
+        /* Base: Clean Light Mode with subtle warmth & mystery */
+        --background: 210 40% 98%;
+        --foreground: 222 47% 11%;
+
         --card: 0 0% 100%;
-        --card-foreground: 222.2 84% 4.9%;
-        
+        --card-foreground: 222 47% 11%;
+
         --popover: 0 0% 100%;
-        --popover-foreground: 222.2 84% 4.9%;
-        
-        --primary: 243.4 75.4% 58.6%; /* Indigo 600 */
+        --popover-foreground: 222 47% 11%;
+
+        /* Primary: Electric Indigo - The energy of Lumina */
+        --primary: 243 75% 59%;
         --primary-foreground: 210 40% 98%;
-        
+
+        /* Secondary: Soft Slate */
         --secondary: 210 40% 96.1%;
-        --secondary-foreground: 222.2 47.4% 11.2%;
-        
+        --secondary-foreground: 222 47% 11%;
+
         --muted: 210 40% 96.1%;
-        --muted-foreground: 215.4 16.3% 46.9%;
-        
+        --muted-foreground: 215 16% 47%;
+
         --accent: 210 40% 96.1%;
-        --accent-foreground: 222.2 47.4% 11.2%;
-        
-        --destructive: 0 84.2% 60.2%;
+        --accent-foreground: 222 47% 11%;
+
+        --destructive: 0 84% 60%;
         --destructive-foreground: 210 40% 98%;
-        
-        --border: 214.3 31.8% 91.4%;
-        --input: 214.3 31.8% 91.4%;
-        --ring: 222.2 84% 4.9%;
-        
-        --radius: 0.5rem;
+
+        --border: 214 32% 91%;
+        --input: 214 32% 91%;
+        --ring: 243 75% 59%;
+
+        --radius: 0.75rem; /* Modern rounded corners */
       }
 
+      /* Dark Mode: Deep Space Mystery (Emergent Style) */
       .dark {
-        --background: 222.2 84% 4.9%;
+        --background: 222 47% 11%;
         --foreground: 210 40% 98%;
-        
-        --card: 222.2 84% 4.9%;
+
+        --card: 222 47% 11%;
         --card-foreground: 210 40% 98%;
-        
-        --popover: 222.2 84% 4.9%;
+
+        --popover: 222 47% 11%;
         --popover-foreground: 210 40% 98%;
-        
-        --primary: 210 40% 98%;
-        --primary-foreground: 222.2 47.4% 11.2%;
-        
-        --secondary: 217.2 32.6% 17.5%;
+
+        --primary: 243 100% 70%; /* Brighter indigo for dark mode visibility */
+        --primary-foreground: 222 47% 11%;
+
+        --secondary: 217 33% 17%;
         --secondary-foreground: 210 40% 98%;
-        
-        --muted: 217.2 32.6% 17.5%;
-        --muted-foreground: 215 20.2% 65.1%;
-        
-        --accent: 217.2 32.6% 17.5%;
+
+        --muted: 217 33% 17%;
+        --muted-foreground: 215 20% 65%;
+
+        --accent: 217 33% 17%;
         --accent-foreground: 210 40% 98%;
-        
-        --destructive: 0 62.8% 30.6%;
+
+        --destructive: 0 63% 31%;
         --destructive-foreground: 210 40% 98%;
-        
-        --border: 217.2 32.6% 17.5%;
-        --input: 217.2 32.6% 17.5%;
-        --ring: 212.7 26.8% 83.9%;
+
+        --border: 217 33% 17%;
+        --input: 217 33% 17%;
+        --ring: 243 75% 59%;
       }
 
       body {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
         background-color: hsl(var(--background));
         color: hsl(var(--foreground));
-        overflow-y: auto; /* Ensure vertical scrolling is always possible */
+        overflow-y: auto;
         overflow-x: hidden;
         min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        /* Subtle mesh gradient background */
+        background-image: 
+          radial-gradient(at 0% 0%, hsla(253,16%,7%,0) 0, transparent 50%), 
+          radial-gradient(at 50% 0%, hsla(225,39%,30%,0) 0, transparent 50%), 
+          radial-gradient(at 100% 0%, hsla(339,49%,30%,0) 0, transparent 50%);
       }
 
-      /* Custom Scrollbar */
+      /* Global Focus Styles for Accessibility */
+      :focus-visible {
+        outline: 2px solid hsl(var(--ring));
+        outline-offset: 2px;
+      }
+
+      /* Custom Scrollbar - Modern & Minimal */
       ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: 6px;
+        height: 6px;
       }
       ::-webkit-scrollbar-track {
-        background: transparent; 
+        background: transparent;
       }
       ::-webkit-scrollbar-thumb {
-        background: #cbd5e1; 
-        border-radius: 4px;
+        background: hsl(var(--muted-foreground) / 0.3);
+        border-radius: 10px;
+        transition: background 0.3s;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8; 
+        background: hsl(var(--muted-foreground) / 0.6);
       }
 
-      /* Shadcn-like utility classes */
+      /* Animations */
+      @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-6px); }
+        100% { transform: translateY(0px); }
+      }
+      .animate-float {
+        animation: float 6s ease-in-out infinite;
+      }
+
+      @keyframes gradient-xy {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+      }
+      .animate-gradient {
+        background-size: 200% 200%;
+        animation: gradient-xy 6s ease infinite;
+      }
+
+      /* Glassmorphism Utilities */
+      .glass-panel {
+        background: hsl(var(--card) / 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid hsl(var(--border) / 0.5);
+      }
+
+      /* Legacy Utilities (Keep for backward compatibility but mapped to new variables) */
       .shadcn-btn {
         display: inline-flex;
         align-items: center;
         justify-content: center;
         border-radius: var(--radius);
         font-size: 0.875rem;
-        font-weight: 500;
-        transition: colors 0.2s;
+        font-weight: 600;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         cursor: pointer;
         padding: 0.5rem 1rem;
+        border: 1px solid transparent;
+      }
+      .shadcn-btn:active {
+        transform: scale(0.98);
       }
       .shadcn-btn-primary {
-        background-color: var(--primary);
-        color: var(--primary-foreground);
+        background-color: hsl(var(--primary));
+        color: hsl(var(--primary-foreground));
+        box-shadow: 0 4px 14px 0 hsl(var(--primary) / 0.3);
       }
       .shadcn-btn-primary:hover {
-        opacity: 0.9;
+        background-color: hsl(var(--primary) / 0.9);
+        box-shadow: 0 6px 20px hsl(var(--primary) / 0.4);
       }
       .shadcn-btn-outline {
-        border: 1px solid var(--border);
+        border: 1px solid hsl(var(--border));
         background-color: transparent;
+        color: hsl(var(--foreground));
       }
       .shadcn-btn-outline:hover {
-        background-color: var(--accent);
-        color: var(--accent-foreground);
+        background-color: hsl(var(--accent));
+        color: hsl(var(--accent-foreground));
+        border-color: hsl(var(--accent));
       }
       .shadcn-btn-ghost {
         background-color: transparent;
+        color: hsl(var(--foreground));
       }
       .shadcn-btn-ghost:hover {
-        background-color: var(--accent);
-        color: var(--accent-foreground);
+        background-color: hsl(var(--accent) / 0.5);
+        color: hsl(var(--accent-foreground));
       }
       .shadcn-btn-destructive {
-        background-color: var(--destructive);
-        color: var(--destructive-foreground);
+        background-color: hsl(var(--destructive));
+        color: hsl(var(--destructive-foreground));
       }
       
       .shadcn-input {
         display: flex;
-        height: 2.5rem;
+        height: 2.75rem;
         width: 100%;
         border-radius: var(--radius);
-        border: 1px solid var(--border);
-        background-color: transparent;
+        border: 1px solid hsl(var(--input));
+        /* Ensure distinct background instead of transparent */
+        background-color: hsl(var(--card)); 
         padding: 0.5rem 0.75rem;
         font-size: 0.875rem;
-        transition: colors 0.2s;
+        font-weight: 500;
+        transition: all 0.2s;
+        /* Enforce high contrast text color */
+        color: #0f172a; 
       }
+      .dark .shadcn-input {
+        background-color: hsl(var(--secondary) / 0.5);
+        color: #f8fafc;
+      }
+      
       .shadcn-input:focus {
         outline: none;
-        ring: 2px solid var(--ring);
-        border-color: var(--ring);
+        border-color: hsl(var(--primary));
+        box-shadow: 0 0 0 1px hsl(var(--primary));
+        background-color: hsl(var(--background));
       }
       .shadcn-input::placeholder {
-        color: var(--muted-foreground);
+        color: hsl(var(--muted-foreground));
+        opacity: 0.7;
       }
 
-      /* Animation utilities */
+      /* Utilities */
       .no-scrollbar::-webkit-scrollbar {
           display: none;
       }
@@ -244,15 +311,35 @@
               sm: "calc(var(--radius) - 4px)",
             },
             fontFamily: {
-              sans: ['Inter', 'sans-serif'],
+              sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
               mono: ['JetBrains Mono', 'monospace'],
+            },
+            animation: {
+              'accordion-down': 'accordion-down 0.2s ease-out',
+              'accordion-up': 'accordion-up 0.2s ease-out',
+              'in': 'fadeIn 0.4s ease-out forwards',
+              'float': 'float 6s ease-in-out infinite',
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0', transform: 'translateY(8px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              accordionDown: {
+                from: { height: '0' },
+                to: { height: 'var(--radix-accordion-content-height)' },
+              },
+              accordionUp: {
+                from: { height: 'var(--radix-accordion-content-height)' },
+                to: { height: '0' },
+              },
             }
           },
         },
       }
     </script>
   </head>
-  <body class="bg-background text-foreground antialiased selection:bg-indigo-100 selection:text-indigo-900">
+  <body class="bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary">
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
     <script>
@@ -261,11 +348,11 @@
                 try {
                     navigator.serviceWorker.register('./sw.js')
                         .then(registration => {
-                            console.log('Lumina SW registered');
+                            console.log('lumina.sh SW registered');
                         })
                         .catch(err => {
                             if (!err.message.includes('SecurityError')) {
-                                console.warn('Lumina SW failed: ', err);
+                                console.warn('lumina.sh SW failed: ', err);
                             }
                         });
                 } catch (e) {

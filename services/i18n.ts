@@ -4,24 +4,38 @@ import { dbFacade } from './dbFacade';
 import { logger } from './logger';
 import { AppModule } from '../types';
 
-type Lang = 'en' | 'es';
+// Extensible Language Definition
+export const SUPPORTED_LANGUAGES = [
+  { code: 'en', label: 'English' },
+  { code: 'es', label: 'Español' },
+  { code: 'fr', label: 'Français' },
+  { code: 'de', label: 'Deutsch' }
+] as const;
 
-let currentLang: Lang = 'en'; // Default to English until loaded from DB
+export type Lang = typeof SUPPORTED_LANGUAGES[number]['code'];
 
-// Deprecated but kept for compatibility with existing calls, no-op now
-export const initI18n = async () => {
-  return Promise.resolve();
-};
+let currentLang: Lang = 'en';
 
-export const setLanguage = (lang: Lang) => {
-  currentLang = lang;
-  // Save to DB asynchronously, without blocking
-  dbFacade.setConfig('app_language', lang).catch(e => {
-    logger.warn(AppModule.CORE, "Failed to persist language setting to DB", e);
-  });
+export const setLanguage = (lang: string) => {
+  // Validate against supported languages
+  const isSupported = SUPPORTED_LANGUAGES.some(l => l.code === lang);
+  if (isSupported) {
+      currentLang = lang as Lang;
+      dbFacade.setConfig('app_language', lang).catch(e => {
+        logger.warn(AppModule.CORE, "Failed to persist language setting to DB", e);
+      });
+  }
 };
 
 export const getLanguage = () => currentLang;
+
+// Helper to resolve dot notation paths (e.g. "creation.newApp" -> obj["creation"]["newApp"])
+const resolvePath = (obj: any, path: string): string | undefined => {
+    if (!obj) return undefined;
+    return path.split('.').reduce((acc, part) => {
+        return acc && acc[part] !== undefined ? acc[part] : undefined;
+    }, obj);
+};
 
 export const t = (key: string, module: string = 'common'): string => {
   // Map legacy module names if necessary
@@ -30,8 +44,20 @@ export const t = (key: string, module: string = 'common'): string => {
   if (module === 'insight') modFile = 'assistant';
   
   const dict = translations[currentLang] as any;
-  if (dict && dict[modFile] && dict[modFile][key]) {
-    return dict[modFile][key];
+  const fallbackDict = translations['en'] as any;
+  
+  // 1. Try current language
+  if (dict && dict[modFile]) {
+      const val = resolvePath(dict[modFile], key);
+      if (val !== undefined) return val;
   }
-  return key;
+
+  // 2. Fallback to English
+  if (fallbackDict && fallbackDict[modFile]) {
+      const val = resolvePath(fallbackDict[modFile], key);
+      if (val !== undefined) return val;
+  }
+
+  // 3. Fallback to key
+  return key; 
 };

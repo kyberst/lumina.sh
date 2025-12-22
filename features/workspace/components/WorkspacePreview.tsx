@@ -1,7 +1,8 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { PreviewToolbar } from './preview/PreviewToolbar';
 import { ConsolePanel } from './preview/ConsolePanel';
-import { EnvVarRequest } from '../../../types';
+import { t } from '../../../services/i18n';
 
 interface WorkspacePreviewProps {
   iframeSrc: string;
@@ -56,7 +57,7 @@ export const WorkspacePreview: React.FC<WorkspacePreviewProps> = ({
       <div className="fixed inset-0 z-[500] bg-slate-900 animate-in fade-in p-4 flex items-center justify-center">
         <button 
           onClick={handleToggleFullscreen}
-          title="Exit Fullscreen"
+          title={t('toolbar.exitFullscreen', 'workspace')}
           className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/50 text-white hover:bg-black/80 transition-all"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
@@ -98,7 +99,7 @@ export const WorkspacePreview: React.FC<WorkspacePreviewProps> = ({
             {depStatus === 'loading' && (
                 <div className="absolute inset-0 z-10 bg-white/60 backdrop-blur-sm flex items-center justify-center flex-col gap-4 animate-in fade-in">
                     <div className="relative"><div className="w-12 h-12 rounded-full border-4 border-slate-200"></div><div className="absolute inset-0 w-12 h-12 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin"></div></div>
-                    <div className="text-slate-800 font-bold tracking-wide text-sm">Resolving Dependencies...</div>
+                    <div className="text-slate-800 font-bold tracking-wide text-sm">{t('preview.resolving', 'workspace')}</div>
                 </div>
             )}
 
@@ -106,7 +107,7 @@ export const WorkspacePreview: React.FC<WorkspacePreviewProps> = ({
                 <div className="absolute inset-0 z-10 bg-white/90 backdrop-blur-md flex items-center justify-center flex-col gap-4 animate-in zoom-in-95">
                      <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mb-2">⚠</div>
                      <div className="text-center">
-                         <h3 className="text-slate-900 font-bold mb-1">Dependency Load Failed</h3>
+                         <h3 className="text-slate-900 font-bold mb-1">{t('preview.failed', 'workspace')}</h3>
                          <div className="bg-red-50 border border-red-100 rounded p-2 text-xs font-mono text-red-700 max-w-xs mx-auto">{failedDeps.join(', ')}</div>
                      </div>
                 </div>
@@ -116,7 +117,7 @@ export const WorkspacePreview: React.FC<WorkspacePreviewProps> = ({
         <div className="absolute bottom-4 right-4 z-50">
             <button onClick={() => setShowConsole(!showConsole)} className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg flex items-center gap-2 border transition-all ${errorCount > 0 ? 'bg-red-500 text-white border-red-600 animate-pulse' : 'bg-slate-900 text-slate-300 border-slate-800'}`}>
                 <div className={`w-2 h-2 rounded-full ${errorCount > 0 ? 'bg-white' : 'bg-emerald-500'}`}></div>
-                Console: {errorCount > 0 ? `${errorCount} Errors` : 'Clean'}
+                Console: {errorCount > 0 ? `${errorCount} ${t('preview.consoleErrors', 'workspace')}` : t('preview.consoleClean', 'workspace')}
             </button>
         </div>
         

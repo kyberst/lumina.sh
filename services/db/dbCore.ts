@@ -1,3 +1,4 @@
+
 import { Surreal } from 'surrealdb';
 import { surrealdbWasmEngines } from '@surrealdb/wasm';
 import { logger } from '../logger';
@@ -60,16 +61,30 @@ class DBCore {
     if (!this.db) throw new Error("DB not initialized");
     try {
         const result = await this.db.query(sql, params);
-        // Handle SurrealDB response format (array of results)
+        
+        // Handle SurrealDB response format (array of results for multiple statements)
         if (Array.isArray(result)) {
-             // Check if result[0] wraps the actual data
-             if (result.length > 0 && typeof result[0] === 'object' && result[0] !== null && 'result' in result[0]) {
-                 return (result[0] as any).result || [];
+             // For a single statement query, result is [{ result: [...], status: "OK", time: "..." }]
+             // We need to check the first element.
+             const first = result[0];
+             if (first && typeof first === 'object' && 'result' in first && 'status' in first) {
+                 if (first.status === 'ERR') {
+                     throw new Error(`SurrealDB Query Error: ${first.result}`);
+                 }
+                 const data = first.result;
+                 return Array.isArray(data) ? data : (data ? [data] : []);
              }
-             // If result is just the array of data (specific query types)
+             // If it's not the wrapped format, return as is.
              return result as T[];
         }
-        return result as any;
+        
+        // Single object result (rare in some drivers but possible)
+        if (result && typeof result === 'object' && 'result' in (result as any)) {
+            const data = (result as any).result;
+            return Array.isArray(data) ? data : (data ? [data] : []);
+        }
+
+        return [];
     } catch (e: any) {
         logger.error(AppModule.CORE, `Query Failed: ${sql.substring(0, 100)}...`, e);
         throw e;
@@ -91,6 +106,7 @@ class DBCore {
       if (op.params) {
         for (const [key, val] of Object.entries(op.params)) {
           const uniqueKey = `${key}_tx${i}`;
+          // Use word boundary to avoid partial replacements (e.g. $id vs $id_2)
           sql = sql.replace(new RegExp(`\\$${key}\\b`, 'g'), `$${uniqueKey}`);
           globalParams[uniqueKey] = val;
         }

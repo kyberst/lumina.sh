@@ -21,7 +21,8 @@ export const useImportForm = (settings: AppSettings, onImport: (e: JournalEntry)
         setIsProcessing(true);
         try {
             const { files, projectName } = await readDirectoryFiles(e.target.files);
-            onImport({ id: crypto.randomUUID(), prompt: 'Imported from Folder', timestamp: Date.now(), files, tags: ['Local'], mood: 50, project: projectName || 'Imported Project' });
+            // FIX: Property 'id' does not exist on type 'JournalEntry', using 'uid'
+            onImport({ uid: crypto.randomUUID(), prompt: 'Imported from Folder', timestamp: Date.now(), files, tags: ['Local'], mood: 50, project: projectName || 'Imported Project' });
         } catch (err: any) { setError(err.message); } finally { setIsProcessing(false); }
     }
   };
@@ -31,7 +32,8 @@ export const useImportForm = (settings: AppSettings, onImport: (e: JournalEntry)
      setIsProcessing(true);
      try {
          const files = await importRepository(repoName, settings.githubToken);
-         onImport({ id: crypto.randomUUID(), prompt: `Imported from ${repoName}`, timestamp: Date.now(), files, tags: ['GitHub'], mood: 50, project: repoName.split('/')[1] });
+         // FIX: Property 'id' does not exist on type 'JournalEntry', using 'uid'
+         onImport({ uid: crypto.randomUUID(), prompt: `Imported from ${repoName}`, timestamp: Date.now(), files, tags: ['GitHub'], mood: 50, project: repoName.split('/')[1] });
      } catch (err: any) { setError(err.message); } finally { setIsProcessing(false); }
   };
 
@@ -47,7 +49,8 @@ export const useImportForm = (settings: AppSettings, onImport: (e: JournalEntry)
           const files = await importPublicRepository(repoFullName);
           
           onImport({ 
-              id: crypto.randomUUID(), 
+              // FIX: Property 'id' does not exist on type 'JournalEntry', using 'uid'
+              uid: crypto.randomUUID(), 
               prompt: `Imported from ${urlInput}`, 
               timestamp: Date.now(), 
               files, 

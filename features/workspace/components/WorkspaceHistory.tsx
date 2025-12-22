@@ -18,12 +18,13 @@ export const WorkspaceHistory: React.FC<Props> = ({ history, onRevert }) => {
         <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4">
             <div>
                 <h2 className="text-2xl font-bold text-slate-800 mb-2 font-['Plus_Jakarta_Sans']">{t('history', 'builder')}</h2>
-                <p className="text-slate-500 text-sm">Review and restore previous versions of your project.</p>
+                <p className="text-slate-500 text-sm">{t('history.desc', 'workspace')}</p>
             </div>
             
             <div className="space-y-4">
                 {modelTurns.map((turn, index) => (
-                    <div key={turn.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-indigo-200 hover:shadow-md transition-all">
+                    // FIX: Property 'id' does not exist on type 'ChatMessage', using 'mid'
+                    <div key={turn.mid} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-indigo-200 hover:shadow-md transition-all">
                         <div className="flex justify-between items-start">
                              <div>
                                 <div className="text-xs font-bold text-indigo-600 mb-1">{new Date(turn.timestamp).toLocaleString()}</div>
@@ -37,10 +38,11 @@ export const WorkspaceHistory: React.FC<Props> = ({ history, onRevert }) => {
                         </div>
                         <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-100">
                              <div className="text-xs text-slate-400">
-                                {turn.modifiedFiles?.length || 0} files changed
+                                {turn.modifiedFiles?.length || 0} {t('history.filesChanged', 'workspace')}
                              </div>
                              <button
-                                onClick={() => onRevert(turn.id)}
+                                // FIX: Property 'id' does not exist on type 'ChatMessage', using 'mid'
+                                onClick={() => onRevert(turn.mid)}
                                 disabled={index === 0}
                                 className="shadcn-btn shadcn-btn-outline h-8 px-3 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                              >
@@ -52,8 +54,8 @@ export const WorkspaceHistory: React.FC<Props> = ({ history, onRevert }) => {
                 ))}
                 {modelTurns.length === 0 && (
                     <div className="text-center py-16 text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
-                        <p>No project history found yet.</p>
-                        <p className="text-xs mt-1">Changes made by the AI will appear here.</p>
+                        <p>{t('history.empty', 'workspace')}</p>
+                        <p className="text-xs mt-1">{t('history.emptyDesc', 'workspace')}</p>
                     </div>
                 )}
             </div>

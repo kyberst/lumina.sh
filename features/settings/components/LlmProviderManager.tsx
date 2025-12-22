@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { AppSettings, AIProvider, AIProviderModel } from '../../../types';
 import { SettingsCard } from './SettingsCard';
@@ -6,6 +7,7 @@ import { AddModelForm } from './AddModelForm';
 import { dialogService } from '../../../services/dialogService';
 import { toast } from '../../../services/toastService';
 import { testAIConnection } from '../../../services/llmService';
+import { t } from '../../../services/i18n';
 
 interface Props { settings: AppSettings; onSave: (s: AppSettings) => void; }
 
@@ -15,7 +17,7 @@ export const LlmProviderManager: React.FC<Props> = ({ settings, onSave }) => {
   useEffect(() => {
     // Sync state with props to prevent stale data after updates
     if (selectedProvider?.id) {
-      const freshProvider = settings.customProviders.find(p => p.id === selectedProvider.id);
+      const freshProvider = (settings.customProviders || []).find(p => p.id === selectedProvider.id);
       if (freshProvider) {
         // Deep compare with stringify to avoid infinite loops
         if (JSON.stringify(freshProvider) !== JSON.stringify(selectedProvider)) {
@@ -29,7 +31,7 @@ export const LlmProviderManager: React.FC<Props> = ({ settings, onSave }) => {
   }, [settings.customProviders, selectedProvider]);
 
   const handleSaveProvider = (provider: AIProvider) => {
-    const providers = [...settings.customProviders];
+    const providers = [...(settings.customProviders || [])];
     const index = providers.findIndex(p => p.id === provider.id);
     if (index > -1) providers[index] = provider;
     else providers.push(provider);
@@ -37,7 +39,7 @@ export const LlmProviderManager: React.FC<Props> = ({ settings, onSave }) => {
   };
 
   const handleSaveModel = (providerId: string, model: AIProviderModel) => {
-    const provider = settings.customProviders.find(p => p.id === providerId);
+    const provider = (settings.customProviders || []).find(p => p.id === providerId);
     if (!provider) return;
     const models = [...(provider.models || [])];
     const index = models.findIndex(m => m.id === model.id);
@@ -47,18 +49,18 @@ export const LlmProviderManager: React.FC<Props> = ({ settings, onSave }) => {
   };
   
   const handleDeleteModel = (providerId: string, modelId: string) => {
-      const provider = settings.customProviders.find(p => p.id === providerId);
+      const provider = (settings.customProviders || []).find(p => p.id === providerId);
       if (!provider) return;
       const models = (provider.models || []).filter(m => m.id !== modelId);
       handleSaveProvider({ ...provider, models });
   };
 
   const openProviderForm = (provider?: AIProvider) => {
-    dialogService.alert('Add Custom Provider', <AddProviderForm provider={provider} onSave={p => { handleSaveProvider(p); dialogService.close(); }} onCancel={() => dialogService.close()} />)
+    dialogService.alert(t('providers.addProvider', 'settings'), <AddProviderForm provider={provider} onSave={p => { handleSaveProvider(p); dialogService.close(); }} onCancel={() => dialogService.close()} />)
   };
 
   const openModelForm = (providerId: string, model?: AIProviderModel) => {
-    dialogService.alert('Add Custom Model', <AddModelForm model={model} onSave={m => { handleSaveModel(providerId, m); dialogService.close(); }} onCancel={() => dialogService.close()} />)
+    dialogService.alert(t('providers.addModel', 'settings'), <AddModelForm model={model} onSave={m => { handleSaveModel(providerId, m); dialogService.close(); }} onCancel={() => dialogService.close()} />)
   };
 
   const handleTestConnection = async (provider: AIProvider, modelId: string) => {
@@ -79,12 +81,12 @@ export const LlmProviderManager: React.FC<Props> = ({ settings, onSave }) => {
   };
 
   return (
-    <SettingsCard title="LLM Providers">
+    <SettingsCard title={t('providers.title', 'settings')}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-1 border-r border-slate-200 pr-4">
-                <h4 className="text-xs font-bold uppercase text-slate-500 mb-2">Providers</h4>
+                <h4 className="text-xs font-bold uppercase text-slate-500 mb-2">{t('providers.list', 'settings')}</h4>
                 <div className="space-y-1">
-                    {settings.customProviders.map(p => (
+                    {(settings.customProviders || []).map(p => (
                         <div key={p.id} onClick={() => setSelectedProvider(p)} className={`p-2 rounded-md cursor-pointer ${selectedProvider?.id === p.id ? 'bg-indigo-100' : 'hover:bg-slate-50'}`}>
                             <p className="font-semibold text-sm text-slate-800">{p.name}</p>
                             <p className="text-xs text-slate-500 truncate">{p.baseUrl}</p>
@@ -92,12 +94,12 @@ export const LlmProviderManager: React.FC<Props> = ({ settings, onSave }) => {
                     ))}
                 </div>
                 <button onClick={() => openProviderForm()} className="shadcn-btn w-full border-dashed border-2 mt-2 text-sm h-9">
-                    + Add Provider
+                    {t('providers.addProvider', 'settings')}
                 </button>
             </div>
 
             <div className="md:col-span-2">
-                <h4 className="text-xs font-bold uppercase text-slate-500 mb-2">Models</h4>
+                <h4 className="text-xs font-bold uppercase text-slate-500 mb-2">{t('providers.models', 'settings')}</h4>
                 {selectedProvider ? (
                     <div className="space-y-2">
                         {(selectedProvider.models || []).map(m => (
@@ -107,18 +109,18 @@ export const LlmProviderManager: React.FC<Props> = ({ settings, onSave }) => {
                                     <p className="text-xs text-slate-500 font-mono">{m.id}</p>
                                 </div>
                                 <div>
-                                    <button onClick={() => openModelForm(selectedProvider.id, m)} className="text-xs shadcn-btn shadcn-btn-ghost h-7 px-2">Edit</button>
-                                    <button onClick={() => handleTestConnection(selectedProvider, m.id)} className="text-xs shadcn-btn shadcn-btn-ghost h-7 px-2 text-emerald-600 hover:bg-emerald-50">Test</button>
-                                    <button onClick={() => handleDeleteModel(selectedProvider.id, m.id)} className="text-xs shadcn-btn shadcn-btn-ghost h-7 px-2 text-red-500 hover:bg-red-50">Delete</button>
+                                    <button onClick={() => openModelForm(selectedProvider.id, m)} className="text-xs shadcn-btn shadcn-btn-ghost h-7 px-2">{t('providers.edit', 'settings')}</button>
+                                    <button onClick={() => handleTestConnection(selectedProvider, m.id)} className="text-xs shadcn-btn shadcn-btn-ghost h-7 px-2 text-emerald-600 hover:bg-emerald-50">{t('providers.test', 'settings')}</button>
+                                    <button onClick={() => handleDeleteModel(selectedProvider.id, m.id)} className="text-xs shadcn-btn shadcn-btn-ghost h-7 px-2 text-red-500 hover:bg-red-50">{t('providers.delete', 'settings')}</button>
                                 </div>
                             </div>
                         ))}
                         <button onClick={() => openModelForm(selectedProvider.id)} className="shadcn-btn w-full border-dashed border-2 text-sm h-9">
-                            + Add Model
+                            {t('providers.addModel', 'settings')}
                         </button>
                     </div>
                 ) : (
-                    <div className="text-center py-10 text-slate-400 text-sm">Select a provider to see its models.</div>
+                    <div className="text-center py-10 text-slate-400 text-sm">{t('providers.noModels', 'settings')}</div>
                 )}
             </div>
         </div>

@@ -86,7 +86,13 @@ export const readDirectoryFiles = async (files: FileList): Promise<{ files: Gene
     }
 
     if (generatedFiles.length === 0) {
-      const fileSample = Array.from(files).slice(0, 3).map(f => f.name).join(', ');
+      let fileSample = "";
+      try {
+          // Safer way to get sample if files is iterable
+          fileSample = Array.from(files).slice(0, 3).map(f => f.name).join(', ');
+      } catch (e) {
+          fileSample = "unknown files";
+      }
       throw new Error(`No valid code files found. Checked ${files.length} files (e.g., ${fileSample}). ensure files are < 2MB and have standard extensions.`);
     }
 

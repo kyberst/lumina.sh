@@ -40,7 +40,14 @@ export const useEditorSystem = (entry: JournalEntry, onUpdateEntry: (e: JournalE
     const getContext = () => {
         if (!selectedFile || !editorApiRef.current) return undefined;
         const pos = editorApiRef.current.getPosition();
-        return { activeFile: selectedFile.name, cursorLine: pos.lineNumber, selectedCode: editorApiRef.current.getSelection() };
+        // Guard against null position to prevent "Cannot read properties of null (reading 'lineNumber')"
+        const cursorLine = pos ? pos.lineNumber : 1;
+        
+        return { 
+            activeFile: selectedFile.name, 
+            cursorLine: cursorLine, 
+            selectedCode: editorApiRef.current.getSelection() 
+        };
     };
 
     return { selectedFile, editorContent, hasChanges, scrollToLine, setScrollToLine, editorApiRef, selectFile, handleContentChange: (v: string) => { setEditorContent(v); setHasChanges(true); }, saveChanges, getContext };

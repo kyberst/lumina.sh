@@ -1,5 +1,7 @@
+
 import React, { useState } from 'react';
 import { SettingsCard } from './SettingsCard';
+import { t } from '../../../services/i18n';
 
 interface Props {
   globalEnvVars: Record<string, string>;
@@ -34,9 +36,9 @@ export const EnvVarManager: React.FC<Props> = ({ globalEnvVars, onSave }) => {
   };
 
   return (
-    <SettingsCard title="Environment Variables">
+    <SettingsCard title={t('env.title', 'settings')}>
       <div className="space-y-2">
-        {Object.keys(vars).length === 0 && <p className="text-sm text-slate-400 text-center py-4">No environment variables added.</p>}
+        {Object.keys(vars).length === 0 && <p className="text-sm text-slate-400 text-center py-4">{t('env.noVars', 'settings')}</p>}
         {Object.entries(vars).map(([key, value]) => (
           <div key={key} className="flex gap-2 items-center">
             <input value={key} disabled className="shadcn-input font-mono text-sm bg-slate-100 border-slate-200" />
@@ -47,9 +49,9 @@ export const EnvVarManager: React.FC<Props> = ({ globalEnvVars, onSave }) => {
           </div>
         ))}
         <div className="flex gap-2 items-center pt-2 border-t border-slate-200 mt-4">
-            <input placeholder="NEW_VARIABLE_NAME" value={newKey} onChange={e => setNewKey(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ''))} className="shadcn-input font-mono text-sm" />
-            <input placeholder="value" value={newValue} onChange={e => setNewValue(e.target.value)} className="shadcn-input font-mono text-sm" />
-            <button onClick={handleAdd} className="shadcn-btn shadcn-btn-primary h-9 px-3 text-sm">Add</button>
+            <input placeholder={t('env.placeholderKey', 'settings')} value={newKey} onChange={e => setNewKey(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, ''))} className="shadcn-input font-mono text-sm" />
+            <input placeholder={t('env.placeholderValue', 'settings')} value={newValue} onChange={e => setNewValue(e.target.value)} className="shadcn-input font-mono text-sm" />
+            <button onClick={handleAdd} className="shadcn-btn shadcn-btn-primary h-9 px-3 text-sm">{t('env.add', 'settings')}</button>
         </div>
       </div>
     </SettingsCard>

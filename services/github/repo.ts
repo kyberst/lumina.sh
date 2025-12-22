@@ -25,6 +25,10 @@ const fetchRepoContent = async (repoName: string, headers: any, branch?: string)
 
         const treeJson = await fetch(`https://api.github.com/repos/${repoName}/git/trees/${targetBranch}?recursive=1`, { headers }).then(r => handleResponse(r, "Failed to fetch tree"));
 
+        if (!treeJson.tree || !Array.isArray(treeJson.tree)) {
+            throw new AppError("Invalid repo tree structure", "GH_TREE_INVALID", AppModule.INTEGRATION);
+        }
+
         // Heuristic: Limit file count and size
         const codeFiles = treeJson.tree.filter((node: any) => 
             node.type === 'blob' && node.size < 150000 && 

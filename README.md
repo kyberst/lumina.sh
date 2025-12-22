@@ -1,8 +1,8 @@
-# Lumina Studio ⚡️
+# lumina.sh ⚡️
 
-**Lumina Studio** is a sophisticated, local-first AI Integrated Development Environment (IDE) designed to architect, build, and refactor full-stack web applications using natural language.
+**lumina.sh** is a sophisticated, local-first AI Integrated Development Environment (IDE) designed to architect, build, and refactor full-stack web applications using natural language.
 
-Unlike standard code assistants, Lumina operates as an **Autonomous Architect**. It adheres to strict structural rules, manages a semantic knowledge graph of your project, and executes complex refactors using a proprietary streaming protocol.
+Unlike standard code assistants, **lumina.sh** operates as an **Autonomous Architect**. It adheres to strict structural rules, manages a semantic knowledge graph of your project, and executes complex refactors using a proprietary streaming protocol.
 
 ---
 
@@ -19,13 +19,13 @@ Unlike standard code assistants, Lumina operates as an **Autonomous Architect**.
 
 ## 🏗 System Architecture
 
-Lumina Studio is built on a modular, Client-Side architecture ensuring privacy, speed, and maintainability.
+lumina.sh is built on a modular, Client-Side architecture ensuring privacy, speed, and maintainability.
 
 ### 1. The Core (React + Vite)
 The application is a Progressive Web App (PWA) built with **React 19** and **TypeScript**. It uses a recursive directory structure where no source file exceeds **200 lines of code** (Atomic Modularity Rule).
 
 ### 2. AI Layer & LLM Factory
-Lumina abstracts the AI provider to ensure flexibility.
+lumina.sh abstracts the AI provider to ensure flexibility.
 *   **Interface**: `ILLMProvider` handles `generateContent` and `generateStream`.
 *   **Factory**: `LLMFactory` instantiates the correct adapter (Gemini, Custom/OpenAI) based on user settings.
 *   **Thinking Budget**: Normalizes reasoning capabilities (Low/Medium/High) across different model architectures.
@@ -97,7 +97,7 @@ src/
 
 ## 🔮 The Lumina Protocol
 
-Lumina communicates via a specialized XML stream. This allows the AI to perform multiple actions in a single response.
+lumina.sh communicates via a specialized XML stream. This allows the AI to perform multiple actions in a single response.
 
 | Tag | Description | Attributes |
 | :--- | :--- | :--- |

@@ -1,4 +1,5 @@
-{
+
+export default {
   "skip": "Saltar Tutorial",
   "next": "Siguiente",
   "finish": "Terminar",
@@ -6,4 +7,4 @@
   "chatDesc": "Aquí está el chat: pídele a Lumina lo que quieres que tu aplicación haga.",
   "panelTitle": "Panel de Trabajo",
   "panelDesc": "Este es el panel donde puedes ver la vista previa y editar las propiedades del código de tu aplicación."
-}
+};

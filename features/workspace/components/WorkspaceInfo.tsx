@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { JournalEntry } from '../../../types';
+import { t } from '../../../services/i18n';
 
 interface WorkspaceInfoProps {
   entry: JournalEntry;
@@ -15,23 +16,23 @@ export const WorkspaceInfo: React.FC<WorkspaceInfoProps> = ({ entry, onUpdate })
     <div className="w-full h-full bg-slate-50 overflow-y-auto p-4 sm:p-8">
         <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4">
             <div>
-                <h2 className="text-2xl font-bold text-slate-800 mb-2 font-['Plus_Jakarta_Sans']">Project Configuration</h2>
-                <p className="text-slate-500 text-sm">Manage metadata and environment variables for this app.</p>
+                <h2 className="text-2xl font-bold text-slate-800 mb-2 font-['Plus_Jakarta_Sans']">{t('info.title', 'workspace')}</h2>
+                <p className="text-slate-500 text-sm">{t('info.desc', 'workspace')}</p>
             </div>
             
             <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm space-y-4">
                 <div>
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Project Name</label>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">{t('info.projectName', 'workspace')}</label>
                     <input className="shadcn-input font-bold text-lg" value={entry.project || ''} onChange={e => onUpdate({ ...entry, project: e.target.value })} />
                 </div>
                 <div>
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Original Prompt</label>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">{t('info.originalPrompt', 'workspace')}</label>
                     <textarea className="shadcn-input h-24 resize-none" value={entry.prompt} readOnly />
                 </div>
             </div>
             
             <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 block">Tech Stack & Tags</label>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 block">{t('info.techStack', 'workspace')}</label>
                 <div className="flex flex-wrap gap-2 mb-3">
                     {(entry.tags ?? []).map(tag => (
                         <span key={tag} className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-bold border border-indigo-100 flex items-center gap-1">
@@ -57,9 +58,9 @@ export const WorkspaceInfo: React.FC<WorkspaceInfoProps> = ({ entry, onUpdate })
             {entry.envVars && (
                <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
                     <div className="flex justify-between items-center mb-4">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Environment Variables</label>
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">{t('info.envVars', 'workspace')}</label>
                         <button onClick={() => setShowSecrets(!showSecrets)} className="text-[10px] text-indigo-600 font-bold hover:underline uppercase">
-                            {showSecrets ? 'Hide Secrets' : 'Show Secrets'}
+                            {showSecrets ? t('info.hideSecrets', 'workspace') : t('info.showSecrets', 'workspace')}
                         </button>
                     </div>
                     <div className="space-y-3">
@@ -79,7 +80,7 @@ export const WorkspaceInfo: React.FC<WorkspaceInfoProps> = ({ entry, onUpdate })
                         ))}
                     </div>
                     <p className="text-[10px] text-slate-400 mt-4 italic">
-                        Values are stored securely in your local database. They are only injected into the preview sandbox when required by the code.
+                        {t('info.secureNote', 'workspace')}
                     </p>
                </div>
             )}

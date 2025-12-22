@@ -30,13 +30,10 @@ export class VectorStore {
     public async saveMemories(memories: MemoryVector[]): Promise<void> {
         if (memories.length === 0) return;
         
-        // Chunking
         const chunkSize = 20; 
         for (let i = 0; i < memories.length; i += chunkSize) {
             const chunk = memories.slice(i, i + chunkSize);
             
-            // Map individual CREATE statements using SET to explicitly bind fields.
-            // This bypasses issues with 'CONTENT $object' in transactions occasionally losing nested keys.
             const ops = chunk.map(mem => ({
                 query: `
                     CREATE memories SET 
@@ -64,16 +61,18 @@ export class VectorStore {
 
     /**
      * Performs a cosine similarity search on the embedded vectors.
-     * Note: vector::similarity::cosine is a built-in SurrealDB function.
      */
     public async search(projectId: string, queryEmbedding: number[], limit: number = 5): Promise<RetrievalResult[]> {
         try {
-            // 1. Calculate similarity
-            // 2. Filter by project
-            // 3. Sort by similarity (descending)
+            // Use explicit fields instead of SELECT *
             const query = `
                 SELECT 
-                    *, 
+                    meta::id(id) AS uid,
+                    project_id,
+                    content,
+                    type,
+                    metadata,
+                    timestamp,
                     vector::similarity::cosine(embedding, $queryEmbedding) AS score 
                 FROM memories 
                 WHERE project_id = $projectId 
@@ -87,7 +86,6 @@ export class VectorStore {
                 limit 
             });
 
-            // Filter out low relevance (noise)
             return results.filter(r => r.score > 0.65);
 
         } catch (e) {

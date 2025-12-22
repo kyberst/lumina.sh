@@ -44,16 +44,19 @@ export class RAGService {
      * Uses local embeddings and SurrealDB.
      */
     public async indexProject(entry: JournalEntry): Promise<void> {
+        // FIX: Property 'id' does not exist on type 'JournalEntry', using 'uid'
         // Prevent indexing if generation is still pending (incomplete files) or no ID
-        if (entry.pendingGeneration || !entry.id) return;
+        if (entry.pendingGeneration || !entry.uid) return;
 
         // Fire and forget - don't block
         setTimeout(async () => {
             try {
-                logger.info(AppModule.CORE, `Starting Local RAG Indexing for project ${entry.project} (${entry.id})`);
+                // FIX: Property 'id' does not exist on type 'JournalEntry', using 'uid'
+                logger.info(AppModule.CORE, `Starting Local RAG Indexing for project ${entry.project} (${entry.uid})`);
                 
                 // 1. Clear old memories for this project
-                await vectorStore.deleteProjectMemories(entry.id);
+                // FIX: Property 'id' does not exist on type 'JournalEntry', using 'uid'
+                await vectorStore.deleteProjectMemories(entry.uid);
 
                 const memories: MemoryVector[] = [];
                 const options: ChunkingOptions = { maxSize: 1500, overlap: 300 };
@@ -70,7 +73,8 @@ export class RAGService {
                         // Only save valid vectors
                         if (embedding.some(v => v !== 0)) {
                             memories.push({
-                                project_id: entry.id,
+                                // FIX: Property 'id' does not exist on type 'JournalEntry', using 'uid'
+                                project_id: entry.uid,
                                 content: chunk,
                                 metadata: { filename: file.name, language: file.language },
                                 type: 'code_chunk',

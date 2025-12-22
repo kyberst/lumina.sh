@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useCallback } from 'react';
 import { JournalEntry, AppSettings, ChatMessage } from '../types';
 import { dbFacade } from '../services/dbFacade';
 import { toast } from '../services/toastService';
-import { getLanguage, setLanguage } from '../services/i18n';
+import { getLanguage, setLanguage, t } from '../services/i18n';
 
 export const useProjectData = () => {
-    const [entries, setEntries] = useState<JournalEntry[]>([]);
-    const [selectedProject, setSelectedProject] = useState<JournalEntry | null>(null);
+    const [entries, setEntries] = useState<JournalEntry[]>([]); 
+    const [selectedProject, setSelectedProject] = useState<JournalEntry | null>(null); 
     const [loading, setLoading] = useState(true);
     
     const [settings, setSettings] = useState<AppSettings>({ 
@@ -32,7 +33,6 @@ export const useProjectData = () => {
         (async () => {
             try {
                 await dbFacade.init();
-                
                 const projects = await dbFacade.getAllProjects();
                 const savedSettingsStr = await dbFacade.getConfig('app_settings');
                 const savedLang = await dbFacade.getConfig('app_language');
@@ -52,12 +52,14 @@ export const useProjectData = () => {
                 }
 
                 if (savedLang) {
-                    setSettings(prev => ({...prev, language: savedLang as 'en' | 'es'}));
-                    setLanguage(savedLang as 'en' | 'es');
-                } else if (settings.language) {
-                    setLanguage(settings.language);
+                    setSettings(prev => ({...prev, language: savedLang as any}));
+                    setLanguage(savedLang);
                 }
 
+                (window as any).nukeLumina = async () => {
+                    await dbFacade.clearAllData();
+                    window.location.reload();
+                };
 
             } catch(e) { 
                 console.error(e); 
@@ -70,61 +72,94 @@ export const useProjectData = () => {
 
     const saveSettings = (s: AppSettings) => { 
         setSettings(s); 
-        if(s.language !== getLanguage()) {
-            setLanguage(s.language);
-        }
+        if(s.language !== getLanguage()) setLanguage(s.language);
         dbFacade.setConfig('app_settings', JSON.stringify(s)).catch(console.error);
     };
 
     const resetEverything = async () => {
         await dbFacade.clearAllData();
-        toast.success("Application has been reset.");
+        toast.success("Application reset.");
         setTimeout(() => window.location.reload(), 1000);
     };
 
+    const clearProjects = async () => {
+        try {
+            await dbFacade.clearProjectsOnly();
+            setEntries([]);
+            setSelectedProject(null);
+            toast.success(t('clearWorkspaceSuccess', 'settings'));
+        } catch (e) {
+            toast.error("Cleanup failed.");
+        }
+    };
+
+    const openProject = async (entry: JournalEntry) => {
+        try {
+            const cleanUid = dbFacade.projects.cleanId(entry.uid);
+            if (!cleanUid) return toast.error("Invalid project identity.");
+            
+            setSelectedProject({ ...entry, uid: cleanUid });
+            const freshEntry = await dbFacade.getProjectById(cleanUid);
+            if (freshEntry) setSelectedProject(freshEntry);
+        } catch (e) {
+            toast.error("Could not load project.");
+        }
+    };
+
     const createEntry = async (e: JournalEntry) => { 
-        console.log('[Lumina Project Chat] Attempting to create new project:', e.project);
+        const cleanUid = dbFacade.projects.cleanId(e.uid);
+        if (!cleanUid) return toast.error("Failed to create project: Invalid UID");
+
         const initialMessage: ChatMessage = {
-          id: crypto.randomUUID(),
+          mid: crypto.randomUUID(),
           role: 'user',
           text: e.prompt,
           timestamp: e.timestamp,
         };
-        console.log('[Lumina Project Chat] Initial message for new project received:', initialMessage.text);
 
-        await dbFacade.atomicCreateProjectWithHistory(e, initialMessage);
-
-        const allProjects = await dbFacade.getAllProjects();
-        setEntries(allProjects);
-        const newProjectFromDb = allProjects.find(p => p.id === e.id) || e;
-        setSelectedProject(newProjectFromDb);
-        
-        console.log('[Lumina Project Chat] Successfully created and selected project:', newProjectFromDb);
+        try {
+            const entryWithCleanId = { ...e, uid: cleanUid };
+            await dbFacade.atomicCreateProjectWithHistory(entryWithCleanId, initialMessage);
+            const allProjects = await dbFacade.getAllProjects();
+            setEntries(allProjects);
+            setSelectedProject(entryWithCleanId);
+        } catch (err: any) {
+            toast.error("Project creation failed in database.");
+        }
     };
 
-    const updateEntry = async (e: JournalEntry) => { 
-        await dbFacade.saveProject(e); 
-        setEntries(p => p.map(x => x.id===e.id?e:x)); 
-        if(selectedProject?.id===e.id) setSelectedProject(e); 
+    const updateEntry = async (updatedEntry: JournalEntry) => { 
+        const cleanUid = dbFacade.projects.cleanId(updatedEntry.uid) || dbFacade.projects.cleanId(selectedProject?.uid);
+        if (!cleanUid) return toast.error("Save failed: Project identity lost.");
+
+        const finalEntry: JournalEntry = { ...updatedEntry, uid: cleanUid };
+        try {
+            await dbFacade.saveProject(finalEntry); 
+            if (selectedProject?.uid === cleanUid) setSelectedProject(finalEntry); 
+            setEntries(prev => {
+                const idx = prev.findIndex(x => x.uid === cleanUid);
+                if (idx === -1) return prev;
+                const next = [...prev];
+                next[idx] = finalEntry;
+                return next;
+            });
+        } catch (err: any) {
+            toast.error("Failed to save changes.");
+        }
     };
 
-    const deleteEntry = async (id: string) => { 
-        await dbFacade.deleteProject(id); 
-        setEntries(p => p.filter(x => x.id!==id)); 
-        if(selectedProject?.id===id) setSelectedProject(null); 
+    const deleteEntry = async (uid: string) => { 
+        const cleanUid = dbFacade.projects.cleanId(uid);
+        if (!cleanUid) return;
+        await dbFacade.deleteProject(cleanUid); 
+        setEntries(p => p.filter(x => x.uid !== cleanUid)); 
+        if (selectedProject?.uid === cleanUid) setSelectedProject(null); 
         toast.success("Deleted"); 
     };
 
     return { 
-        entries, 
-        selectedProject, 
-        setSelectedProject, 
-        loading, 
-        settings, 
-        saveSettings,
-        resetEverything,
-        createEntry, 
-        updateEntry, 
-        deleteEntry 
+        entries, selectedProject, openProject, setSelectedProject, loading, 
+        settings, saveSettings, resetEverything, clearProjects, 
+        createEntry, updateEntry, deleteEntry 
     };
 };

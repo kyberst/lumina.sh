@@ -1,3 +1,4 @@
+
 /**
  * Script injected to capture errors and send them to parent.
  */
@@ -18,6 +19,10 @@ export const ERROR_HANDLER_SCRIPT = `<script>
     return 0;
   }
   window.onerror = function(msg, url, line, col, error) {
+    if (msg === 'ResizeObserver loop completed with undelivered notifications.' || 
+        msg === 'ResizeObserver loop limit exceeded') {
+        return false;
+    }
     window.parent.postMessage({ type: "CONSOLE_LOG", level: "error", message: msg, line: line || getStackLine(), column: col }, "*");
     return false;
   };
@@ -30,6 +35,9 @@ export const ERROR_HANDLER_SCRIPT = `<script>
   const _error = console.error;
   console.error = function(...args) {
     const msg = args.map(a => { try { return typeof a === 'object' ? JSON.stringify(a) : String(a); } catch(e) { return String(a); } }).join(' ');
+    // Suppress benign ResizeObserver errors in console.error as well if they slip through
+    if (msg.includes('ResizeObserver loop')) return;
+    
     window.parent.postMessage({ type: "CONSOLE_LOG", level: "error", message: msg, line: getStackLine() }, "*");
     _error.apply(console, args);
   };

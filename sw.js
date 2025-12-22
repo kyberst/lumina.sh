@@ -11,7 +11,7 @@ const PRECACHE_ASSETS = [
   './assets/prompts/builder_system.md',
   './assets/prompts/refactor_system.md',
   './assets/prompts/protocol.md',
-  './assets/prompts/dyad.md'
+  './assets/prompts/answers.md'
 ];
 
 // External Domains to cache (CDNs for Monaco, SurrealDB, React, etc.)

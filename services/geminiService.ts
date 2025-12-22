@@ -1,6 +1,7 @@
+
 import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
 import { AppModule, JournalEntry, ChatMessage, GeneratedFile, AppSettings } from '../types';
-import { getDyadSystemPrompt } from './ai/prompts/dyad';
+import { getLuminaSystemPrompt } from './ai/prompts/answers';
 import { getRefactorSystemPrompt } from './ai/prompts/refactor';
 import { SYSTEM_PROTOCOL } from './ai/prompts/protocol';
 import { StreamChunk } from './ai/providers/interface';
@@ -31,12 +32,12 @@ export const analyzeSecurity = async (files: GeneratedFile[], customPrompt: stri
     return response.text || "Could not perform security analysis.";
 };
 
-// FIX: Implement chatWithDyad to fix missing export error in features/insight/DyadChat.tsx
-export const chatWithDyad = async (
+// FIX: Implement chatWithLumina to fix missing export error in features/insight/LuminaChat.tsx
+export const chatWithLumina = async (
     history: ChatMessage[],
     newMessage: string,
     entries: JournalEntry[],
-    lang: 'en' | 'es'
+    lang: 'en' | 'es' | 'fr' | 'de'
 ): Promise<string> => {
     if (!process.env.API_KEY) {
         throw new Error("API_KEY environment variable not set.");
@@ -47,7 +48,7 @@ export const chatWithDyad = async (
         .map(e => `Project: ${e.project || 'Untitled'}\nPrompt: ${e.prompt}\nDescription: ${e.description}\nTags: ${(e.tags || []).join(', ')}`)
         .join('\n\n---\n\n');
 
-    const systemInstruction = getDyadSystemPrompt(lang, projectContext);
+    const systemInstruction = getLuminaSystemPrompt(lang, projectContext);
     
     const geminiHistory = history
         .filter(h => h.text && h.text.trim().length > 0)
@@ -72,8 +73,11 @@ export const chatWithDyad = async (
 
 // FIX: Implement streamChatRefactor to fix missing export error in features/workspace/hooks/useRefactorStream.ts
 // Helper function to get builder prompt
-const getBuilderSystemPrompt = (lang: 'en' | 'es') => {
-    const langName = lang === 'es' ? 'Spanish' : 'English';
+const getBuilderSystemPrompt = (lang: 'en' | 'es' | 'fr' | 'de') => {
+    const langMap: Record<string, string> = {
+        'en': 'English', 'es': 'Spanish', 'fr': 'French', 'de': 'German'
+    };
+    const langName = langMap[lang] || 'English';
     return `You are an expert Senior Software Engineer.
 IDIOMA_ACTUAL: ${langName}. Your reasoning and summary MUST be in ${langName}.
 
@@ -104,7 +108,7 @@ export async function* streamChatRefactor(
     files: GeneratedFile[],
     prompt: string,
     history: ChatMessage[],
-    lang: 'en' | 'es',
+    lang: 'en' | 'es' | 'fr' | 'de',
     attachments: any[],
     options: {
         thinkingBudget?: 'low' | 'medium' | 'high';
@@ -196,11 +200,14 @@ export async function* streamChatRefactor(
     }
 }
 
-export const generateSuggestions = async (history: ChatMessage[], lang: 'en' | 'es'): Promise<string[]> => {
+export const generateSuggestions = async (history: ChatMessage[], lang: 'en' | 'es' | 'fr' | 'de'): Promise<string[]> => {
     if (!process.env.API_KEY) return [];
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const langName = lang === 'es' ? 'Spanish' : 'English';
+        const langMap: Record<string, string> = {
+            'en': 'English', 'es': 'Spanish', 'fr': 'French', 'de': 'German'
+        };
+        const langName = langMap[lang] || 'English';
         const context = history.slice(-4).map(h => `${h.role}: ${h.text}`).join('\n');
         
         const prompt = `Based on this chat history, suggest the next 3 logical, short, and actionable steps for building this web app.
@@ -224,8 +231,14 @@ ${context}`;
         const suggestions = JSON.parse(jsonStr);
         return Array.isArray(suggestions) ? suggestions.slice(0, 3) : [];
 
-    } catch (e) {
-        console.error("Failed to generate suggestions:", e);
+    } catch (e: any) {
+        // Silently catch 429/Quota errors for background suggestions
+        const msg = String(e?.message || e);
+        if (msg.includes("429") || msg.includes("quota") || msg.includes("RESOURCE_EXHAUSTED")) {
+            console.debug("[Suggestions] Quota exceeded, skipping background suggestions generation.");
+        } else {
+            console.warn("[Suggestions] Failed to generate suggestions:", e);
+        }
         return [];
     }
 };

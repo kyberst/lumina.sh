@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef } from 'react';
 import { CodeAnnotation } from '../../types';
 import { PluginFactory } from '../../features/editor/pluginFactory';
@@ -5,7 +6,7 @@ import { PluginFactory } from '../../features/editor/pluginFactory';
 /** API exposed by the CodeEditor component */
 export interface CodeEditorApi {
   getSelection: () => string;
-  getPosition: () => { lineNumber: number, column: number };
+  getPosition: () => { lineNumber: number, column: number } | null;
 }
 
 interface CodeEditorProps {
@@ -80,10 +81,11 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
               if (onMount) {
                   onMount({
                       getSelection: () => {
-                          const selection = editorRef.current.getSelection();
-                          return editorRef.current.getModel().getValueInRange(selection);
+                          const selection = editorRef.current?.getSelection();
+                          if (!selection) return "";
+                          return editorRef.current?.getModel()?.getValueInRange(selection) || "";
                       },
-                      getPosition: () => editorRef.current.getPosition()
+                      getPosition: () => editorRef.current?.getPosition() || null
                   });
               }
             }

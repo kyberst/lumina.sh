@@ -4,7 +4,7 @@ import { JournalEntry, AppModule, AppSettings } from '../../types';
 import { validate } from '../../services/validator';
 import { ImportForm } from './components/ImportForm';
 import { CreationForm } from './components/CreationForm';
-import { getLanguage } from '../../services/i18n';
+import { getLanguage, t } from '../../services/i18n';
 
 const ADJECTIVES = ['Crimson', 'Azure', 'Golden', 'Emerald', 'Starlight', 'Cosmic', 'Quantum', 'Nebula', 'Phoenix', 'Orion'];
 const NOUNS = ['Forge', 'Weaver', 'Nexus', 'Voyage', 'Canvas', 'Harbor', 'Pioneer', 'Echo', 'Matrix', 'Circuit'];
@@ -23,13 +23,11 @@ interface JournalInputProps {
 
 export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, settings }) => {
   const [activeTab, setActiveTab] = useState<'create' | 'import'>('create');
-  
-  // Create State
   const [content, setContent] = useState('');
   const [project, setProject] = useState('');
   const [complexity, setComplexity] = useState(50);
-  const [stack, setStack] = useState<string[]>([]); // Selected tech stack
-  const [appLanguages, setAppLanguages] = useState<string[]>([getLanguage() === 'es' ? 'Spanish' : 'English']); // Target App Languages
+  const [stack, setStack] = useState<string[]>([]);
+  const [appLanguages, setAppLanguages] = useState<string[]>([getLanguage() === 'es' ? 'Spanish' : 'English']);
   const [attachments, setAttachments] = useState<{ name: string; type: string; data: string }[]>([]);
   const [selectedProvider, setSelectedProvider] = useState<string>('gemini');
   const [selectedModel, setSelectedModel] = useState<string>('flash');
@@ -37,21 +35,18 @@ export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, sett
   const isSubmittingRef = useRef(false);
 
   const handleSubmit = async () => {
-    if (isSubmittingRef.current) return;
+    if (isSubmittingRef.current || !content.trim()) return;
     isSubmittingRef.current = true;
     
     setError(null);
     try {
       validate(content, { type: 'string', minLength: 3, maxLength: 8000 }, AppModule.BUILDER);
       
-      // The user-facing prompt is just their content.
-      // Requirements are stored in tags and will be added to the AI prompt internally
-      // during the first build process.
       const skeletonEntry: JournalEntry = {
-        id: crypto.randomUUID(),
+        uid: crypto.randomUUID(), // App generates UUID string
         prompt: content,
         timestamp: Date.now(),
-        description: "Initializing Project...",
+        description: t('initDescription', 'builder'),
         files: [],
         tags: [...stack, ...appLanguages],
         mood: complexity,
@@ -66,16 +61,12 @@ export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, sett
         }
       };
       
-      console.log('[Lumina] Starting new project. Initial prompt captured:', content);
-      console.log('[Lumina] Triggering project creation with skeleton entry:', skeletonEntry);
       await onEntryCreated(skeletonEntry);
 
-      // Reset form state after successful submission
       setContent('');
       setProject('');
       setComplexity(50);
       setStack([]);
-      setAppLanguages([getLanguage() === 'es' ? 'Spanish' : 'English']);
       setAttachments([]);
 
     } catch (err: any) {
@@ -90,37 +81,31 @@ export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, sett
   };
 
   return (
-    <div className="w-full flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 bg-white p-2 rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/50 relative">
-      
-      {/* Top Tabs (Shadcn Style) */}
-      <div className="inline-flex h-10 items-center justify-center rounded-md bg-slate-100 p-1 text-slate-500 w-fit mx-auto mt-2">
-         <button 
-            onClick={() => setActiveTab('create')} 
-            className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${activeTab === 'create' ? 'bg-white text-slate-950 shadow-sm' : 'hover:bg-slate-200 hover:text-slate-900'}`}
-         >
-             New App
+    <div className="w-full flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 glass-panel p-2 rounded-2xl shadow-xl shadow-black/5 relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
+
+      <div className="inline-flex h-10 items-center justify-center rounded-xl bg-muted p-1 text-muted-foreground w-fit mx-auto mt-4 mb-2">
+         <button onClick={() => setActiveTab('create')} className={`inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-1.5 text-sm font-semibold transition-all ${activeTab === 'create' ? 'bg-background text-foreground shadow-sm scale-105' : 'hover:bg-background/50 hover:text-foreground'}`}>
+             {t('creation.newApp', 'builder')}
          </button>
-         <button 
-            onClick={() => setActiveTab('import')} 
-            className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${activeTab === 'import' ? 'bg-white text-slate-950 shadow-sm' : 'hover:bg-slate-200 hover:text-slate-900'}`}
-         >
-             Import
+         <button onClick={() => setActiveTab('import')} className={`inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-1.5 text-sm font-semibold transition-all ${activeTab === 'import' ? 'bg-background text-foreground shadow-sm scale-105' : 'hover:bg-background/50 hover:text-foreground'}`}>
+             {t('creation.importApp', 'builder')}
          </button>
       </div>
 
-      <div className="px-6 pb-8 pt-2">
+      <div className="px-6 pb-8 pt-2 relative z-10">
         {error && (
-            <div className="mb-6 p-4 rounded-md bg-red-50 border border-red-200 text-red-600 text-sm flex justify-between items-center shadow-sm">
-            <span className="flex items-center gap-2 font-medium">
+            <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-sm flex justify-between items-center">
+            <span className="flex items-center gap-2 font-bold">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 {error}
             </span>
-            <button onClick={() => setError(null)} className="hover:text-red-800 ml-2">&times;</button>
+            <button onClick={() => setError(null)} className="hover:text-red-800 dark:hover:text-red-200 ml-2">&times;</button>
             </div>
         )}
 
         {activeTab === 'create' && (
-            <div className="relative group min-h-[14rem]">
+            <div className="relative group min-h-[14rem] animate-in fade-in duration-300">
                 <CreationForm 
                     settings={settings}
                     content={content} setContent={setContent}
@@ -137,13 +122,12 @@ export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, sett
         )}
 
         {activeTab === 'import' && (
-            <ImportForm 
-                settings={settings} 
-                onImport={handleImportSuccess}
-                isProcessing={false}
-                setIsProcessing={() => {}}
-                setError={setError}
-            />
+            <div className="animate-in fade-in duration-300">
+                <ImportForm 
+                    settings={settings} onImport={handleImportSuccess}
+                    isProcessing={false} setIsProcessing={() => {}} setError={setError}
+                />
+            </div>
         )}
       </div>
     </div>

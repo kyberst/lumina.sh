@@ -1,8 +1,10 @@
-
 import { SYSTEM_PROTOCOL } from "./protocol";
 
-export const getRefactorSystemPrompt = (lang: 'en' | 'es', contextSize: string = 'default') => {
-  const langName = lang === 'es' ? 'Spanish' : 'English';
+export const getRefactorSystemPrompt = (lang: 'en' | 'es' | 'fr' | 'de', contextSize: string = 'default') => {
+  const langMap: Record<string, string> = {
+      'en': 'English', 'es': 'Spanish', 'fr': 'French', 'de': 'German'
+  };
+  const langName = langMap[lang] || 'English';
   return `
 You are an expert Senior Software Engineer.
 Goal: Update the code based on the user's request.

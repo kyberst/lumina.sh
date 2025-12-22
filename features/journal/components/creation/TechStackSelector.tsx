@@ -1,4 +1,6 @@
+
 import React, { useState } from 'react';
+import { t } from '../../../../services/i18n';
 
 const COMMON_STACKS = [
     'React', 'Vue', 'Svelte', 'Angular', 
@@ -23,12 +25,12 @@ export const TechStackSelector: React.FC<Props> = ({ selected, onToggle }) => {
             >
                 <div className="flex flex-col">
                     <span className="text-[11px] text-slate-900 font-black uppercase tracking-widest">
-                        Target Stack
+                        {t('creation.stackTitle', 'builder')}
                     </span>
                     <span className="text-xs text-slate-500 mt-1 font-medium">
                         {selected.length === 0 
-                            ? "Default: React + Supabase" 
-                            : `${selected.length} technologies selected`}
+                            ? t('creation.stackDefault', 'builder') 
+                            : `${selected.length} ${t('creation.stackSelected', 'builder')}`}
                     </span>
                 </div>
                 <div className={`transform transition-transform duration-200 text-slate-400 ${isExpanded ? 'rotate-180' : ''}`}>
@@ -55,7 +57,7 @@ export const TechStackSelector: React.FC<Props> = ({ selected, onToggle }) => {
                         ))}
                     </div>
                     <p className="text-[10px] text-slate-400 mt-3 italic">
-                        If no specific technology is selected, the Architect will use React for the Frontend and Supabase for the Backend.
+                        {t('creation.stackNote', 'builder')}
                     </p>
                 </div>
             )}

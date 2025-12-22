@@ -4,8 +4,23 @@ import { StreamState } from './types';
 import { parseAttributes, updateFile, detectRuntime } from './utils';
 
 export const parseStreamChunk = (chunk: string, state: StreamState): StreamState => {
-    // FIX: Add 'suggestions' to destructuring to match StreamState type
-    let { buffer, mode, currentFileName, currentCommandType, reasoningBuffer, textBuffer, fileStatuses, workingFiles, commands, dependencies, annotations, aiPlan, suggestions } = state;
+    // Safety destructuring with defaults
+    let { 
+        buffer = '', 
+        mode = 'TEXT', 
+        currentFileName = '', 
+        currentCommandType, 
+        reasoningBuffer = '', 
+        textBuffer = '', 
+        fileStatuses = {}, 
+        workingFiles = [], 
+        commands = [], 
+        dependencies = {}, 
+        annotations = [], 
+        aiPlan, 
+        suggestions = [] 
+    } = state;
+
     buffer += chunk;
     let processed = true;
     while (processed) {
@@ -21,12 +36,10 @@ export const parseStreamChunk = (chunk: string, state: StreamState): StreamState
                         const runtime = (attrs.runtime as 'node' | 'python') || 'node';
                         dependencies = { ...dependencies, [attrs.name]: { version: attrs.version, runtime } };
                         
-                        // Generate appropriate shell command based on runtime
                         const cmd = runtime === 'python' 
                             ? `pip install ${attrs.name}==${attrs.version}`
                             : `npm install ${attrs.name}@${attrs.version}`;
                         
-                        // Avoid duplicate commands if possible, though simple push is safer for history
                         if (!commands.includes(cmd)) {
                             commands = [...commands, cmd];
                         }
@@ -68,7 +81,7 @@ export const parseStreamChunk = (chunk: string, state: StreamState): StreamState
                     } else if (currentCommandType === 'db_migration') {
                         finalCmd = `lumina db:migrate ${rawContent}`;
                     } else if (currentCommandType === 'build') {
-                        finalCmd = rawContent; // Use raw build command provided by AI
+                        finalCmd = rawContent;
                     }
                     
                     if (!commands.includes(finalCmd)) {
@@ -81,6 +94,5 @@ export const parseStreamChunk = (chunk: string, state: StreamState): StreamState
             }
         }
     }
-    // FIX: Add 'suggestions' to the returned object to match StreamState type
     return { buffer, mode, currentFileName, currentCommandType, reasoningBuffer, textBuffer, fileStatuses, workingFiles, commands, dependencies, annotations, aiPlan, suggestions };
 };

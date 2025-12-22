@@ -1,5 +1,5 @@
 
-{
+export default {
   "waiting": "Analyzing code structure...",
   "title": "Architect",
   "chatPlaceholder": "Ask how to deploy or refactor...",
@@ -10,4 +10,4 @@
   "listening": "Listening...",
   "dictate": "Dictate",
   "sendCommand": "Send Command"
-}
+};

@@ -1,5 +1,5 @@
 
-{
+export default {
   "waiting": "Analizando estructura...",
   "title": "Arquitecto",
   "chatPlaceholder": "Pregunta cómo desplegar o refactorizar...",
@@ -10,4 +10,4 @@
   "listening": "Escuchando...",
   "dictate": "Dictar",
   "sendCommand": "Enviar Comando"
-}
+};

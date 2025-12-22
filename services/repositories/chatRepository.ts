@@ -1,3 +1,4 @@
+
 import { ChatMessage, GeneratedFile } from '../../types';
 import { dbCore } from '../db/dbCore';
 import { BaseRepository } from './baseRepository';
@@ -6,77 +7,67 @@ import { ProjectRepository } from './projectRepository';
 
 export class ChatRepository extends BaseRepository {
 
-    // Explicit fields for chat history to avoid SELECT *
-    private readonly CHAT_FIELDS = "id, role, text, timestamp, snapshot, reasoning, plan, modifiedFiles, pendingFile, commands, attachments, requiredEnvVars, envVarsSaved, editorContext, annotations, usage";
-    
-    // Explicit fields for refactor history
-    private readonly REFACTOR_FIELDS = "id, role, text, timestamp, snapshot, project_id, usage, reasoning, plan, modifiedFiles, requiredEnvVars";
+    private readonly REFACTOR_FIELDS = "meta::id(id) AS mid, role, text, timestamp, snapshot, project_id, usage, reasoning, plan, modifiedFiles, requiredEnvVars";
 
-    public async saveChatMessage(m: ChatMessage) {
-        // Fix: Use type::thing
-        await dbCore.query("UPDATE type::thing('chat_history', $id) CONTENT $m", { id: m.id, m });
-    }
-
-    public getSaveChatMessageOperation(m: ChatMessage) {
-        return {
-            query: "UPDATE type::thing('chat_history', $id) CONTENT $m",
-            params: { id: m.id, m }
-        };
-    }
-    
-    public async getChatHistory(): Promise<ChatMessage[]> {
-        // Fix: Explicit fields
-        const r = await dbCore.query<ChatMessage>(`SELECT ${this.CHAT_FIELDS} FROM chat_history ORDER BY timestamp ASC`);
-        return this.mapResults(r);
-    }
-
-    public async saveRefactorMessage(pid: string, m: ChatMessage, prevFiles?: GeneratedFile[], newFiles?: GeneratedFile[]) {
-        const op = this.getSaveRefactorMessageOperation(pid, m, prevFiles, newFiles);
+    public async saveRefactorMessage(puid: string, m: ChatMessage, oldF?: GeneratedFile[], newF?: GeneratedFile[]) {
+        const op = this.getSaveRefactorMessageOperation(puid, m, oldF, newF);
         await dbCore.query(op.query, op.params);
     }
 
-    public getSaveRefactorMessageOperation(pid: string, m: ChatMessage, prevFiles?: GeneratedFile[], newFiles?: GeneratedFile[]) {
-        let snapshotData;
-        
-        if (prevFiles && newFiles) {
-            snapshotData = calculateReverseDiff(prevFiles, newFiles) as any;
-        } else {
-            snapshotData = m.snapshot;
+    public getSaveRefactorMessageOperation(puid: string, m: ChatMessage, prevFiles?: GeneratedFile[], newFiles?: GeneratedFile[]) {
+        const snapshotData = (prevFiles && newFiles) 
+            ? calculateReverseDiff(prevFiles, newFiles) 
+            : m.snapshot;
+
+        const cleanPuid = this.cleanId(puid);
+        const cleanMid = this.cleanId(m.mid);
+
+        if (!cleanPuid || !cleanMid) {
+            throw new Error(`Invalid IDs for refactor message: project=${cleanPuid}, message=${cleanMid}`);
         }
 
-        const msgToSave = { ...m, snapshot: snapshotData, project_id: pid };
-        // Fix: Use type::thing
+        const { mid, project_uid, ...rest } = m;
+
         return {
-            query: "UPDATE type::thing('refactor_history', $id) CONTENT $msg",
-            params: { id: m.id, msg: msgToSave }
+            query: `UPDATE type::thing('refactor_history', $mid) SET 
+                project_id = type::thing('projects', $puid), 
+                role = $msg.role, 
+                text = $msg.text, 
+                timestamp = $msg.timestamp, 
+                snapshot = $snapshot, 
+                reasoning = $msg.reasoning, 
+                plan = $msg.plan, 
+                modifiedFiles = $msg.modifiedFiles, 
+                usage = $msg.usage, 
+                requiredEnvVars = $msg.requiredEnvVars`,
+            params: { mid: cleanMid, puid: cleanPuid, msg: rest, snapshot: snapshotData }
         };
     }
 
-    public async getRefactorHistory(pid: string, projectRepo: ProjectRepository): Promise<ChatMessage[]> {
-        const project = await projectRepo.getById(pid);
+    public async getRefactorHistory(puid: string, projectRepo: ProjectRepository): Promise<ChatMessage[]> {
+        const cleanPuid = this.cleanId(puid);
+        if (!cleanPuid) return [];
+        
+        const project = await projectRepo.getById(cleanPuid);
         if (!project) return [];
         
-        let currentFiles = project.files;
+        let currentFiles = project.files || [];
         
-        // Fix: Explicit fields
-        const r = await dbCore.query<any>(`SELECT ${this.REFACTOR_FIELDS} FROM refactor_history WHERE project_id = $pid ORDER BY timestamp DESC`, { pid });
-        const rows = this.mapResults<any>(r);
+        const r = await dbCore.query<any>(
+            `SELECT ${this.REFACTOR_FIELDS} FROM refactor_history WHERE project_id = type::thing('projects', $puid) ORDER BY timestamp DESC`, 
+            { puid: cleanPuid }
+        );
         
+        const rows = this.mapResults<any>(r, 'mid');
         const messages: ChatMessage[] = [];
         
         for (const row of rows) {
           const diff = row.snapshot;
-          
-          const msg: ChatMessage = {
-            ...row, 
-            snapshot: currentFiles 
-          };
-          messages.push(msg);
-          
+          messages.push({ ...row, snapshot: currentFiles });
           if (diff) {
-              currentFiles = Array.isArray(diff) 
-                ? diff 
-                : applyReverseSnapshotDiff(currentFiles, diff as SnapshotDiff);
+              try {
+                  currentFiles = Array.isArray(diff) ? diff : applyReverseSnapshotDiff(currentFiles, diff as SnapshotDiff);
+              } catch (err) { console.warn("Snapshot reconstruction error", row.mid); }
           }
         }
         return messages.reverse();

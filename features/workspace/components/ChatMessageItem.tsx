@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { ChatMessage, GeneratedFile } from '../../../types';
 import { MarkdownRenderer } from '../../../components/ui/MarkdownRenderer';
 import { EnvVarRequestMessage } from './EnvVarRequestMessage';
@@ -8,28 +8,52 @@ import { t } from '../../../services/i18n';
 
 interface Props {
     msg: ChatMessage;
+    previousSnapshot?: GeneratedFile[];
     onEnvVarSave: (vals: Record<string, string>) => void;
     onRevert: (messageId: string) => void;
     isLastModelMessage: boolean;
+    index: number;
 }
 
-export const ChatMessageItem: React.FC<Props> = ({ msg, onEnvVarSave, onRevert, isLastModelMessage }) => {
-    // Logic for NO-LOSS Rule detection - Check for English or Spanish tag
+export const ChatMessageItem: React.FC<Props> = ({ msg, previousSnapshot, onEnvVarSave, onRevert, isLastModelMessage, index }) => {
+    // Guard: Prevent rendering empty bubbles (visual noise)
+    const hasContent = 
+        (msg.text && msg.text.trim().length > 0) || 
+        (msg.reasoning && msg.reasoning.trim().length > 0) || 
+        (msg.modifiedFiles && msg.modifiedFiles.length > 0) || 
+        (msg.requiredEnvVars && msg.requiredEnvVars.length > 0) || 
+        (msg.attachments && msg.attachments.length > 0) ||
+        msg.pending;
+
+    if (!hasContent) return null;
+
+    // Logic for NO-LOSS Rule detection
     const justificationMatch = msg.reasoning?.match(/\[(?:JUSTIFIED DELETION|ELIMINACIÓN JUSTIFICADA)\]([\s\S]*?)(?:$|\[|<)/i);
     const hasJustifiedDeletion = !!justificationMatch;
     const justificationText = justificationMatch ? justificationMatch[1].trim() : '';
 
     const isModel = msg.role === 'model';
+    const hasFiles = msg.modifiedFiles && msg.modifiedFiles.length > 0;
 
-    // Helper to find file content from snapshot if available
+    // Determine Header Title
+    let headerTitle = t('title', 'assistant'); // Default "Architect"
+    let headerIcon = <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 10 10H12V2z"></path><path d="M12 2a10 10 0 0 1 10 10"></path><path d="M12 12 2.1 12"></path></svg>;
+    let headerColor = "text-indigo-500 bg-indigo-500/10 border-indigo-500/20";
+
+    if (hasFiles) {
+        headerTitle = t('proposal.header', 'journal'); // "Update Applied"
+        headerIcon = <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>;
+        headerColor = "text-emerald-600 bg-emerald-500/20 border-emerald-500/20";
+    }
+
+    // Helper to find file content
     const getFileFromSnapshot = (filename: string): GeneratedFile | undefined => {
         return msg.snapshot?.find(f => f.name === filename);
     };
     
     const getOriginalFile = (filename: string): GeneratedFile | undefined => {
-        return undefined;
+        return previousSnapshot?.find(f => f.name === filename);
     };
-
 
     // Clean reasoning of technical tags for display
     const displayReasoning = msg.reasoning 
@@ -39,84 +63,87 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, onEnvVarSave, onRevert, 
             .trim()
         : '';
 
+    // Stagger Animation Delay
+    const animationDelay = `${index * 100}ms`;
+
     return (
-        <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} group flex-col mb-6 animate-in slide-in-from-bottom-2`}>
-            <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} w-full`}>
-                <div className={`max-w-[95%] sm:max-w-[90%] rounded-2xl text-xs sm:text-sm shadow-md relative overflow-hidden border transition-all hover:shadow-lg ${isModel ? 'border-slate-200 bg-white' : 'border-indigo-600 bg-indigo-600 text-white'}`}>
+        <div 
+            className={`flex ${isModel ? 'justify-start' : 'justify-end'} group flex-col mb-4 w-full animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-backwards`}
+            style={{ animationDelay }}
+        >
+            <div className={`flex ${isModel ? 'justify-start' : 'justify-end'} w-full`}>
+                <div className={`
+                    relative max-w-[85%] rounded-2xl shadow-sm text-sm overflow-hidden transition-all duration-300
+                    ${isModel 
+                        ? 'bg-card border border-border/60 rounded-tl-sm' 
+                        : 'bg-primary text-white shadow-md shadow-primary/20 rounded-tr-sm'
+                    }
+                    ${msg.pending ? 'opacity-90' : 'opacity-100'}
+                `}>
                     
+                    {/* Header for AI Messages */}
                     {isModel && (
-                        <div className="bg-slate-50 border-b border-slate-100 px-4 py-3 flex justify-between items-center select-none bg-gradient-to-r from-slate-50 to-white">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm shadow-indigo-200">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                        <div className="bg-muted/30 border-b border-border/50 px-3 py-2 flex justify-between items-center select-none">
+                            <div className="flex items-center gap-2">
+                                <div className={`w-5 h-5 rounded-md flex items-center justify-center border ${headerColor}`}>
+                                    {headerIcon}
                                 </div>
-                                <div>
-                                    <h3 className="text-xs font-black uppercase tracking-wide text-slate-700">{t('proposal.header', 'journal')}</h3>
-                                    <p className="text-[10px] text-slate-400 font-medium">{t('proposal.agent', 'journal')}</p>
-                                </div>
+                                <h3 className="text-[10px] font-extrabold uppercase tracking-widest opacity-80">{headerTitle}</h3>
                             </div>
+                            <span className="text-[9px] font-mono text-muted-foreground opacity-70">
+                                {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            </span>
                         </div>
                     )}
 
-                    <div className={`p-5`}> 
+                    <div className={`p-3 ${isModel ? 'space-y-3' : ''}`}> 
                         
+                        {/* Deletion Warning */}
                         {hasJustifiedDeletion && (
-                            <div className="mb-5 bg-amber-50 border border-amber-200 rounded-lg p-3 flex gap-3 animate-in fade-in slide-in-from-top-1">
+                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex gap-3 backdrop-blur-sm">
                                 <div className="text-amber-500 shrink-0 mt-0.5">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                                 </div>
                                 <div>
-                                    <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wide mb-1">
+                                    <h4 className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-1">
                                         {t('deletionWarningTitle', 'journal')}
                                     </h4>
-                                    <p className="text-xs text-amber-700 leading-relaxed mb-2">
-                                        {t('deletionWarningDesc', 'journal')}
-                                    </p>
                                     {justificationText && (
-                                        <div className="text-[11px] bg-white/60 p-2 rounded border border-amber-200/50 text-amber-900 font-medium italic border-l-2 border-l-amber-400">
+                                        <p className="text-xs text-amber-800 dark:text-amber-200 font-medium italic">
                                             "{justificationText}"
-                                        </div>
+                                        </p>
                                     )}
                                 </div>
                             </div>
                         )}
 
+                        {/* Architectural Plan (Reasoning) */}
                         {displayReasoning && isModel && (
-                            <div className={`mb-5 rounded-xl overflow-hidden border border-slate-200 bg-slate-50/50`}>
-                                <div 
-                                    className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 cursor-pointer flex justify-between items-center hover:bg-slate-100/50 transition-colors"
-                                    onClick={(e) => e.currentTarget.nextElementSibling?.classList.toggle('hidden')}
-                                >
-                                    <span className="flex items-center gap-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="7.5 4.21 12 6.81 16.5 4.21"></polyline><polyline points="7.5 19.79 7.5 14.6 3 12"></polyline><polyline points="21 12 16.5 14.6 16.5 19.79"></polyline><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                            <div className="rounded-lg border border-border/50 bg-background/50">
+                                <details className="group/details">
+                                    <summary className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground cursor-pointer flex items-center gap-2 hover:text-foreground transition-colors list-none select-none">
+                                        <span className="transition-transform duration-200 group-open/details:rotate-90">▶</span>
                                         {t('archPlan', 'insight')}
-                                    </span>
-                                    <span className="text-slate-400 text-[9px]">▼</span>
-                                </div>
-                                <div className="p-4 pt-2 text-xs text-slate-600 font-medium whitespace-pre-wrap max-h-60 overflow-y-auto custom-scrollbar border-t border-slate-200/50">
-                                    {displayReasoning}
-                                </div>
+                                    </summary>
+                                    <div className="px-3 pb-3 pt-0 text-xs text-muted-foreground font-mono leading-relaxed whitespace-pre-wrap">
+                                        {displayReasoning}
+                                    </div>
+                                </details>
                             </div>
                         )}
 
+                        {/* Main Text Content */}
                         {msg.text && (
-                            <div className={`prose prose-sm max-w-none mb-6 ${isModel ? 'text-slate-600' : 'text-white'}`}>
+                            <div className={`prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:my-1 ${isModel ? 'text-foreground/90' : 'text-white font-medium'}`}>
                                 <MarkdownRenderer content={msg.text} />
                             </div>
                         )}
                         
-                        {msg.modifiedFiles && msg.modifiedFiles.length > 0 && (
-                            <div className="mt-6 pt-2">
-                                <h4 className="flex items-center gap-2 text-xs font-black uppercase text-slate-800 tracking-wider mb-3">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                                    {t('proposal.changes', 'journal')}
-                                    <span className="text-[10px] font-normal text-slate-400 normal-case ml-auto">
-                                        {msg.modifiedFiles.length} {t('proposal.files', 'journal')}
-                                    </span>
-                                </h4>
-                                
-                                <div className="space-y-3">
-                                    {msg.modifiedFiles.map(filename => {
+                        {/* Modified Files List */}
+                        {hasFiles && (
+                            <div className="pt-2 border-t border-border/50 mt-2">
+                                <div className="space-y-2">
+                                    {msg.modifiedFiles!.map(filename => {
                                         const fileContent = getFileFromSnapshot(filename);
                                         const originalContent = getOriginalFile(filename);
                                         
@@ -131,10 +158,9 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, onEnvVarSave, onRevert, 
                                             );
                                         }
                                         return (
-                                            <div key={filename} className="flex items-center gap-3 text-xs text-slate-500 bg-slate-50 px-3 py-2.5 rounded-lg border border-slate-200 font-mono opacity-75">
-                                                <div className="w-2 h-2 rounded-full bg-red-400"></div>
-                                                <span className="line-through text-slate-400 font-bold">{t('file.deleted', 'journal')}</span>
-                                                <span className="truncate flex-1">{filename}</span>
+                                            <div key={filename} className="flex items-center gap-3 text-xs text-muted-foreground bg-destructive/10 px-3 py-2 rounded-lg border border-destructive/20 font-mono opacity-80">
+                                                <span className="line-through decoration-destructive/50 font-bold">{t('file.deleted', 'journal')}</span>
+                                                <span className="truncate flex-1 text-destructive/80">{filename}</span>
                                             </div>
                                         );
                                     })}
@@ -145,16 +171,27 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, onEnvVarSave, onRevert, 
                         {msg.requiredEnvVars && <EnvVarRequestMessage requests={msg.requiredEnvVars} saved={msg.envVarsSaved || false} onSave={onEnvVarSave} />}
                     </div>
                     
-                    {isModel && msg.modifiedFiles && msg.modifiedFiles.length > 0 && (
-                        <div className="px-5 pb-4 pt-2 bg-slate-50 border-t border-slate-100 flex justify-end">
+                    {/* User Metadata Footer (Date) */}
+                    {!isModel && (
+                        <div className="px-4 pb-2 pt-0 flex justify-end">
+                             <span className="text-[9px] font-mono text-white/50">
+                                {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Revert Button for Model */}
+                    {isModel && hasFiles && (
+                        <div className="px-4 pb-3 pt-0 flex justify-end">
                             <button
-                                onClick={() => onRevert(msg.id)}
+                                // FIX: Property 'id' does not exist on type 'ChatMessage', using 'mid'
+                                onClick={() => onRevert(msg.mid)}
                                 disabled={isLastModelMessage}
-                                className="shadcn-btn shadcn-btn-outline h-7 text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                                title={isLastModelMessage ? "Cannot revert the most recent change" : "Revert the changes from this step"}
+                                className="text-[10px] font-bold text-muted-foreground hover:text-destructive transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1"
+                                title={isLastModelMessage ? "Current Version" : "Restore this version"}
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                                Revert Changes
+                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                                {t('proposal.discard', 'journal')}
                             </button>
                         </div>
                     )}

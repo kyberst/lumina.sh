@@ -13,7 +13,11 @@
     "@google/genai": "^1.34.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "surrealdb": "^1.3.2"
+    "surrealdb": "^1.3.2",
+    "clsx": "^2.1.0",
+    "tailwind-merge": "^2.2.1",
+    "class-variance-authority": "^0.7.0",
+    "lucide-react": "^0.344.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

@@ -18,8 +18,9 @@ interface UseRefactorStreamProps {
         oldFiles: GeneratedFile[];
         newFiles: GeneratedFile[];
     }) => Promise<void>;
-    setTotalUsage: React.Dispatch<React.SetStateAction<{input: number, output: number}>>;
     setIframeKey: React.Dispatch<React.SetStateAction<number>>;
+    // FIX: Add setTotalUsage to the interface to resolve TypeScript error in WorkspaceView
+    setTotalUsage?: React.Dispatch<React.SetStateAction<{ input: number, output: number }>>;
 }
 
 const LANGUAGES_LIST = ['English', 'Spanish', 'French', 'German', 'Italian', 'Portuguese', 'Chinese', 'Japanese', 'Korean', 'Russian', 'Arabic', 'Hindi'];
@@ -30,13 +31,38 @@ const COMMON_STACKS = [
     'SQL', 'MongoDB', 'Firebase', 'Next.js', 'Supabase'
 ];
 
-/** Hook to handle the AI streaming build process and state management */
-export const useRefactorStream = ({ entry, settings, history, setHistory, onTurnComplete, setTotalUsage, setIframeKey }: UseRefactorStreamProps) => {
+const cleanErrorMessage = (error: any): string => {
+    let msg = String(error?.message || error || "Unknown AI error");
+    
+    if (msg.includes('{') && msg.includes('}')) {
+        try {
+            const match = msg.match(/(\{.*\})/);
+            if (match) {
+                const parsed = JSON.parse(match[1]);
+                if (parsed.error && parsed.error.message) {
+                    msg = String(parsed.error.message);
+                }
+            }
+        } catch (e) {}
+    }
+
+    if (msg.includes("429") || msg.includes("quota") || msg.includes("RESOURCE_EXHAUSTED")) {
+        return "⚠️ Limit Exceeded: The AI provider rejected the request due to rate limits or billing quotas. Please try again later or check your API plan.";
+    }
+    if (msg.includes("SAFETY")) {
+        return "🛡️ Safety Block: The AI refused to generate this content due to safety settings.";
+    }
+
+    return msg;
+};
+
+// FIX: Added setTotalUsage to the hook parameters
+export const useRefactorStream = ({ entry, settings, history, setHistory, onTurnComplete, setIframeKey, setTotalUsage }: UseRefactorStreamProps) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [streamState, setStreamState] = useState<StreamState>(createInitialStreamState(entry.files ?? []));
     const abortControllerRef = useRef<AbortController | null>(null);
 
-    const handleStreamingBuild = async (userMessage?: string, attachments: any[] = [], editorContext?: EditorContext) => {
+    const handleStreamingBuild = async (userMessage?: string, attachments: any[] = [], editorContext?: EditorContext, optimisticMessage?: ChatMessage) => {
         const isInitial = !userMessage && entry.pendingGeneration;
         let promptText = userMessage || entry.prompt;
         
@@ -45,19 +71,16 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onTurn
             const appLanguages = entry.tags.filter(tag => LANGUAGES_LIST.includes(tag));
             const stack = entry.tags.filter(tag => COMMON_STACKS.includes(tag) && !appLanguages.includes(tag));
 
-            // Default Stack Logic: If no stack selected, enforce React + Supabase
             if (stack.length === 0) {
                 requirements.push(`Tech Stack Default: Use **React** for Frontend and **Supabase** for Backend (Database/Auth).`);
             } else {
                 requirements.push(`Tech Stack: The application MUST be built using this specific stack: ${stack.join(', ')}.`);
             }
 
-            // Multi-Language Logic
             if (appLanguages.length > 0) {
                 requirements.push(`Internationalization (i18n): The application content MUST be available in these languages: ${appLanguages.join(', ')}. Set up a JSON-based translation system or variable mapping.`);
             }
             
-            // Intent Detection Instruction
             const intentInstruction = `
 **CRITICAL INSTRUCTION - INTENT DETECTION:**
 1. **GREETING/CHAT:** If the user input is just a greeting (e.g., "Hello", "Hola", "Hi") or a general question unrelated to building an app, **DO NOT BUILD THE APP**. Respond conversationally as a helpful architect. Do NOT use <lumina-file> tags.
@@ -67,23 +90,29 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onTurn
             promptText = `${intentInstruction}\n\nUser Input: "${promptText}"\n\n**Technical Requirements (If Building):**\n- ${requirements.join('\n- ')}`;
         }
 
-        if (isInitial) {
-            console.log('[Lumina AI] 🚀 Sending INITIAL project generation message to AI:', promptText);
-        } else {
-            console.log('[Lumina AI] 💬 Sending follow-up message to AI:', promptText);
-        }
-
         const previousFiles = (entry.files ?? []).map(f => ({...f}));
+        let currentHistory: ChatMessage[] = [];
+        let userTurnMessage: ChatMessage;
 
-        const userTurnMessage: ChatMessage = { 
-            id: crypto.randomUUID(), role: 'user', text: userMessage || entry.prompt, timestamp: Date.now(), 
-            attachments, editorContext,
-            // Snapshot IS required for Revert functionality to work immediately on this new message
-            snapshot: previousFiles
-        };
-
-        const currentHistory = [...history, userTurnMessage];
-        setHistory(currentHistory);
+        if (optimisticMessage) {
+            userTurnMessage = { 
+                ...optimisticMessage,
+                snapshot: previousFiles,
+                pending: false 
+            };
+            // FIX: Property 'id' does not exist on type 'ChatMessage', using 'mid'
+            setHistory(prev => prev.map(m => m.mid === optimisticMessage.mid ? userTurnMessage : m));
+            currentHistory = [...history, userTurnMessage];
+        } else {
+            userTurnMessage = { 
+                // FIX: Property 'id' does not exist on type 'ChatMessage', using 'mid'
+                mid: crypto.randomUUID(), role: 'user', text: userMessage || entry.prompt, timestamp: Date.now(), 
+                attachments, editorContext,
+                snapshot: previousFiles
+            };
+            currentHistory = [...history, userTurnMessage];
+            setHistory(currentHistory);
+        }
         
         setIsProcessing(true);
         setStreamState({
@@ -104,6 +133,8 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onTurn
         }
 
         let finalUsage = { inputTokens: 0, outputTokens: 0 };
+        let lastUiUpdate = 0;
+        const UI_UPDATE_INTERVAL = 100;
 
         try {
             const promptType = isInitial ? 'builder' : 'refactor';
@@ -130,14 +161,28 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onTurn
                 if (chunk.usage) finalUsage = chunk.usage;
                 if (chunk.text) {
                     currentState = parseStreamChunk(chunk.text, currentState);
-                    setStreamState({ ...currentState });
+                    const now = Date.now();
+                    if (now - lastUiUpdate > UI_UPDATE_INTERVAL) {
+                        setStreamState({ ...currentState });
+                        lastUiUpdate = now;
+                    }
                 }
             }
 
+            setStreamState({ ...currentState });
             let finalState = finalizeStream(currentState);
+
+            // FIX: Update the total usage in the view if a setter was provided
+            if (setTotalUsage && (finalUsage.inputTokens > 0 || finalUsage.outputTokens > 0)) {
+                setTotalUsage(prev => ({
+                    input: prev.input + finalUsage.inputTokens,
+                    output: prev.output + finalUsage.outputTokens
+                }));
+            }
             
             const modelMessage: ChatMessage = {
-                id: crypto.randomUUID(), role: 'model', text: finalState.textBuffer,
+                // FIX: Property 'id' does not exist on type 'ChatMessage', using 'mid'
+                mid: crypto.randomUUID(), role: 'model', text: finalState.textBuffer,
                 reasoning: finalState.reasoningBuffer, timestamp: Date.now(),
                 modifiedFiles: Object.keys(finalState.fileStatuses), 
                 snapshot: finalState.workingFiles,
@@ -161,23 +206,17 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onTurn
             });
             
             setIframeKey(k => k + 1);
-
-            // Fetch suggestions after the main response is complete
             const newSuggestions = await generateSuggestions(updatedHistory, getLanguage());
             finalState = { ...finalState, suggestions: newSuggestions };
             setStreamState(finalState);
             
         } catch (e: any) {
             if (e.name !== 'AbortError' && e.name !== 'Aborted') {
-                toast.error(e.message);
-                const errorMsg: ChatMessage = {
-                    id: crypto.randomUUID(), role: 'model', text: `An error occurred: ${e.message}`, timestamp: Date.now(),
-                };
-                setHistory(p => [...p, errorMsg]);
+                const friendlyMessage = cleanErrorMessage(e);
+                toast.error("AI Error: " + (friendlyMessage.length > 60 ? "Check chat" : friendlyMessage));
             }
         } finally {
             setIsProcessing(false);
-            setTotalUsage(p => ({ input: p.input + finalUsage.inputTokens, output: p.output + finalUsage.outputTokens }));
             abortControllerRef.current = null;
         }
     };

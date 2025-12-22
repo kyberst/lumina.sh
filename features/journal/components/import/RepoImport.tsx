@@ -1,5 +1,7 @@
+
 import React from 'react';
 import { GitHubRepo } from '../../../../types';
+import { t } from '../../../../services/i18n';
 
 interface Props {
   repos: GitHubRepo[];
@@ -9,7 +11,7 @@ interface Props {
 }
 
 export const RepoImport: React.FC<Props> = ({ repos, onImport, disabled, hasToken }) => {
-    if (!hasToken) return <div className="text-center text-slate-500 mt-10">Please configure GitHub Token in Settings.</div>;
+    if (!hasToken) return <div className="text-center text-slate-500 mt-10">{t('noToken', 'import')}</div>;
     
     return (
         <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 h-64">

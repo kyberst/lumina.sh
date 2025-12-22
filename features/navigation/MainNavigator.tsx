@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ViewMode, JournalEntry, AppSettings } from '../../types';
 import { JournalInput } from '../journal/JournalInput';
@@ -13,9 +14,10 @@ interface Props {
         createEntry: (e: JournalEntry) => Promise<void>;
         updateEntry: (e: JournalEntry) => void;
         deleteEntry: (id: string) => void;
-        selectProject: (e: JournalEntry) => void;
+        selectProject: (e: JournalEntry) => void; 
         saveSettings: (s: AppSettings) => void;
         resetEverything: () => void;
+        clearProjects: () => void;
         setSearch: (s: string) => void;
     };
     searchQuery: string;
@@ -46,10 +48,10 @@ export const MainNavigator: React.FC<Props> = ({ view, entries, settings, action
         return (
             <div className="max-w-6xl mx-auto pb-20">
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-                    <h2 className="text-2xl font-bold">Projects ({filtered.length})</h2>
+                    <h2 className="text-2xl font-bold">{t('projectsTitle', 'nav')} ({filtered.length})</h2>
                     <input 
                         className="shadcn-input w-full sm:w-64" 
-                        placeholder="Search projects..." 
+                        placeholder={t('search', 'common')} 
                         value={searchQuery} 
                         onChange={e => actions.setSearch(e.target.value)} 
                     />
@@ -57,13 +59,14 @@ export const MainNavigator: React.FC<Props> = ({ view, entries, settings, action
                 
                 {filtered.length === 0 ? (
                     <div className="text-center py-20 text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
-                        <p>No projects found matching "{searchQuery}"</p>
-                        <button onClick={() => actions.setSearch('')} className="text-indigo-600 font-bold mt-2 hover:underline">Clear Search</button>
+                        <p>{t('noProjects', 'nav')} "{searchQuery}"</p>
+                        <button onClick={() => actions.setSearch('')} className="text-indigo-600 font-bold mt-2 hover:underline">{t('clearSearch', 'nav')}</button>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filtered.map(e => (
-                            <div key={e.id}>
+                            // FIX: Property 'id' does not exist on type 'JournalEntry', using 'uid'
+                            <div key={e.uid}>
                                 <EntryCard 
                                     entry={e} 
                                     onDelete={actions.deleteEntry} 
@@ -80,7 +83,12 @@ export const MainNavigator: React.FC<Props> = ({ view, entries, settings, action
     }
 
     if (view === 'settings') {
-        return <SettingsView settings={settings} onSave={actions.saveSettings} onReset={actions.resetEverything} />;
+        return <SettingsView 
+            settings={settings} 
+            onSave={actions.saveSettings} 
+            onReset={actions.resetEverything} 
+            onClearProjects={actions.clearProjects}
+        />;
     }
 
     return null;
