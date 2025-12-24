@@ -14,8 +14,8 @@ interface Props {
 
 export const PreviewToolbar: React.FC<Props> = ({ deviceMode, setDeviceMode, depStatus, isSelectionModeActive, onToggleSelectionMode, onToggleFullscreen, isFullscreen }) => {
     return (
-        <div className="glass-panel border-b border-white/10 p-2 flex justify-center items-center gap-2 sm:gap-4 shrink-0 relative z-20">
-             <div className="flex gap-1 bg-muted/50 p-1 rounded-lg border border-white/5">
+        <div className="glass-panel border-b border-white/10 p-2 flex justify-between sm:justify-center items-center gap-2 sm:gap-4 shrink-0 relative z-20 overflow-x-auto no-scrollbar">
+             <div className="flex gap-1 bg-muted/50 p-1 rounded-lg border border-white/5 shrink-0">
                 {(['mobile', 'tablet', 'desktop'] as const).map(mode => (
                     <button key={mode} onClick={() => setDeviceMode(mode)} className={`p-2 rounded-md transition-all duration-200 ${deviceMode === mode ? 'bg-background shadow-sm text-primary scale-105' : 'text-muted-foreground hover:text-foreground hover:bg-background/50'}`}>
                         {mode === 'mobile' && <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>}
@@ -25,9 +25,9 @@ export const PreviewToolbar: React.FC<Props> = ({ deviceMode, setDeviceMode, dep
                 ))}
              </div>
 
-             <div className="w-px h-6 bg-border mx-1" />
+             <div className="w-px h-6 bg-border mx-1 shrink-0 hidden sm:block" />
 
-             <div className="flex gap-2">
+             <div className="flex gap-2 shrink-0">
                 <button onClick={() => onToggleSelectionMode()} title={t('toolbar.selectElement', 'workspace')} className={`p-2 rounded-lg transition-all ${isSelectionModeActive ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3.8 3.8l16.4 16.4M20.2 3.8L3.8 20.2" /><path d="M12 22v-4.5" /><path d="M12 6.5V2" /><path d="M4.5 12H2" /><path d="M22 12h-2.5" /><path d="m3.5 15.5.7.7" /><path d="m3.5 8.5.7-.7" /><path d="m20.5 15.5-.7.7" /><path d="m20.5 8.5-.7-.7" /></svg>
                 </button>
@@ -41,9 +41,9 @@ export const PreviewToolbar: React.FC<Props> = ({ deviceMode, setDeviceMode, dep
              </div>
              
              {depStatus === 'loading' && (
-                 <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-primary flex items-center gap-2 animate-pulse bg-primary/10 px-2 py-1 rounded-md">
+                 <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-primary flex items-center gap-2 animate-pulse bg-primary/10 px-2 py-1 rounded-md shadow-sm border border-primary/20 backdrop-blur-md">
                      <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                     {t('toolbar.linking', 'workspace')}
+                     <span className="hidden sm:inline">{t('toolbar.linking', 'workspace')}</span>
                  </div>
              )}
         </div>

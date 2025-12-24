@@ -1,7 +1,7 @@
 
 import { useState, useCallback } from 'react';
 
-export type PanelType = 'preview' | 'code' | 'info' | 'history' | null;
+export type PanelType = 'preview' | 'code' | 'info' | 'history' | 'security' | 'publish' | null;
 export type MobileView = 'chat' | 'panel';
 
 export const useWorkspaceLayout = () => {

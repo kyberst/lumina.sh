@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { WorkspaceHeader } from './components/WorkspaceHeader';
 import { WorkspaceChat } from './components/WorkspaceChat';
@@ -6,6 +5,8 @@ import { WorkspacePreview } from './components/WorkspacePreview';
 import { WorkspaceCode } from './components/WorkspaceCode';
 import { WorkspaceInfo } from './components/WorkspaceInfo';
 import { WorkspaceHistory } from './components/WorkspaceHistory';
+import { WorkspaceSecurity } from './components/WorkspaceSecurity';
+import { WorkspacePublish } from './components/WorkspacePublish';
 import { ElementEditorPanel } from './components/editor/ElementEditorPanel';
 import { OnboardingOverlay } from '../../components/ui/OnboardingOverlay';
 import { WorkspaceHookReturn } from './hooks/useWorkspaceLogic';
@@ -19,6 +20,7 @@ export const WorkspaceViewPresentation: React.FC<WorkspaceHookReturn> = (props) 
         {state.editorPanel.isOpen && state.editorPanel.selector && (
             <ElementEditorPanel 
                 selector={state.editorPanel.selector}
+                initialValues={state.editorPanel.initialValues}
                 onClose={() => handlers.setEditorPanel({ isOpen: false, selector: null })}
                 onApplyAI={handlers.handleSendFromPanel}
                 onApplyDirectly={handlers.handleApplyDirectStyle}
@@ -26,6 +28,7 @@ export const WorkspaceViewPresentation: React.FC<WorkspaceHookReturn> = (props) 
         )}
         <WorkspaceChat 
             {...state.chatProps}
+            statusOverride={stream.streamState.statusOverride} // New prop
             onSend={handlers.handleSend}
             onStop={stream.cancelStream}
             onEnvVarSave={handlers.handleEnvVarSave}
@@ -43,9 +46,25 @@ export const WorkspaceViewPresentation: React.FC<WorkspaceHookReturn> = (props) 
   const RightPanel = (
     <div className="flex-1 overflow-hidden relative h-full">
         {layout.rightTab === 'info' && <WorkspaceInfo entry={props.entry} onUpdate={props.onUpdate} />}
-        {layout.rightTab === 'preview' && <WorkspacePreview {...preview.previewProps} onNavigateError={handlers.handleNavigateError} />}
+        {layout.rightTab === 'preview' && (
+            <WorkspacePreview 
+                {...preview.previewProps} 
+                onNavigateError={handlers.handleNavigateError}
+                consolePanelProps={state.consoleProps}
+            />
+        )}
         {layout.rightTab === 'code' && <WorkspaceCode {...editor.codeProps} readOnly={stream.isProcessing} />}
         {layout.rightTab === 'history' && <WorkspaceHistory history={state.history} onRevert={handlers.handleRevert} />}
+        {layout.rightTab === 'publish' && <WorkspacePublish entry={props.entry} settings={props.settings} onUpdate={props.onUpdate} />}
+        {layout.rightTab === 'security' && (
+            <WorkspaceSecurity 
+                report={state.security.report} 
+                isScanning={state.security.isScanning} 
+                onRunScan={handlers.handleSecurityScan} 
+                onFixIssue={handlers.handleFixSecurityIssue}
+                onCancelScan={handlers.handleCancelScan} 
+            />
+        )}
     </div>
   );
 
@@ -56,7 +75,7 @@ export const WorkspaceViewPresentation: React.FC<WorkspaceHookReturn> = (props) 
         {...state.headerProps}
         onClose={props.onClose} 
         onSecurityScan={handlers.handleSecurityScan} 
-        onPublish={handlers.handlePublish} 
+        onPublish={() => layout.setRightTab('publish')} 
         onDownload={handlers.handleDownload} 
         onRefresh={layout.refreshPreview} 
         setMobileView={layout.setMobileView}

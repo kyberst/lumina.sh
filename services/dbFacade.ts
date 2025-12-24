@@ -1,3 +1,4 @@
+
 import { AppError, AppModule, JournalEntry, ChatMessage, GeneratedFile } from '../types';
 import { dbCore } from './db/dbCore';
 import { taskService } from './taskService';
@@ -8,6 +9,7 @@ import { ragService } from './memory/ragService';
 /**
  * SurrealDB Facade.
  * Wraps SurrealDB repositories and provides a clean API for the application.
+ * Optimized for selective hydration (Project vs History).
  */
 class DatabaseFacade {
     private static instance: DatabaseFacade;
@@ -29,7 +31,9 @@ class DatabaseFacade {
         try { return await taskService.addTask(desc, fn); } finally { this.locks.delete(projects_id); }
     }
 
-    public async getAllProjects() { return this.projects.getAll(); }
+    /** Only gets active projects for the main UI */
+    public async getAllProjects() { return this.projects.getAllActive(); }
+    
     public async getProjectById(projects_id: string) { return this.projects.getById(projects_id); }
     
     public async createProject(e: JournalEntry) {
@@ -80,6 +84,7 @@ class DatabaseFacade {
         return result;
     }
 
+    /** Fetches chat history selectively by project_id */
     public async getRefactorHistory(projects_id: string) { 
         if (!projects_id) return [];
         return this.chats.getRefactorHistory(projects_id, this.projects); 

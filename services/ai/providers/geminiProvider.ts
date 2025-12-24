@@ -1,4 +1,3 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { ILLMProvider, GenerationOptions, StreamChunk } from "./interface";
 import { ChatMessage } from "../../../types";
@@ -13,17 +12,29 @@ export class GeminiProvider implements ILLMProvider {
             throw new Error("Google Gemini API key is missing. Please ensure the API_KEY environment variable is set.");
         }
         this.ai = new GoogleGenAI({ apiKey });
-        // Map common names to actual model IDs based on guidelines
-        if (model === 'flash') this.model = 'gemini-3-flash-preview';
-        else if (model === 'pro') this.model = 'gemini-3-pro-preview';
-        else this.model = model;
+        
+        // Comprehensive mapping for Gemini models
+        const modelMap: Record<string, string> = {
+            'flash': 'gemini-3-flash-preview',
+            'pro': 'gemini-3-pro-preview',
+            '2.5-pro': 'gemini-2.5-pro-preview',
+            '2.5-flash': 'gemini-2.5-flash-preview',
+            '2.5-lite': 'gemini-2.5-flash-lite-preview'
+        };
+
+        this.model = modelMap[model] || model;
     }
 
     private getThinkingBudget(level?: 'low' | 'medium' | 'high'): number | undefined {
         if (!level) return undefined;
+        
+        // Budgeting based on model family
+        const is25 = this.model.includes('2.5');
+        const maxBudget = is25 ? 24576 : 32768; // Flash 2.5 / Pro 3 limits
+
         switch(level) {
-            case 'high': return 16384;
-            case 'medium': return 8192;
+            case 'high': return maxBudget;
+            case 'medium': return Math.floor(maxBudget / 2);
             case 'low': return 2048;
             default: return undefined;
         }
@@ -36,7 +47,6 @@ export class GeminiProvider implements ILLMProvider {
         if (options?.schema) config.responseSchema = options.schema;
         if (options?.temperature) config.temperature = options.temperature;
         
-        // Handle thinking budget if provided for generateContent (though typically mostly for reasoning tasks)
         const budget = this.getThinkingBudget(options?.thinkingBudget);
         if (budget) config.thinkingConfig = { thinkingBudget: budget };
 
@@ -57,7 +67,6 @@ export class GeminiProvider implements ILLMProvider {
         
         config.temperature = options?.temperature ?? 0.2;
 
-        // Map internal history to Gemini format
         const geminiHistory = history
             .filter(h => !h.isStreaming && h.text && h.text.trim().length > 0)
             .map(h => ({

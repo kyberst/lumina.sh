@@ -1,3 +1,4 @@
+
 import { JournalEntry } from '../../types';
 import { dbCore } from '../db/dbCore';
 import { BaseRepository } from './baseRepository';
@@ -5,10 +6,17 @@ import { BaseRepository } from './baseRepository';
 export class ProjectRepository extends BaseRepository {
     
     // Explicitly define all needed fields, mapping id to projects_id
-    private readonly FIELDS = "meta::id(id) AS projects_id, prompt, timestamp, description, files, tags, mood, sentimentScore, project, pendingGeneration, contextSource, envVars, dependencies, requiredEnvVars, installCommand, startCommand";
+    // Note: 'status' is now included and used for filtering
+    private readonly FIELDS = "meta::id(id) AS projects_id, prompt, timestamp, description, files, tags, mood, sentimentScore, project, pendingGeneration, contextSource, envVars, dependencies, requiredEnvVars, installCommand, startCommand, status";
 
-    public async getAll(): Promise<JournalEntry[]> {
-        const r = await dbCore.query<JournalEntry>(`SELECT ${this.FIELDS} FROM projects ORDER BY timestamp DESC`);
+    /**
+     * Fetches all active projects.
+     * Implements Dyad-style server-side selective querying.
+     */
+    public async getAllActive(): Promise<JournalEntry[]> {
+        const r = await dbCore.query<JournalEntry>(
+            `SELECT ${this.FIELDS} FROM projects WHERE status = 'active' ORDER BY timestamp DESC`
+        );
         return this.mapResults(r, 'projects_id');
     }
 
@@ -23,9 +31,10 @@ export class ProjectRepository extends BaseRepository {
         return r.length ? this.mapResult(r[0], 'projects_id') : null;
     }
 
-    public async create(e: JournalEntry): Promise<void> {
+    public async create(e: JournalEntry): Promise<JournalEntry> {
         const op = this.getCreateOperation(e);
-        await dbCore.query(op.query, op.params);
+        const r = await dbCore.query(op.query, op.params);
+        return this.mapResult(r[0], 'projects_id');
     }
 
     public getCreateOperation(e: JournalEntry) {
@@ -36,13 +45,14 @@ export class ProjectRepository extends BaseRepository {
         
         return { 
             query: `CREATE type::thing('projects', $id) CONTENT $content`, 
-            params: { id: cleanId, content } 
+            params: { id: cleanId, content: { ...content, status: content.status || 'active' } } 
         };
     }
 
-    public async save(e: JournalEntry): Promise<void> {
+    public async save(e: JournalEntry): Promise<JournalEntry> {
         const op = this.getSaveOperation(e);
-        await dbCore.query(op.query, op.params);
+        const r = await dbCore.query(op.query, op.params);
+        return this.mapResult(r[0], 'projects_id');
     }
 
     public getSaveOperation(e: JournalEntry) {
@@ -65,7 +75,8 @@ export class ProjectRepository extends BaseRepository {
                 dependencies = $dependencies,
                 requiredEnvVars = $requiredEnvVars,
                 installCommand = $installCommand,
-                startCommand = $startCommand
+                startCommand = $startCommand,
+                status = $status
         `;
         
         const params = {
@@ -84,14 +95,21 @@ export class ProjectRepository extends BaseRepository {
             dependencies: e.dependencies ?? {},
             requiredEnvVars: e.requiredEnvVars ?? [],
             installCommand: e.installCommand ?? "",
-            startCommand: e.startCommand ?? ""
+            startCommand: e.startCommand ?? "",
+            status: e.status || 'active'
         };
         return { query: sql, params };
     }
 
+    /**
+     * Soft delete implementation.
+     */
     public async delete(projects_id: string): Promise<void> {
         const cleanId = this.cleanId(projects_id);
         if (!cleanId) return;
-        await dbCore.query("DELETE projects WHERE id = type::thing('projects', $id)", { id: cleanId });
+        await dbCore.query(
+            "UPDATE type::thing('projects', $id) SET status = 'deleted'", 
+            { id: cleanId }
+        );
     }
 }

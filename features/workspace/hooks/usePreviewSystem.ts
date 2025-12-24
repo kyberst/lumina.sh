@@ -1,6 +1,6 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { GeneratedFile, EnvVarRequest, DependencyDetails } from '../../../types';
+import { GeneratedFile, EnvVarRequest, DependencyDetails, ConsoleLog } from '../../../types';
 import { generateIframeHtml } from '../utils/iframeBuilder';
 
 interface SourceMapEntry { start: number; end: number; file: string; }
@@ -13,7 +13,7 @@ export const usePreviewSystem = (
     requiredRequests?: EnvVarRequest[]
 ) => {
     const [showConsole, setShowConsole] = useState(false);
-    const [consoleLogs, setConsoleLogs] = useState<any[]>([]);
+    const [consoleLogs, setConsoleLogs] = useState<ConsoleLog[]>([]);
     const [errorCount, setErrorCount] = useState(0);
     const sourceMapRef = useRef<Record<string, SourceMapEntry>>({});
     const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -58,7 +58,16 @@ export const usePreviewSystem = (
                         }
                     }
                 }
-                setConsoleLogs(p => [...p, { type: e.data.level, msg: e.data.message, time: new Date().toLocaleTimeString(), source: mappedSource }]);
+                
+                const newLog: ConsoleLog = {
+                    id: crypto.randomUUID(),
+                    type: e.data.level, 
+                    msg: e.data.message, 
+                    time: new Date().toLocaleTimeString(), 
+                    source: mappedSource 
+                };
+
+                setConsoleLogs(p => [...p, newLog]);
                 if (e.data.level === 'error') setErrorCount(c => c + 1);
             }
         };

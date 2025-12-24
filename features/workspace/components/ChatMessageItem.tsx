@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ChatMessage, GeneratedFile } from '../../../types';
 import { MarkdownRenderer } from '../../../components/ui/MarkdownRenderer';
@@ -22,6 +23,8 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, previousSnapshot, onEnvV
         (msg.modifiedFiles && msg.modifiedFiles.length > 0) || 
         (msg.requiredEnvVars && msg.requiredEnvVars.length > 0) || 
         (msg.attachments && msg.attachments.length > 0) ||
+        (msg.contextLogs && msg.contextLogs.length > 0) ||
+        (msg.contextElements && msg.contextElements.length > 0) ||
         msg.pending;
 
     if (!hasContent) return null;
@@ -135,6 +138,57 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, previousSnapshot, onEnvV
                         {msg.text && (
                             <div className={`prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:my-1 ${isModel ? 'text-foreground/90' : 'text-white font-medium'}`}>
                                 <MarkdownRenderer content={msg.text} />
+                            </div>
+                        )}
+
+                        {/* ATTACHED VISUAL CONTEXT (ELEMENTS) */}
+                        {msg.contextElements && msg.contextElements.length > 0 && (
+                            <div className={`mt-2 rounded-lg overflow-hidden border border-white/10 ${isModel ? 'bg-indigo-50/50' : 'bg-white/10'}`}>
+                                <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest opacity-80 flex items-center gap-1.5">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+                                    Sent Visual Context
+                                </div>
+                                <div className="px-3 pb-2 text-[10px] font-mono leading-snug">
+                                    {msg.contextElements.map((selector, i) => (
+                                        <div key={i} className="truncate opacity-80">
+                                            {selector}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ATTACHED CONTEXT (ERRORS) */}
+                        {msg.contextLogs && msg.contextLogs.length > 0 && (
+                            <div className={`mt-3 rounded-xl overflow-hidden border ${isModel ? 'bg-slate-50 border-slate-200' : 'bg-black/20 border-white/10'}`}>
+                                <div className={`px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest flex items-center gap-2 ${isModel ? 'text-slate-500 bg-slate-100' : 'text-white/60 bg-black/20'}`}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                    Attached Context
+                                </div>
+                                <div className="divide-y divide-white/10">
+                                    {msg.contextLogs.map((log) => (
+                                        <details key={log.id} className="group/error open:bg-black/5 transition-colors">
+                                            <summary className="px-3 py-2 cursor-pointer list-none flex items-start gap-2 hover:bg-white/5 transition-colors">
+                                                <span className={`text-[10px] mt-0.5 transition-transform group-open/error:rotate-90 ${isModel ? 'text-slate-400' : 'text-white/50'}`}>▶</span>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className={`text-xs font-mono truncate ${log.type === 'error' ? 'text-red-300 font-bold' : 'text-amber-200'}`}>
+                                                        {log.msg}
+                                                    </div>
+                                                    {log.source && (
+                                                        <div className={`text-[9px] ${isModel ? 'text-slate-400' : 'text-white/40'}`}>
+                                                            {log.source.file}:{log.source.line}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </summary>
+                                            <div className="px-8 pb-3 pt-0">
+                                                <pre className={`text-[10px] font-mono whitespace-pre-wrap break-all p-2 rounded-md ${isModel ? 'bg-white border border-slate-200 text-slate-700' : 'bg-black/30 text-white/80'}`}>
+                                                    {log.msg}
+                                                </pre>
+                                            </div>
+                                        </details>
+                                    ))}
+                                </div>
                             </div>
                         )}
                         

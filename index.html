@@ -45,66 +45,45 @@
 
     <style>
       :root {
-        /* Base: Clean Light Mode with subtle warmth & mystery */
         --background: 210 40% 98%;
         --foreground: 222 47% 11%;
-
         --card: 0 0% 100%;
         --card-foreground: 222 47% 11%;
-
         --popover: 0 0% 100%;
         --popover-foreground: 222 47% 11%;
-
-        /* Primary: Electric Indigo - The energy of Lumina */
         --primary: 243 75% 59%;
         --primary-foreground: 210 40% 98%;
-
-        /* Secondary: Soft Slate */
         --secondary: 210 40% 96.1%;
         --secondary-foreground: 222 47% 11%;
-
         --muted: 210 40% 96.1%;
         --muted-foreground: 215 16% 47%;
-
         --accent: 210 40% 96.1%;
         --accent-foreground: 222 47% 11%;
-
         --destructive: 0 84% 60%;
         --destructive-foreground: 210 40% 98%;
-
         --border: 214 32% 91%;
         --input: 214 32% 91%;
         --ring: 243 75% 59%;
-
-        --radius: 0.75rem; /* Modern rounded corners */
+        --radius: 0.75rem;
       }
 
-      /* Dark Mode: Deep Space Mystery (Emergent Style) */
       .dark {
         --background: 222 47% 11%;
         --foreground: 210 40% 98%;
-
         --card: 222 47% 11%;
         --card-foreground: 210 40% 98%;
-
         --popover: 222 47% 11%;
         --popover-foreground: 210 40% 98%;
-
-        --primary: 243 100% 70%; /* Brighter indigo for dark mode visibility */
+        --primary: 243 100% 70%;
         --primary-foreground: 222 47% 11%;
-
         --secondary: 217 33% 17%;
         --secondary-foreground: 210 40% 98%;
-
         --muted: 217 33% 17%;
         --muted-foreground: 215 20% 65%;
-
         --accent: 217 33% 17%;
         --accent-foreground: 210 40% 98%;
-
         --destructive: 0 63% 31%;
         --destructive-foreground: 210 40% 98%;
-
         --border: 217 33% 17%;
         --input: 217 33% 17%;
         --ring: 243 75% 59%;
@@ -119,56 +98,16 @@
         min-height: 100vh;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
-        /* Subtle mesh gradient background */
+      }
+
+      /* Mysterious Technical Grid */
+      .bg-grid-mystic {
         background-image: 
-          radial-gradient(at 0% 0%, hsla(253,16%,7%,0) 0, transparent 50%), 
-          radial-gradient(at 50% 0%, hsla(225,39%,30%,0) 0, transparent 50%), 
-          radial-gradient(at 100% 0%, hsla(339,49%,30%,0) 0, transparent 50%);
+          linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+        background-size: 16px 16px;
       }
 
-      /* Global Focus Styles for Accessibility */
-      :focus-visible {
-        outline: 2px solid hsl(var(--ring));
-        outline-offset: 2px;
-      }
-
-      /* Custom Scrollbar - Modern & Minimal */
-      ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: hsl(var(--muted-foreground) / 0.3);
-        border-radius: 10px;
-        transition: background 0.3s;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: hsl(var(--muted-foreground) / 0.6);
-      }
-
-      /* Animations */
-      @keyframes float {
-        0% { transform: translateY(0px); }
-        50% { transform: translateY(-6px); }
-        100% { transform: translateY(0px); }
-      }
-      .animate-float {
-        animation: float 6s ease-in-out infinite;
-      }
-
-      @keyframes gradient-xy {
-        0%, 100% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-      }
-      .animate-gradient {
-        background-size: 200% 200%;
-        animation: gradient-xy 6s ease infinite;
-      }
-
-      /* Glassmorphism Utilities */
       .glass-panel {
         background: hsl(var(--card) / 0.7);
         backdrop-filter: blur(12px);
@@ -176,7 +115,6 @@
         border: 1px solid hsl(var(--border) / 0.5);
       }
 
-      /* Legacy Utilities (Keep for backward compatibility but mapped to new variables) */
       .shadcn-btn {
         display: inline-flex;
         align-items: center;
@@ -189,80 +127,36 @@
         padding: 0.5rem 1rem;
         border: 1px solid transparent;
       }
-      .shadcn-btn:active {
-        transform: scale(0.98);
-      }
+      .shadcn-btn:active { transform: scale(0.98); }
       .shadcn-btn-primary {
         background-color: hsl(var(--primary));
         color: hsl(var(--primary-foreground));
         box-shadow: 0 4px 14px 0 hsl(var(--primary) / 0.3);
-      }
-      .shadcn-btn-primary:hover {
-        background-color: hsl(var(--primary) / 0.9);
-        box-shadow: 0 6px 20px hsl(var(--primary) / 0.4);
       }
       .shadcn-btn-outline {
         border: 1px solid hsl(var(--border));
         background-color: transparent;
         color: hsl(var(--foreground));
       }
-      .shadcn-btn-outline:hover {
-        background-color: hsl(var(--accent));
-        color: hsl(var(--accent-foreground));
-        border-color: hsl(var(--accent));
-      }
-      .shadcn-btn-ghost {
-        background-color: transparent;
-        color: hsl(var(--foreground));
-      }
-      .shadcn-btn-ghost:hover {
-        background-color: hsl(var(--accent) / 0.5);
-        color: hsl(var(--accent-foreground));
-      }
-      .shadcn-btn-destructive {
-        background-color: hsl(var(--destructive));
-        color: hsl(var(--destructive-foreground));
-      }
-      
       .shadcn-input {
         display: flex;
         height: 2.75rem;
         width: 100%;
         border-radius: var(--radius);
         border: 1px solid hsl(var(--input));
-        /* Ensure distinct background instead of transparent */
         background-color: hsl(var(--card)); 
         padding: 0.5rem 0.75rem;
         font-size: 0.875rem;
         font-weight: 500;
         transition: all 0.2s;
-        /* Enforce high contrast text color */
         color: #0f172a; 
       }
       .dark .shadcn-input {
         background-color: hsl(var(--secondary) / 0.5);
         color: #f8fafc;
       }
-      
-      .shadcn-input:focus {
-        outline: none;
-        border-color: hsl(var(--primary));
-        box-shadow: 0 0 0 1px hsl(var(--primary));
-        background-color: hsl(var(--background));
-      }
-      .shadcn-input::placeholder {
-        color: hsl(var(--muted-foreground));
-        opacity: 0.7;
-      }
-
-      /* Utilities */
-      .no-scrollbar::-webkit-scrollbar {
-          display: none;
-      }
-      .no-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-      }
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-thumb { background: hsl(var(--muted-foreground) / 0.3); border-radius: 10px; }
     </style>
     
     <script>
@@ -276,64 +170,15 @@
               ring: "hsl(var(--ring))",
               background: "hsl(var(--background))",
               foreground: "hsl(var(--foreground))",
-              primary: {
-                DEFAULT: "hsl(var(--primary))",
-                foreground: "hsl(var(--primary-foreground))",
-              },
-              secondary: {
-                DEFAULT: "hsl(var(--secondary))",
-                foreground: "hsl(var(--secondary-foreground))",
-              },
-              destructive: {
-                DEFAULT: "hsl(var(--destructive))",
-                foreground: "hsl(var(--destructive-foreground))",
-              },
-              muted: {
-                DEFAULT: "hsl(var(--muted))",
-                foreground: "hsl(var(--muted-foreground))",
-              },
-              accent: {
-                DEFAULT: "hsl(var(--accent))",
-                foreground: "hsl(var(--accent-foreground))",
-              },
-              popover: {
-                DEFAULT: "hsl(var(--popover))",
-                foreground: "hsl(var(--popover-foreground))",
-              },
-              card: {
-                DEFAULT: "hsl(var(--card))",
-                foreground: "hsl(var(--card-foreground))",
-              },
+              primary: { DEFAULT: "hsl(var(--primary))", foreground: "hsl(var(--primary-foreground))" },
+              secondary: { DEFAULT: "hsl(var(--secondary))", foreground: "hsl(var(--secondary-foreground))" },
+              muted: { DEFAULT: "hsl(var(--muted))", foreground: "hsl(var(--muted-foreground))" },
+              accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
+              card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
             },
-            borderRadius: {
-              lg: "var(--radius)",
-              md: "calc(var(--radius) - 2px)",
-              sm: "calc(var(--radius) - 4px)",
-            },
-            fontFamily: {
-              sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
-              mono: ['JetBrains Mono', 'monospace'],
-            },
-            animation: {
-              'accordion-down': 'accordion-down 0.2s ease-out',
-              'accordion-up': 'accordion-up 0.2s ease-out',
-              'in': 'fadeIn 0.4s ease-out forwards',
-              'float': 'float 6s ease-in-out infinite',
-            },
-            keyframes: {
-              fadeIn: {
-                '0%': { opacity: '0', transform: 'translateY(8px)' },
-                '100%': { opacity: '1', transform: 'translateY(0)' },
-              },
-              accordionDown: {
-                from: { height: '0' },
-                to: { height: 'var(--radix-accordion-content-height)' },
-              },
-              accordionUp: {
-                from: { height: 'var(--radix-accordion-content-height)' },
-                to: { height: '0' },
-              },
-            }
+            borderRadius: { lg: "var(--radius)", md: "calc(var(--radius) - 2px)", sm: "calc(var(--radius) - 4px)" },
+            animation: { 'in': 'fadeIn 0.4s ease-out forwards' },
+            keyframes: { fadeIn: { '0%': { opacity: '0', transform: 'translateY(8px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } } }
           },
         },
       }
@@ -342,24 +187,5 @@
   <body class="bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary">
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                try {
-                    navigator.serviceWorker.register('./sw.js')
-                        .then(registration => {
-                            console.log('lumina.sh SW registered');
-                        })
-                        .catch(err => {
-                            if (!err.message.includes('SecurityError')) {
-                                console.warn('lumina.sh SW failed: ', err);
-                            }
-                        });
-                } catch (e) {
-                    console.debug('SW registration skipped');
-                }
-            });
-        }
-    </script>
   </body>
 </html>

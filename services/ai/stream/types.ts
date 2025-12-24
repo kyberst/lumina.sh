@@ -1,4 +1,3 @@
-
 import { GeneratedFile, CodeAnnotation, AIPlan, DependencyDetails } from '../../../types';
 
 export type StreamMode = 'TEXT' | 'REASONING' | 'SUMMARY' | 'FILE' | 'PATCH' | 'COMMAND';
@@ -17,4 +16,5 @@ export interface StreamState {
   annotations: CodeAnnotation[]; // Visual feedback/errors from AI
   aiPlan?: AIPlan; // Structured plan progress
   suggestions: string[]; // Contextual suggestions for the next user prompt
+  statusOverride?: string; // Dynamic label for Thinking UI
 }

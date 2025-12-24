@@ -1,3 +1,4 @@
+
 import { ReactNode } from 'react';
 
 type DialogType = 'confirm' | 'alert' | 'prompt';
@@ -12,6 +13,7 @@ interface DialogRequest {
   onConfirm: (val?: string) => void;
   onCancel: () => void;
   destructive?: boolean;
+  hideButtons?: boolean;
 }
 
 type Listener = (dialog: DialogRequest | null) => void;
@@ -56,7 +58,7 @@ class DialogService {
     });
   }
 
-  public alert(title: string, description: ReactNode): Promise<void> {
+  public alert(title: string, description: ReactNode, options?: { hideButtons?: boolean }): Promise<void> {
       return new Promise((resolve) => {
         const request: DialogRequest = {
             id: crypto.randomUUID(),
@@ -64,6 +66,7 @@ class DialogService {
             title,
             description,
             confirmLabel: 'OK',
+            hideButtons: options?.hideButtons,
             onConfirm: () => {
                 this.close();
                 resolve();

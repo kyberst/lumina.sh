@@ -26,12 +26,14 @@ export const OnboardingOverlay: React.FC<Props> = ({ steps, currentStep, onNext,
             const el = document.querySelector(step.target);
             if (el) {
                 setRect(el.getBoundingClientRect());
+                // Use scrollIntoView with block: 'nearest' to avoid jumping too much
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+                setRect(null);
             }
         };
 
-        // Initial update with delay for transitions
-        const timer = setTimeout(updateRect, 300);
+        const timer = setTimeout(updateRect, 500);
         window.addEventListener('resize', updateRect);
         
         return () => {
@@ -40,9 +42,9 @@ export const OnboardingOverlay: React.FC<Props> = ({ steps, currentStep, onNext,
         };
     }, [step]);
 
+    // If target element is not found, we don't render to avoid "blocking" with a giant shadow
     if (!rect) return null;
 
-    // Tooltip positioning logic
     const tooltipStyle: React.CSSProperties = { position: 'absolute' };
     
     if (step.position === 'top') {
@@ -52,21 +54,19 @@ export const OnboardingOverlay: React.FC<Props> = ({ steps, currentStep, onNext,
         tooltipStyle.top = rect.top;
         tooltipStyle.right = window.innerWidth - rect.left + 20;
     } else {
-        // Default bottom
         tooltipStyle.top = rect.bottom + 20;
         tooltipStyle.left = rect.left;
     }
 
-    // Basic viewport clamping
-    if (tooltipStyle.left && (tooltipStyle.left as number) > window.innerWidth - 300) {
-        tooltipStyle.left = window.innerWidth - 320;
+    if (tooltipStyle.left && (tooltipStyle.left as number) > window.innerWidth - 320) {
+        tooltipStyle.left = window.innerWidth - 340;
     }
 
     const isLast = currentStep === steps.length - 1;
 
     return createPortal(
-        <div className="fixed inset-0 z-[9999] overflow-hidden">
-            {/* Spotlight Overlay using massive box-shadow trick */}
+        <div className="fixed inset-0 z-[9999] overflow-hidden pointer-events-none">
+            {/* Spotlight Overlay - pointer-events-none is vital */}
             <div 
                 className="absolute transition-all duration-500 ease-in-out border-2 border-indigo-500 rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.7)] pointer-events-none"
                 style={{
@@ -77,9 +77,9 @@ export const OnboardingOverlay: React.FC<Props> = ({ steps, currentStep, onNext,
                 }}
             />
             
-            {/* Tooltip Card */}
+            {/* Tooltip Card - Reinstate pointer events for interaction */}
             <div 
-                className="absolute z-[10000] bg-white p-6 rounded-2xl shadow-2xl max-w-sm border border-indigo-100 animate-in fade-in slide-in-from-bottom-4 duration-500"
+                className="absolute z-[10000] bg-white p-6 rounded-2xl shadow-2xl max-w-sm border border-indigo-100 animate-in fade-in slide-in-from-bottom-4 duration-500 pointer-events-auto"
                 style={tooltipStyle}
             >
                 <div className="flex items-center justify-between mb-2">
@@ -90,12 +90,12 @@ export const OnboardingOverlay: React.FC<Props> = ({ steps, currentStep, onNext,
                     {t(step.descKey, 'onboarding')}
                 </p>
                 <div className="flex justify-between items-center">
-                    <button onClick={onSkip} className="text-slate-400 hover:text-slate-600 text-xs font-bold uppercase tracking-wider">
+                    <button onClick={onSkip} className="text-slate-400 hover:text-slate-600 text-xs font-bold uppercase tracking-wider transition-colors">
                         {t('skip', 'onboarding')}
                     </button>
                     <button 
                         onClick={isLast ? onFinish : onNext}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-full font-bold shadow-lg shadow-indigo-200 transition-transform active:scale-95"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-full font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95"
                     >
                         {isLast ? t('finish', 'onboarding') : t('next', 'onboarding')}
                     </button>

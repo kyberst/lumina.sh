@@ -87,13 +87,16 @@ export const DEPENDENCY_VALIDATOR_SCRIPT = (imports: Record<string, string>) => 
 
 /**
  * Script for visual element selection within the iframe.
+ * Framework agnostic (works on DOM).
  */
 export const ELEMENT_SELECTOR_SCRIPT = `
 <style>
-  body[data-lumina-select-mode="true"] *:not(#lumina-element-inspector-menu):not(#lumina-element-inspector-menu *):hover {
+  .lumina-inspector-highlight {
     outline: 2px solid #4f46e5 !important;
-    outline-offset: 2px;
-    cursor: crosshair;
+    outline-offset: -2px !important;
+    cursor: crosshair !important;
+    background-color: rgba(79, 70, 229, 0.1) !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2) !important;
   }
   #lumina-element-inspector-menu {
     position: absolute;
@@ -102,33 +105,46 @@ export const ELEMENT_SELECTOR_SCRIPT = `
     border: 1px solid #334155; /* slate-700 */
     box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.2), 0 4px 6px -4px rgb(0 0 0 / 0.1);
     border-radius: 8px;
-    padding: 4px;
+    padding: 6px;
     display: flex;
     gap: 4px;
     font-family: sans-serif;
+    transform: translate(-50%, 10px);
+  }
+  #lumina-element-inspector-menu::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 5px solid #334155;
   }
   #lumina-element-inspector-menu button {
-    background: transparent;
+    background: #334155;
     border: none;
     color: #cbd5e1; /* slate-300 */
-    width: 36px;
-    height: 36px;
+    padding: 6px 12px;
     border-radius: 6px;
     cursor: pointer;
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
     transition: all 0.2s;
+    white-space: nowrap;
   }
   #lumina-element-inspector-menu button:hover {
-    background: #334155; /* slate-700 */
+    background: #4f46e5; /* indigo-600 */
     color: #ffffff; /* white */
-    transform: scale(1.05);
   }
 </style>
 <script>
 (function() {
   let menu = null;
+  let currentHighlight = null;
 
   function getCssSelector(el) {
     if (!(el instanceof Element)) return;
@@ -152,6 +168,38 @@ export const ELEMENT_SELECTOR_SCRIPT = `
     return path.join(" > ");
   }
 
+  function getComputedProperties(el) {
+    if (!el) return null;
+    const s = window.getComputedStyle(el);
+    const rect = el.getBoundingClientRect();
+    
+    // Capture HTML structure for context
+    const htmlSnippet = el.outerHTML; 
+
+    return {
+        color: s.color,
+        backgroundColor: s.backgroundColor,
+        fontSize: s.fontSize,
+        display: s.display,
+        width: Math.round(rect.width) + 'px',
+        height: Math.round(rect.height) + 'px',
+        margin: {
+            top: s.marginTop,
+            right: s.marginRight,
+            bottom: s.marginBottom,
+            left: s.marginLeft
+        },
+        padding: {
+            top: s.paddingTop,
+            right: s.paddingRight,
+            bottom: s.paddingBottom,
+            left: s.paddingLeft
+        },
+        textContent: el.innerText ? el.innerText.substring(0, 500) : '',
+        html: htmlSnippet // New field
+    };
+  }
+
   function createMenu(target, selector) {
     if (menu) menu.remove();
     const rect = target.getBoundingClientRect();
@@ -161,33 +209,65 @@ export const ELEMENT_SELECTOR_SCRIPT = `
       <button id="lumina-btn-chat" title="Use in Chat">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
       </button>
-      <button id="lumina-btn-edit" title="Edit Element">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+      <button id="lumina-btn-edit" title="Modify Style & Properties">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+        Edit Element
       </button>
     \`;
     document.body.appendChild(menu);
-    menu.style.top = (window.scrollY + rect.bottom + 5) + 'px';
-    menu.style.left = (window.scrollX + rect.left) + 'px';
+    
+    // Position menu centered below element
+    const top = window.scrollY + rect.bottom;
+    const left = window.scrollX + rect.left + (rect.width / 2);
+    
+    menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
 
     document.getElementById('lumina-btn-chat').onclick = (e) => {
       e.stopPropagation();
-      window.parent.postMessage({ type: 'ELEMENT_SELECTED_FOR_CHAT', selector }, '*');
+      const styles = getComputedProperties(target);
+      window.parent.postMessage({ type: 'ELEMENT_SELECTED_FOR_CHAT', selector, styles }, '*');
       if (menu) menu.remove();
       menu = null;
     };
+
     document.getElementById('lumina-btn-edit').onclick = (e) => {
       e.stopPropagation();
-      window.parent.postMessage({ type: 'ELEMENT_SELECTED_FOR_EDIT', selector }, '*');
+      const styles = getComputedProperties(target);
+      window.parent.postMessage({ type: 'ELEMENT_SELECTED_FOR_EDIT', selector, styles }, '*');
       cleanup();
     };
   }
   
+  function handleMouseOver(e) {
+    if (e.target.closest('#lumina-element-inspector-menu')) return;
+    
+    // Stop propagation to ensure we select the exact element under cursor, not parent
+    e.stopPropagation();
+
+    // Remove highlight from previous element if it exists
+    if (currentHighlight && currentHighlight !== e.target) {
+        currentHighlight.classList.remove('lumina-inspector-highlight');
+    }
+
+    currentHighlight = e.target;
+    currentHighlight.classList.add('lumina-inspector-highlight');
+  }
+
+  function handleMouseOut(e) {
+    // When mouse leaves an element, remove the highlight
+    if (e.target.classList.contains('lumina-inspector-highlight')) {
+        e.target.classList.remove('lumina-inspector-highlight');
+    }
+  }
+
   function handleClick(e) {
     if (e.target.closest('#lumina-element-inspector-menu')) {
       return;
     }
     e.preventDefault();
     e.stopPropagation();
+    
     if (menu) {
         menu.remove();
         menu = null;
@@ -199,8 +279,14 @@ export const ELEMENT_SELECTOR_SCRIPT = `
   function cleanup() {
     if (menu) menu.remove();
     menu = null;
+    if (currentHighlight) {
+        currentHighlight.classList.remove('lumina-inspector-highlight');
+        currentHighlight = null;
+    }
     document.body.removeAttribute('data-lumina-select-mode');
     document.body.removeEventListener('click', handleClick, true);
+    document.body.removeEventListener('mouseover', handleMouseOver, true);
+    document.body.removeEventListener('mouseout', handleMouseOut, true);
   }
 
   window.addEventListener('message', (e) => {
@@ -208,6 +294,8 @@ export const ELEMENT_SELECTOR_SCRIPT = `
       if (e.data.active) {
         document.body.setAttribute('data-lumina-select-mode', 'true');
         document.body.addEventListener('click', handleClick, true);
+        document.body.addEventListener('mouseover', handleMouseOver, true);
+        document.body.addEventListener('mouseout', handleMouseOut, true);
       } else {
         cleanup();
       }

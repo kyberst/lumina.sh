@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { toast } from '../../services/toastService';
 
@@ -17,8 +16,9 @@ export const ToastContainer: React.FC = () => {
     });
   }, []);
 
+  // z-index increased to 11000 to be above tutorial (10000)
   return (
-    <div className="fixed bottom-6 right-6 z-[300] flex flex-col gap-3 pointer-events-none outline-none max-w-[400px] w-full">
+    <div className="fixed bottom-6 right-6 z-[11000] flex flex-col gap-3 pointer-events-none outline-none max-w-[400px] w-full">
       {toasts.map((t) => (
         <div
           key={t.id}

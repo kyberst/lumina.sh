@@ -1,10 +1,10 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { t } from '../../../services/i18n';
 import { AppSettings } from '../../../types';
 import { useVoiceInput } from '../../../hooks/useVoiceInput';
 import { TechStackSelector } from './creation/TechStackSelector';
 import { ComplexityControl } from './creation/ComplexityControl';
+import { UnifiedModelSelector } from './creation/UnifiedModelSelector';
 
 interface CreationFormProps {
   settings: AppSettings;
@@ -42,7 +42,6 @@ export const CreationForm: React.FC<CreationFormProps> = (props) => {
   const { isListening, toggleListening, transcript, resetTranscript } = useVoiceInput();
   const attachmentRef = useRef<HTMLInputElement>(null);
   
-  // Dynamic Placeholder Logic
   const [placeholder, setPlaceholder] = useState('');
   const [phIndex, setPhIndex] = useState(0);
   const [charIndex, setCharIndex] = useState(0);
@@ -106,19 +105,10 @@ export const CreationForm: React.FC<CreationFormProps> = (props) => {
       props.setStack(prev => prev.includes(item) ? prev.filter(s => s !== item) : [...prev, item]);
   };
 
-  const activeModels = props.selectedProvider === 'gemini' 
-    ? [{ id: 'flash', name: 'Gemini Flash (Fast)' }, { id: 'pro', name: 'Gemini Pro (Smart)' }]
-    : props.settings.customProviders?.find(p => p.id === props.selectedProvider)?.models || [];
-
   return (
     <>
-         {/* Animated Glass Container */}
          <div className="group relative rounded-2xl p-[1px] h-[16rem] mb-8 transition-all duration-500 shadow-[0_0_20px_-5px_rgba(var(--primary),0.1)] hover:shadow-[0_0_40px_-10px_rgba(var(--primary),0.3)] focus-within:shadow-[0_0_60px_-10px_rgba(var(--primary),0.5)] focus-within:scale-[1.005]">
-            
-            {/* Animated Gradient Border Layer - Visible by Default */}
             <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/40 via-primary to-purple-500/40 animate-gradient rounded-2xl blur-[0.5px] opacity-100" />
-            
-            {/* Inner Content Layer */}
             <div className="relative flex flex-col h-full bg-card/90 backdrop-blur-xl rounded-2xl overflow-hidden ring-1 ring-white/10 dark:ring-white/5 transition-colors group-focus-within:bg-card/95">
                 {props.attachments.length > 0 && (
                     <div className="flex gap-2 p-3 bg-muted/30 border-b border-border/50 overflow-x-auto">
@@ -174,22 +164,13 @@ export const CreationForm: React.FC<CreationFormProps> = (props) => {
                      </div>
                  </div>
 
-                 <div className="flex gap-3">
-                     <div className="relative flex-1">
-                        <label className="block text-[11px] text-muted-foreground font-black uppercase mb-1.5 ml-1 tracking-wider">{t('creation.provider', 'builder')}</label>
-                        <select value={props.selectedProvider} onChange={e => { props.setSelectedProvider(e.target.value); props.setSelectedModel(''); }} className="shadcn-input font-medium">
-                            <option value="gemini">Google Gemini</option>
-                            {(props.settings.customProviders || []).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
-                     </div>
-                     <div className="relative flex-1">
-                        <label className="block text-[11px] text-muted-foreground font-black uppercase mb-1.5 ml-1 tracking-wider">{t('creation.model', 'builder')}</label>
-                        <select value={props.selectedModel} onChange={e => props.setSelectedModel(e.target.value)} className="shadcn-input font-medium">
-                            {props.selectedProvider === 'gemini' && !props.selectedModel && <option value="flash">{t('creation.defaultFlash', 'builder')}</option>}
-                            {activeModels.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                        </select>
-                     </div>
-                 </div>
+                 <UnifiedModelSelector 
+                    settings={props.settings}
+                    selectedProvider={props.selectedProvider}
+                    selectedModel={props.selectedModel}
+                    onChange={(p, m) => { props.setSelectedProvider(p); props.setSelectedModel(m); }}
+                    isProcessing={props.isProcessing}
+                 />
             </div>
          </div>
 
@@ -210,7 +191,6 @@ export const CreationForm: React.FC<CreationFormProps> = (props) => {
                 className="relative group overflow-hidden rounded-full h-12 px-8 shadow-lg shadow-primary/25 disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed"
             >
                 <div className="absolute inset-0 bg-primary group-hover:bg-primary/90 transition-colors"></div>
-                {/* Shine Effect */}
                 <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700"></div>
                 
                 <span className="relative flex items-center gap-2 text-primary-foreground font-bold text-sm uppercase tracking-widest">

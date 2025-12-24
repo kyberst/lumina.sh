@@ -20,7 +20,8 @@ export const useImportForm = (settings: AppSettings, onImport: (e: JournalEntry)
         setIsProcessing(true);
         try {
             const { files, projectName } = await readDirectoryFiles(e.target.files);
-            onImport({ projects_id: crypto.randomUUID(), prompt: 'Imported from Folder', timestamp: Date.now(), files, tags: ['Local'], mood: 50, project: projectName || 'Imported Project' });
+            // FIX: Added required 'status' property to JournalEntry to fix line 23 error
+            onImport({ projects_id: crypto.randomUUID(), prompt: 'Imported from Folder', timestamp: Date.now(), files, tags: ['Local'], mood: 50, project: projectName || 'Imported Project', status: 'active' });
         } catch (err: any) { setError(err.message); } finally { setIsProcessing(false); }
     }
   };
@@ -30,7 +31,8 @@ export const useImportForm = (settings: AppSettings, onImport: (e: JournalEntry)
      setIsProcessing(true);
      try {
          const files = await importRepository(repoName, settings.githubToken);
-         onImport({ projects_id: crypto.randomUUID(), prompt: `Imported from ${repoName}`, timestamp: Date.now(), files, tags: ['GitHub'], mood: 50, project: repoName.split('/')[1] });
+         // FIX: Added required 'status' property to JournalEntry to fix line 33 error
+         onImport({ projects_id: crypto.randomUUID(), prompt: `Imported from ${repoName}`, timestamp: Date.now(), files, tags: ['GitHub'], mood: 50, project: repoName.split('/')[1], status: 'active' });
      } catch (err: any) { setError(err.message); } finally { setIsProcessing(false); }
   };
 
@@ -45,6 +47,7 @@ export const useImportForm = (settings: AppSettings, onImport: (e: JournalEntry)
           const repoFullName = `${match[1]}/${match[2]}`;
           const files = await importPublicRepository(repoFullName);
           
+          // FIX: Added required 'status' property to JournalEntry to fix line 48 error
           onImport({ 
               projects_id: crypto.randomUUID(), 
               prompt: `Imported from ${urlInput}`, 
@@ -52,7 +55,8 @@ export const useImportForm = (settings: AppSettings, onImport: (e: JournalEntry)
               files, 
               tags: ['GitHub', 'Public'], 
               mood: 50, 
-              project: match[2] 
+              project: match[2],
+              status: 'active'
           });
           setUrlInput('');
       } catch (err: any) {

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { JournalEntry, AppSettings, ChatMessage } from '../types';
 import { dbFacade } from '../services/dbFacade';
@@ -15,8 +16,8 @@ export const useProjectData = () => {
         zoomLevel: 1, 
         thinkingBudget: 'medium', 
         contextSize: 'default', 
-        autoApprove: false, 
-        autoFix: false, 
+        autoApprove: true, // Default: Enabled
+        autoFix: true,     // Default: Enabled
         mcpServers: [], 
         customProviders: [], 
         telemetryId: '',

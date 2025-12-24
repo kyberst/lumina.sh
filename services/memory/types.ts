@@ -23,6 +23,8 @@ export interface ChunkingOptions {
 }
 
 export interface RAGContext {
-    relevantSnippets: string[];
-    relatedPatterns: string[];
+    // Renamed from relevantSnippets to align with architectural conventions in geminiService
+    snippets: string[];
+    // Renamed from relatedPatterns to align with architectural conventions in geminiService
+    patterns: string[];
 }

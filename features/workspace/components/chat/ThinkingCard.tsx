@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { AIPlan } from '../../../../types';
 import { MarkdownRenderer } from '../../../../components/ui/MarkdownRenderer';
@@ -10,9 +9,10 @@ interface Props {
     currentReasoning: string;
     currentText?: string;
     fileStatuses: Record<string, 'pending' | 'success' | 'error'>;
+    statusOverride?: string;
 }
 
-export const ThinkingCard: React.FC<Props> = ({ aiPlan, thinkTime, currentReasoning, currentText, fileStatuses }) => {
+export const ThinkingCard: React.FC<Props> = ({ aiPlan, thinkTime, currentReasoning, currentText, fileStatuses, statusOverride }) => {
     const [showReasoning, setShowReasoning] = useState(false);
 
     useEffect(() => { 
@@ -25,11 +25,13 @@ export const ThinkingCard: React.FC<Props> = ({ aiPlan, thinkTime, currentReason
     }, [aiPlan]);
 
     const displayStatus = useMemo(() => {
+        if (statusOverride) return statusOverride;
+        
         const hasFiles = Object.keys(fileStatuses).length > 0;
         if (progress < 15 && !hasFiles) return t('thinking.analyzing', 'journal');
         if (progress > 85 || hasFiles) return t('thinking.generating', 'journal');
         return t('thinking.evaluating', 'journal');
-    }, [progress, fileStatuses]);
+    }, [progress, fileStatuses, statusOverride]);
 
     return (
         <div className="flex justify-start w-full mb-4">

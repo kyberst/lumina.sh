@@ -1,3 +1,4 @@
+
 // --- Core Types ---
 
 export enum AppModule {
@@ -75,7 +76,7 @@ export interface CommandLog {
 }
 
 export interface JournalEntry {
-  projects_id: string; // Changed from uid to projects_id
+  projects_id: string;
   prompt: string;
   timestamp: number;
   description?: string;
@@ -92,6 +93,17 @@ export interface JournalEntry {
   startCommand?: string;
   requiredEnvVars?: EnvVarRequest[];
   pendingGeneration?: boolean; 
+  status: 'active' | 'archived' | 'deleted'; 
+}
+
+// --- Console Types ---
+
+export interface ConsoleLog {
+    id: string;
+    type: string; // 'error' | 'warn' | 'info' | 'log'
+    msg: string;
+    time: string;
+    source?: { file: string, line: number };
 }
 
 // --- AI Types ---
@@ -117,7 +129,7 @@ export interface AIPlan {
 }
 
 export interface ChatMessage {
-  refactor_history_id: string; // Changed from mid to refactor_history_id
+  refactor_history_id: string; 
   role: 'user' | 'model';
   text: string;
   timestamp: number;
@@ -134,12 +146,38 @@ export interface ChatMessage {
   editorContext?: EditorContext;
   annotations?: CodeAnnotation[];
   contextSize?: string;
+  contextLogs?: ConsoleLog[]; 
+  contextElements?: string[]; // New: Stores visual selectors sent with this message
   usage?: {
       inputTokens: number;
       outputTokens: number;
   };
   pending?: boolean;
-  projects_id?: string; // Relation field updated to projects_id
+  projects_id?: string;
+}
+
+// --- Security Types ---
+
+export interface SecurityIssue {
+  id: string;
+  title: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  description: string;
+  location: string;
+  recommendation: string;
+  fixPrompt: string;
+}
+
+export interface SecurityReport {
+  healthScore: number;
+  summary: string;
+  severityDistribution: {
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  };
+  issues: SecurityIssue[];
 }
 
 // --- Settings Types ---
@@ -179,6 +217,8 @@ export interface AppSettings {
   aiModel: 'flash' | 'pro';
   githubToken?: string;
   githubUsername?: string;
+  githubAvatar?: string; 
+  vercelToken?: string; 
   zoomLevel: number; 
   compilerDir?: string;
   autoApprove: boolean;
@@ -209,6 +249,7 @@ export interface GitHubRepo {
   html_url: string;
   description: string;
   updated_at: string;
+  default_branch?: string;
 }
 
 export interface GitHubEvent {

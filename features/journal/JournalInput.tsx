@@ -42,9 +42,8 @@ export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, sett
     try {
       validate(content, { type: 'string', minLength: 3, maxLength: 8000 }, AppModule.BUILDER);
       
-      // FIX: Changed 'uid' to 'projects_id' to match JournalEntry type definition
       const skeletonEntry: JournalEntry = {
-        projects_id: crypto.randomUUID(), // App generates UUID string
+        projects_id: crypto.randomUUID(), 
         prompt: content,
         timestamp: Date.now(),
         description: t('initDescription', 'builder'),
@@ -55,6 +54,7 @@ export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, sett
         project: project.trim() || generateUniqueProjectName(),
         pendingGeneration: true, 
         contextSource: 'manual',
+        status: 'active', // Explicit active status
         envVars: {
             _INIT_PROVIDER: selectedProvider,
             _INIT_MODEL: selectedModel,
@@ -78,7 +78,7 @@ export const JournalInput: React.FC<JournalInputProps> = ({ onEntryCreated, sett
   };
 
   const handleImportSuccess = async (entry: JournalEntry) => {
-      await onEntryCreated(entry);
+      await onEntryCreated({ ...entry, status: 'active' });
   };
 
   return (

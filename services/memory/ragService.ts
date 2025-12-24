@@ -2,117 +2,84 @@
 import { GeneratedFile, JournalEntry } from '../../types';
 import { embeddingService } from './embedding';
 import { vectorStore } from './vectorStore';
+import { graphService } from './graphService';
 import { ChunkingOptions, MemoryVector, RAGContext } from './types';
-import { logger } from '../logger';
-import { AppModule } from '../../types';
 
+/**
+ * Hybrid RAG Service.
+ * Combines semantic vector search with relational knowledge graph traversal.
+ */
 export class RAGService {
     private static instance: RAGService;
 
-    private constructor() {}
-
     public static getInstance(): RAGService {
-        if (!RAGService.instance) {
-            RAGService.instance = new RAGService();
-        }
+        if (!RAGService.instance) RAGService.instance = new RAGService();
         return RAGService.instance;
     }
 
-    /**
-     * Splits code into logical chunks.
-     */
-    private chunkFile(file: GeneratedFile, options: ChunkingOptions): string[] {
-        const chunks: string[] = [];
-        const content = file.content;
-        
-        if (content.length < options.maxSize) {
-            return [`File: ${file.name}\nLanguage: ${file.language}\n\n${content}`];
+    /** Dynamic Context Decision: prioritizing nodes based on query semantics */
+    public async retrieveContext(projectId: string, prompt: string): Promise<RAGContext> {
+        try {
+            // 1. Vector Search (Code snippets)
+            const vec = await embeddingService.embedText(prompt);
+            const vectors = await vectorStore.search(projectId, vec, 4);
+            
+            // 2. Graph Retrieval (Decisions/Preferences)
+            const nodes = await graphService.getRelevantContext(projectId, prompt);
+            
+            // 3. Global Context Injection (Dynamic Context Rule)
+            // If the user asks about design, always pull all design preferences
+            if (prompt.match(/design|color|theme|style|ui/i)) {
+                const designNodes = await graphService.getRelevantContext(projectId, "preference");
+                designNodes.forEach(n => { if (!nodes.includes(n)) nodes.push(n); });
+            }
+            
+            // Fix: Return renamed properties snippets and patterns
+            return {
+                snippets: vectors.map(v => v.content),
+                patterns: nodes
+            };
+        } catch (e) {
+            // Fix: Return renamed properties snippets and patterns
+            return { snippets: [], patterns: [] };
         }
-
-        let start = 0;
-        while (start < content.length) {
-            const end = Math.min(start + options.maxSize, content.length);
-            const chunkText = content.slice(start, end);
-            chunks.push(`File: ${file.name} (Part)\nLanguage: ${file.language}\n\n${chunkText}`);
-            start += (options.maxSize - options.overlap);
-        }
-        return chunks;
     }
 
-    /**
-     * Index a full project into Vector Memory.
-     * Uses local embeddings and SurrealDB.
-     */
     public async indexProject(entry: JournalEntry): Promise<void> {
-        // FIX: Property 'uid' does not exist on type 'JournalEntry', using 'projects_id'
-        // Prevent indexing if generation is still pending (incomplete files) or no ID
-        if (entry.pendingGeneration || !entry.projects_id) return;
+        if (!entry.projects_id || entry.pendingGeneration) return;
 
-        // Fire and forget - don't block
+        // Run async in background
         setTimeout(async () => {
             try {
-                // FIX: Property 'uid' does not exist on type 'JournalEntry', using 'projects_id'
-                logger.info(AppModule.CORE, `Starting Local RAG Indexing for project ${entry.project} (${entry.projects_id})`);
-                
-                // 1. Clear old memories for this project
-                // FIX: Property 'uid' does not exist on type 'JournalEntry', using 'projects_id'
+                // A. Vectorize Code
                 await vectorStore.deleteProjectMemories(entry.projects_id);
-
+                const options: ChunkingOptions = { maxSize: 1200, overlap: 200 };
                 const memories: MemoryVector[] = [];
-                const options: ChunkingOptions = { maxSize: 1500, overlap: 300 };
 
                 for (const file of entry.files) {
-                    // Skip extremely large assets
-                    if (file.content.length > 50000) continue;
-
-                    const chunks = this.chunkFile(file, options);
-                    
+                    if (file.content.length > 30000) continue;
+                    const chunks = this.chunkText(file.name, file.content, options);
                     for (const chunk of chunks) {
                         const embedding = await embeddingService.embedText(chunk);
-                        
-                        // Only save valid vectors
-                        if (embedding.some(v => v !== 0)) {
-                            memories.push({
-                                // FIX: Property 'uid' does not exist on type 'JournalEntry', using 'projects_id'
-                                project_id: entry.projects_id,
-                                content: chunk,
-                                metadata: { filename: file.name, language: file.language },
-                                type: 'code_chunk',
-                                embedding,
-                                timestamp: Date.now()
-                            });
-                        }
+                        memories.push({ project_id: entry.projects_id, content: chunk, type: 'code_chunk', metadata: { file: file.name }, embedding, timestamp: Date.now() });
                     }
                 }
+                await vectorStore.saveMemories(memories);
 
-                if (memories.length > 0) {
-                    await vectorStore.saveMemories(memories);
-                    logger.info(AppModule.CORE, `Indexed ${memories.length} chunks for ${entry.project}`);
-                }
-            } catch (e) {
-                logger.warn(AppModule.CORE, `Background Indexing Failed`, e);
-            }
+                // B. Analyze Topology
+                await graphService.analyzeProjectTopology(entry.projects_id, entry.files);
+            } catch (e) { console.error("Hybrid Indexing failed", e); }
         }, 100);
     }
 
-    /**
-     * Retrieve relevant context for a user prompt.
-     */
-    public async retrieveContext(projectId: string, userPrompt: string): Promise<RAGContext> {
-        try {
-            const queryEmbedding = await embeddingService.embedText(userPrompt);
-            
-            // Get top 4 most relevant chunks
-            const results = await vectorStore.search(projectId, queryEmbedding, 4);
-            
-            return {
-                relevantSnippets: results.map(r => r.content),
-                relatedPatterns: [] 
-            };
-        } catch (e) {
-            logger.warn(AppModule.CORE, "RAG Retrieval failed", e);
-            return { relevantSnippets: [], relatedPatterns: [] };
+    private chunkText(name: string, content: string, opt: ChunkingOptions): string[] {
+        const chunks = [];
+        let i = 0;
+        while (i < content.length) {
+            chunks.push(`FILE: ${name}\n${content.slice(i, i + opt.maxSize)}`);
+            i += (opt.maxSize - opt.overlap);
         }
+        return chunks;
     }
 }
 

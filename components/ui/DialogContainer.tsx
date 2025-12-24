@@ -31,22 +31,24 @@ export const DialogContainer: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-3 gap-3 sm:gap-0">
-            {dialog.type !== 'alert' && (
+        {!dialog.hideButtons && (
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-3 gap-3 sm:gap-0">
+                {dialog.type !== 'alert' && (
+                    <button 
+                        onClick={dialog.onCancel}
+                        className="shadcn-btn shadcn-btn-ghost font-bold"
+                    >
+                        {dialog.cancelLabel || 'Cancel'}
+                    </button>
+                )}
                 <button 
-                    onClick={dialog.onCancel}
-                    className="shadcn-btn shadcn-btn-ghost font-bold"
+                    onClick={() => dialog.onConfirm()}
+                    className={`shadcn-btn px-6 shadow-lg ${dialog.destructive ? 'shadcn-btn-destructive' : 'shadcn-btn-primary'}`}
                 >
-                    {dialog.cancelLabel || 'Cancel'}
+                    {dialog.confirmLabel || 'Confirm'}
                 </button>
-            )}
-            <button 
-                onClick={() => dialog.onConfirm()}
-                className={`shadcn-btn px-6 shadow-lg ${dialog.destructive ? 'shadcn-btn-destructive' : 'shadcn-btn-primary'}`}
-            >
-                {dialog.confirmLabel || 'Confirm'}
-            </button>
-        </div>
+            </div>
+        )}
       </div>
     </div>
   );

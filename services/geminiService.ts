@@ -1,244 +1,127 @@
 
-import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
-import { AppModule, JournalEntry, ChatMessage, GeneratedFile, AppSettings } from '../types';
-import { getLuminaSystemPrompt } from './ai/prompts/answers';
+import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
+import { ChatMessage, GeneratedFile, AppSettings, SecurityReport } from '../types';
 import { getRefactorSystemPrompt } from './ai/prompts/refactor';
-import { SYSTEM_PROTOCOL } from './ai/prompts/protocol';
-import { StreamChunk } from './ai/providers/interface';
+import { generateFSManifest } from './ai/utils/manifest';
+import { getSystemPrompt } from './promptService';
 
-
-// FIX: Implement analyzeSecurity to fix missing export error in features/workspace/WorkspaceView.tsx
-export const analyzeSecurity = async (files: GeneratedFile[], customPrompt: string): Promise<string> => {
-    if (!process.env.API_KEY) {
-        throw new Error("API_KEY environment variable not set.");
-    }
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
-    const systemInstruction = `You are a security expert. Analyze the following code files for vulnerabilities. 
-    Provide a report in Markdown format. Focus on common issues like XSS, CSRF, SQL injection, insecure dependencies, and hardcoded secrets.
-    Be concise and provide actionable recommendations.`;
-
-    const fileContents = files.map(f => `--- FILE: ${f.name} ---\n${f.content}`).join('\n\n');
-    const fullPrompt = `${customPrompt}\n\n${fileContents}`;
-
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview', // Pro for better analysis
-        contents: fullPrompt,
-        config: {
-            systemInstruction: systemInstruction,
-        }
-    });
-
-    return response.text || "Could not perform security analysis.";
-};
-
-// FIX: Implement chatWithLumina to fix missing export error in features/insight/LuminaChat.tsx
-export const chatWithLumina = async (
-    history: ChatMessage[],
-    newMessage: string,
-    entries: JournalEntry[],
-    lang: 'en' | 'es' | 'fr' | 'de'
-): Promise<string> => {
-    if (!process.env.API_KEY) {
-        throw new Error("API_KEY environment variable not set.");
-    }
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-    const projectContext = entries
-        .map(e => `Project: ${e.project || 'Untitled'}\nPrompt: ${e.prompt}\nDescription: ${e.description}\nTags: ${(e.tags || []).join(', ')}`)
-        .join('\n\n---\n\n');
-
-    const systemInstruction = getLuminaSystemPrompt(lang, projectContext);
-    
-    const geminiHistory = history
-        .filter(h => h.text && h.text.trim().length > 0)
-        .map(h => ({
-            role: h.role === 'user' ? 'user' : 'model',
-            parts: [{ text: h.text }]
-        }));
-
-    const chat = ai.chats.create({
-        model: 'gemini-3-pro-preview',
-        config: {
-            systemInstruction,
-        },
-        history: geminiHistory
-    });
-
-    const response = await chat.sendMessage({ message: newMessage });
-
-    return response.text || "Sorry, I couldn't generate a response.";
-};
-
-
-// FIX: Implement streamChatRefactor to fix missing export error in features/workspace/hooks/useRefactorStream.ts
-// Helper function to get builder prompt
-const getBuilderSystemPrompt = (lang: 'en' | 'es' | 'fr' | 'de') => {
-    const langMap: Record<string, string> = {
-        'en': 'English', 'es': 'Spanish', 'fr': 'French', 'de': 'German'
-    };
-    const langName = langMap[lang] || 'English';
-    return `You are an expert Senior Software Engineer.
-IDIOMA_ACTUAL: ${langName}. Your reasoning and summary MUST be in ${langName}.
-
-**PHASE 1: INTENT DETECTION**
-- If the user says "Hello", "Hola", or asks a general question: Respond conversationally. DO NOT GENERATE CODE TAGS (<lumina-file>).
-- If the user asks to build/create an app: Follow the protocol below.
-
-${SYSTEM_PROTOCOL}
-**Context Rules:**
-- **Reasoning First**: Always start with <lumina-reasoning>.
-- **Language**: You MUST generate ALL content inside <lumina-reasoning> and <lumina-summary> tags in ${langName} (IDIOMA_ACTUAL).
-- **Atomicity**: Your generated code inside <lumina-file> must NOT exceed 200 lines. If it does, you MUST create a <lumina-plan> to split it into smaller, modular files.
-`;
-}
-
-const getThinkingBudget = (level?: 'low' | 'medium' | 'high'): number | undefined => {
-    if (!level) return undefined;
-    switch(level) {
-        case 'high': return 16384;
-        case 'medium': return 8192;
-        case 'low': return 2048;
-        default: return undefined;
-    }
-}
-
-
+/**
+ * Orchestrates streaming code generation with relational memory.
+ */
 export async function* streamChatRefactor(
     files: GeneratedFile[],
     prompt: string,
     history: ChatMessage[],
     lang: 'en' | 'es' | 'fr' | 'de',
     attachments: any[],
-    options: {
-        thinkingBudget?: 'low' | 'medium' | 'high';
-        systemPromptType: 'builder' | 'refactor';
-        settings: Partial<AppSettings>;
+    options: { 
+        settings: Partial<AppSettings>, 
+        systemPromptType: string, 
+        ragContext?: { snippets: string[], patterns: string[] },
+        fsManifest?: string 
     },
     signal: AbortSignal
-): AsyncGenerator<StreamChunk, void, unknown> {
-    
-    if (!process.env.API_KEY) {
-        throw new Error("API_KEY environment variable not set.");
-    }
+): AsyncGenerator<{ text: string, usage?: any }, void, unknown> {
+    if (!process.env.API_KEY) throw new Error("API_KEY not set.");
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const modelName = options.settings.aiModel === 'pro' ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
     
-    let modelName = 'gemini-3-flash-preview';
-    if (options.settings.aiModel === 'pro') {
-        modelName = 'gemini-3-pro-preview';
+    // FAST PATH DETECTION: Check if prompt is a simple greeting
+    const GREETING_REGEX = /^(hola|hello|hi|hey|buenas|buenos\s+(dias|tardes|noches)|qué\s+tal|que\s+tal|cómo\s+estás|como\s+estas)[\s\p{P}]*$/iu;
+    const isGreeting = GREETING_REGEX.test(prompt.trim()) && prompt.length < 50;
+
+    // Pass context size and autoApprove setting to system prompt generator
+    const sys = getRefactorSystemPrompt(
+        lang, 
+        options.settings.contextSize || 'default', 
+        options.settings.autoApprove ?? true
+    );
+    
+    // Build Context
+    let fileCtx = "";
+    let manifest = "";
+    let snippets = "";
+    let patterns = "";
+
+    if (!isGreeting) {
+        snippets = options.ragContext?.snippets?.length 
+            ? `\n[SEMANTIC_MEMORIES]:\n${options.ragContext.snippets.join('\n---\n')}\n` : '';
+        patterns = options.ragContext?.patterns?.length 
+            ? `\n[RELATIONAL_GRAPH_NODES]:\n${options.ragContext.patterns.join('\n')}\n` : '';
+
+        manifest = options.fsManifest || generateFSManifest(files);
+        fileCtx = files.map(f => `FILE: ${f.name}\n${f.content}`).join('\n\n');
+    } else {
+        manifest = "[FAST_PATH_ACTIVE: Files omitted for conversation speed]";
+        fileCtx = "[FILES_HIDDEN_FOR_GREETING]";
     }
-
-    let systemInstruction = '';
-    switch (options.systemPromptType) {
-        case 'builder':
-            systemInstruction = getBuilderSystemPrompt(lang);
-            break;
-        case 'refactor':
-            systemInstruction = getRefactorSystemPrompt(lang, options.settings.contextSize || 'default');
-            break;
-    }
-
-    const fileContext = files.map(f => `--- FILE: ${f.name} ---\n${f.content}`).join('\n\n');
-    const fullPrompt = `Here is the current state of the codebase:\n${fileContext}\n\n---\n\nUser Request: ${prompt}`;
-
-    const messageParts: any[] = [{ text: fullPrompt }];
-
-    if (attachments && attachments.length > 0) {
-        for (const attachment of attachments) {
-            if (attachment.data && attachment.type && attachment.data.includes(',')) {
-                const base64Data = attachment.data.split(',')[1];
-                if (base64Data) {
-                    messageParts.push({
-                        inlineData: {
-                            mimeType: attachment.type,
-                            data: base64Data
-                        }
-                    });
-                }
-            }
-        }
-    }
-
-    const geminiHistory = history
-        .filter(h => !h.isStreaming && h.text && h.text.trim().length > 0)
-        .map(h => ({
-            role: h.role === 'user' ? 'user' : 'model',
-            parts: [{ text: h.text }]
-        }));
-
-    const config: any = {
-        systemInstruction,
-        temperature: 0.2
-    };
-
-    const budget = getThinkingBudget(options?.thinkingBudget);
-    if (budget) {
-        config.thinkingConfig = { thinkingBudget: budget };
-    }
+    
+    const finalPrompt = `${patterns}${snippets}\n${manifest}\n\nCURRENT_CODEBASE:\n${fileCtx}\n\nUSER_COMMAND: ${prompt}`;
+    
+    const geminiHistory = history.filter(h => h.text).map(h => ({
+        role: h.role === 'user' ? 'user' : 'model',
+        parts: [{ text: h.text }]
+    }));
 
     const chat = ai.chats.create({
         model: modelName,
-        config,
+        config: { systemInstruction: sys, temperature: isGreeting ? 0.7 : 0.1 }, 
         history: geminiHistory
     });
 
-    const result = await chat.sendMessageStream({ message: messageParts });
-
-    for await (const chunk of result) {
-        if (signal.aborted) {
-            break;
+    try {
+        const result = await chat.sendMessageStream({ message: finalPrompt });
+        for await (const chunk of result) {
+            if (signal.aborted) break;
+            const c = chunk as GenerateContentResponse;
+            yield { text: c.text, usage: c.usageMetadata };
         }
-        
-        const c = chunk as GenerateContentResponse;
-        yield {
-            text: c.text,
-            usage: c.usageMetadata ? {
-                inputTokens: c.usageMetadata.promptTokenCount || 0,
-                outputTokens: c.usageMetadata.candidatesTokenCount || 0
-            } : undefined
-        };
+    } catch (e: any) {
+        // Graceful handling of Quota Exceeded
+        if (e.message?.includes('429') || e.status === 429 || e.message?.includes('RESOURCE_EXHAUSTED')) {
+            yield { text: `\n\n> **⚠️ API Quota Exceeded (429)**\n> The AI model is currently overloaded or you have hit your rate limit. \n> \n> *Recommendation:* Wait a minute and try again, or switch to the **Gemini Flash** model in Settings.` };
+        } else {
+            throw e;
+        }
     }
 }
 
-export const generateSuggestions = async (history: ChatMessage[], lang: 'en' | 'es' | 'fr' | 'de'): Promise<string[]> => {
-    if (!process.env.API_KEY) return [];
-    try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const langMap: Record<string, string> = {
-            'en': 'English', 'es': 'Spanish', 'fr': 'French', 'de': 'German'
-        };
-        const langName = langMap[lang] || 'English';
-        const context = history.slice(-4).map(h => `${h.role}: ${h.text}`).join('\n');
-        
-        const prompt = `Based on this chat history, suggest the next 3 logical, short, and actionable steps for building this web app.
-Chat History:
-${context}`;
+/**
+ * Performs a security audit of the provided codebase using Gemini Pro.
+ * Supports cancellation via AbortSignal.
+ */
+export async function analyzeSecurity(files: GeneratedFile[], userPrompt: string, signal?: AbortSignal): Promise<SecurityReport> {
+    if (!process.env.API_KEY) throw new Error("API_KEY not set.");
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    const fileCtx = files.map(f => `FILE: ${f.name}\n${f.content}`).join('\n\n');
+    const systemPrompt = await getSystemPrompt('security');
+    
+    const prompt = `Perform a comprehensive security audit.
+    User context: ${userPrompt || "Standard audit requested."}
+    
+    CODEBASE:
+    ${fileCtx}`;
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: prompt,
-            config: {
-                systemInstruction: `You are a helpful assistant. Generate exactly 3 brief suggestions for a user building a web app. Respond in ${langName}. Your output MUST be a valid JSON array of strings.`,
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.ARRAY,
-                    items: { type: Type.STRING }
-                }
-            }
-        });
+    if (signal?.aborted) throw new Error("Scan Cancelled");
 
-        const jsonStr = response.text.trim();
-        const suggestions = JSON.parse(jsonStr);
-        return Array.isArray(suggestions) ? suggestions.slice(0, 3) : [];
-
-    } catch (e: any) {
-        // Silently catch 429/Quota errors for background suggestions
-        const msg = String(e?.message || e);
-        if (msg.includes("429") || msg.includes("quota") || msg.includes("RESOURCE_EXHAUSTED")) {
-            console.debug("[Suggestions] Quota exceeded, skipping background suggestions generation.");
-        } else {
-            console.warn("[Suggestions] Failed to generate suggestions:", e);
+    const response = await ai.models.generateContent({
+        model: 'gemini-3-pro-preview',
+        contents: prompt,
+        config: {
+            systemInstruction: systemPrompt,
+            responseMimeType: 'application/json'
         }
-        return [];
+    });
+
+    if (signal?.aborted) throw new Error("Scan Cancelled");
+
+    const text = response.text;
+    if (!text) throw new Error("Empty response from Security Audit");
+
+    try {
+        return JSON.parse(text) as SecurityReport;
+    } catch (e) {
+        throw new Error("Failed to parse Security Report JSON");
     }
-};
+}

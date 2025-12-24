@@ -5,10 +5,11 @@ import { logger } from '../logger';
 import { AppModule } from '../../types';
 import { runMigrations } from './migrations';
 import { createAppTables } from './schema/appSchema';
+import { createGraphTables } from './schema/graphSchema';
 
 /**
  * DBCore: Wrapper for SurrealDB.
- * Handles database connection and raw query execution.
+ * Orchestrates connection and schema initialization for both linear and graph data.
  */
 class DBCore {
   private db: Surreal | null = null;
@@ -23,30 +24,18 @@ class DBCore {
   public async init(): Promise<void> {
     if (this.isReady) return;
     try {
-      this.db = new Surreal({
-        engines: surrealdbWasmEngines(),
-      });
-      
+      this.db = new Surreal({ engines: surrealdbWasmEngines() });
       await this.db.connect("indxdb://lumina");
-      logger.info(AppModule.CORE, 'SurrealDB Connected (IndexedDB via WASM)');
       
-      // Select Namespace/Database
-      try {
-          await this.db.use({ namespace: 'lumina', database: 'lumina' });
-          
-          // CRITICAL FIX: Define all tables BEFORE attempting any reads.
-          logger.info(AppModule.CORE, 'Defining core application schema...');
-          await createAppTables(this);
+      await this.db.use({ namespace: 'lumina', database: 'lumina' });
+      
+      // Atomic Table Definitions
+      await createAppTables(this);
+      await createGraphTables(this);
 
-          // Run Versioned Schema Migrations
-          logger.info(AppModule.CORE, 'Checking DB Schema Versions...');
-          await runMigrations(this);
-          
-          this.isReady = true;
-      } catch (e) {
-          logger.error(AppModule.CORE, "Failed to select DB or run migrations.", e);
-          throw e; // Critical error, stop app initialization
-      }
+      await runMigrations(this);
+      this.isReady = true;
+      logger.info(AppModule.CORE, 'SurrealDB Graph & Vector Core Ready');
       
     } catch (e: any) {
       logger.error(AppModule.CORE, 'DB Init Failed', e);
@@ -54,70 +43,48 @@ class DBCore {
     }
   }
 
-  /**
-   * Execute a SurrealQL query.
-   */
   public async query<T = any>(sql: string, params?: Record<string, unknown>): Promise<T[]> {
     if (!this.db) throw new Error("DB not initialized");
-    try {
-        const result = await this.db.query(sql, params);
-        
-        // Handle SurrealDB response format (array of results for multiple statements)
-        if (Array.isArray(result)) {
-             // For a single statement query, result is [{ result: [...], status: "OK", time: "..." }]
-             // We need to check the first element.
-             const first = result[0];
-             if (first && typeof first === 'object' && 'result' in first && 'status' in first) {
-                 if (first.status === 'ERR') {
-                     throw new Error(`SurrealDB Query Error: ${first.result}`);
-                 }
-                 const data = first.result;
-                 return Array.isArray(data) ? data : (data ? [data] : []);
-             }
-             // If it's not the wrapped format, return as is.
-             return result as T[];
-        }
-        
-        // Single object result (rare in some drivers but possible)
-        if (result && typeof result === 'object' && 'result' in (result as any)) {
-            const data = (result as any).result;
-            return Array.isArray(data) ? data : (data ? [data] : []);
-        }
-
-        return [];
-    } catch (e: any) {
-        logger.error(AppModule.CORE, `Query Failed: ${sql.substring(0, 100)}...`, e);
-        throw e;
+    const result = await this.db.query(sql, params);
+    
+    // Handle Array response (standard)
+    if (Array.isArray(result)) {
+         const first = result[0] as any;
+         if (first && typeof first === 'object' && 'result' in first) {
+             if (first.status === 'ERR') throw new Error(String(first.result));
+             return Array.isArray(first.result) ? first.result : [first.result];
+         }
+         // Fallback for empty array or unknown structure inside array
+         return [];
     }
+    
+    // Handle potential single object response (edge case in some drivers/versions)
+    const resObj = result as any;
+    if (resObj && typeof resObj === 'object' && 'result' in resObj) {
+         if (resObj.status === 'ERR') throw new Error(String(resObj.result));
+         return Array.isArray(resObj.result) ? resObj.result : [resObj.result];
+    }
+
+    return [];
   }
 
-  /**
-   * Execute a batch of queries as an atomic ACID transaction.
-   * Handles parameter scoping to prevent collisions between batched operations.
-   */
   public async executeTransaction(ops: { query: string, params?: Record<string, any> }[]) {
     if (!this.db) throw new Error("DB not initialized");
-
-    const statements: string[] = ["BEGIN TRANSACTION"];
+    const statements = ["BEGIN TRANSACTION"];
     const globalParams: Record<string, any> = {};
-
     ops.forEach((op, i) => {
       let sql = op.query;
       if (op.params) {
         for (const [key, val] of Object.entries(op.params)) {
-          const uniqueKey = `${key}_tx${i}`;
-          // Use word boundary to avoid partial replacements (e.g. $id vs $id_2)
-          sql = sql.replace(new RegExp(`\\$${key}\\b`, 'g'), `$${uniqueKey}`);
-          globalParams[uniqueKey] = val;
+          const uKey = `${key}_tx${i}`;
+          sql = sql.replace(new RegExp(`\\$${key}\\b`, 'g'), `$${uKey}`);
+          globalParams[uKey] = val;
         }
       }
       statements.push(sql);
     });
-
     statements.push("COMMIT TRANSACTION");
-    const finalSql = statements.join(';\n');
-
-    return await this.db.query(finalSql, globalParams);
+    return await this.db.query(statements.join(';\n'), globalParams);
   }
 }
 

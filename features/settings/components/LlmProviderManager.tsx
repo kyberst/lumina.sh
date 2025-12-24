@@ -56,11 +56,19 @@ export const LlmProviderManager: React.FC<Props> = ({ settings, onSave }) => {
   };
 
   const openProviderForm = (provider?: AIProvider) => {
-    dialogService.alert(t('providers.addProvider', 'settings'), <AddProviderForm provider={provider} onSave={p => { handleSaveProvider(p); dialogService.close(); }} onCancel={() => dialogService.close()} />)
+    dialogService.alert(
+        t('providers.addProvider', 'settings'), 
+        <AddProviderForm provider={provider} onSave={p => { handleSaveProvider(p); dialogService.close(); }} onCancel={() => dialogService.close()} />,
+        { hideButtons: true }
+    );
   };
 
   const openModelForm = (providerId: string, model?: AIProviderModel) => {
-    dialogService.alert(t('providers.addModel', 'settings'), <AddModelForm model={model} onSave={m => { handleSaveModel(providerId, m); dialogService.close(); }} onCancel={() => dialogService.close()} />)
+    dialogService.alert(
+        t('providers.addModel', 'settings'), 
+        <AddModelForm model={model} onSave={m => { handleSaveModel(providerId, m); dialogService.close(); }} onCancel={() => dialogService.close()} />,
+        { hideButtons: true }
+    );
   };
 
   const handleTestConnection = async (provider: AIProvider, modelId: string) => {
