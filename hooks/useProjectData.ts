@@ -34,6 +34,7 @@ export const useProjectData = () => {
             try {
                 await dbFacade.init();
                 const projects = await dbFacade.getAllProjects();
+                console.log(projects)
                 const savedSettingsStr = await dbFacade.getConfig('app_settings');
                 const savedLang = await dbFacade.getConfig('app_language');
 
