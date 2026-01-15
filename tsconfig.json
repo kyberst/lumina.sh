@@ -22,11 +22,11 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": [
-    "features/**/*.ts",
-    "features/**/*.tsx",
-    "services/**/*.ts",
-    "services/**/*.tsx",
-    "vite.config.ts" 
+    "src/**/*.ts", 
+    "src/**/*.tsx", 
+    "src/**/*.d.ts",
+    "services/**/*.ts", // Agrega carpetas adicionales si están fuera de src
+    "main.ts"           // O archivos específicos en la raíz
   ],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules"]
 }
