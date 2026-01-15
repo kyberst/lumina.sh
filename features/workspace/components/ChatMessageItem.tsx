@@ -16,7 +16,6 @@ interface Props {
 }
 
 export const ChatMessageItem: React.FC<Props> = ({ msg, previousSnapshot, onEnvVarSave, onRevert, isLastModelMessage, index }) => {
-    // Guard: Prevent rendering empty bubbles (visual noise)
     const hasContent = 
         (msg.text && msg.text.trim().length > 0) || 
         (msg.reasoning && msg.reasoning.trim().length > 0) || 
@@ -29,7 +28,6 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, previousSnapshot, onEnvV
 
     if (!hasContent) return null;
 
-    // Logic for NO-LOSS Rule detection
     const justificationMatch = msg.reasoning?.match(/\[(?:JUSTIFIED DELETION|ELIMINACIÓN JUSTIFICADA)\]([\s\S]*?)(?:$|\[|<)/i);
     const hasJustifiedDeletion = !!justificationMatch;
     const justificationText = justificationMatch ? justificationMatch[1].trim() : '';
@@ -37,18 +35,20 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, previousSnapshot, onEnvV
     const isModel = msg.role === 'model';
     const hasFiles = msg.modifiedFiles && msg.modifiedFiles.length > 0;
 
-    // Determine Header Title
-    let headerTitle = t('title', 'assistant'); // Default "Architect"
+    let headerTitle = t('title', 'assistant'); 
     let headerIcon = <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 10 10H12V2z"></path><path d="M12 2a10 10 0 0 1 10 10"></path><path d="M12 12 2.1 12"></path></svg>;
     let headerColor = "text-indigo-500 bg-indigo-500/10 border-indigo-500/20";
 
     if (hasFiles) {
-        headerTitle = t('proposal.header', 'journal'); // "Update Applied"
+        headerTitle = t('proposal.header', 'journal'); 
         headerIcon = <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>;
         headerColor = "text-emerald-600 bg-emerald-500/20 border-emerald-500/20";
+    } else if (msg.isPartial) {
+        headerTitle = "Interrupted Stream";
+        headerIcon = <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
+        headerColor = "text-amber-500 bg-amber-500/10 border-amber-500/20";
     }
 
-    // Helper to find file content
     const getFileFromSnapshot = (filename: string): GeneratedFile | undefined => {
         return msg.snapshot?.find(f => f.name === filename);
     };
@@ -57,7 +57,6 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, previousSnapshot, onEnvV
         return previousSnapshot?.find(f => f.name === filename);
     };
 
-    // Clean reasoning of technical tags for display
     const displayReasoning = msg.reasoning 
         ? msg.reasoning
             .replace(/\[JUSTIFIED DELETION\][\s\S]*?(?:$|\[|<)/g, '')
@@ -65,7 +64,6 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, previousSnapshot, onEnvV
             .trim()
         : '';
 
-    // Stagger Animation Delay
     const animationDelay = `${index * 100}ms`;
 
     return (
@@ -81,9 +79,9 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, previousSnapshot, onEnvV
                         : 'bg-primary text-white shadow-md shadow-primary/20 rounded-tr-sm'
                     }
                     ${msg.pending ? 'opacity-90' : 'opacity-100'}
+                    ${msg.isPartial ? 'border-amber-500/30' : ''}
                 `}>
                     
-                    {/* Header for AI Messages */}
                     {isModel && (
                         <div className="bg-muted/30 border-b border-border/50 px-3 py-2 flex justify-between items-center select-none">
                             <div className="flex items-center gap-2">
@@ -100,7 +98,12 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, previousSnapshot, onEnvV
 
                     <div className={`p-3 ${isModel ? 'space-y-3' : ''}`}> 
                         
-                        {/* Deletion Warning */}
+                        {msg.isPartial && (
+                            <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-2 text-[10px] font-bold text-amber-600/80 flex items-center gap-2">
+                                <span>⚠️ {t('error', 'common')}: Connection interrupted. Showing partial response.</span>
+                            </div>
+                        )}
+
                         {hasJustifiedDeletion && (
                             <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex gap-3 backdrop-blur-sm">
                                 <div className="text-amber-500 shrink-0 mt-0.5">
@@ -119,7 +122,6 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, previousSnapshot, onEnvV
                             </div>
                         )}
 
-                        {/* Architectural Plan (Reasoning) */}
                         {displayReasoning && isModel && (
                             <div className="rounded-lg border border-border/50 bg-background/50">
                                 <details className="group/details">
@@ -134,14 +136,12 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, previousSnapshot, onEnvV
                             </div>
                         )}
 
-                        {/* Main Text Content */}
                         {msg.text && (
                             <div className={`prose prose-sm max-w-none prose-p:leading-relaxed prose-pre:my-1 ${isModel ? 'text-foreground/90' : 'text-white font-medium'}`}>
                                 <MarkdownRenderer content={msg.text} />
                             </div>
                         )}
 
-                        {/* ATTACHED VISUAL CONTEXT (ELEMENTS) */}
                         {msg.contextElements && msg.contextElements.length > 0 && (
                             <div className={`mt-2 rounded-lg overflow-hidden border border-white/10 ${isModel ? 'bg-indigo-50/50' : 'bg-white/10'}`}>
                                 <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest opacity-80 flex items-center gap-1.5">
@@ -158,7 +158,6 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, previousSnapshot, onEnvV
                             </div>
                         )}
 
-                        {/* ATTACHED CONTEXT (ERRORS) */}
                         {msg.contextLogs && msg.contextLogs.length > 0 && (
                             <div className={`mt-3 rounded-xl overflow-hidden border ${isModel ? 'bg-slate-50 border-slate-200' : 'bg-black/20 border-white/10'}`}>
                                 <div className={`px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest flex items-center gap-2 ${isModel ? 'text-slate-500 bg-slate-100' : 'text-white/60 bg-black/20'}`}>
@@ -192,7 +191,6 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, previousSnapshot, onEnvV
                             </div>
                         )}
                         
-                        {/* Modified Files List */}
                         {hasFiles && (
                             <div className="pt-2 border-t border-border/50 mt-2">
                                 <div className="space-y-2">
@@ -224,7 +222,6 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, previousSnapshot, onEnvV
                         {msg.requiredEnvVars && <EnvVarRequestMessage requests={msg.requiredEnvVars} saved={msg.envVarsSaved || false} onSave={onEnvVarSave} />}
                     </div>
                     
-                    {/* User Metadata Footer (Date) */}
                     {!isModel && (
                         <div className="px-4 pb-2 pt-0 flex justify-end">
                              <span className="text-[9px] font-mono text-white/50">
@@ -233,8 +230,7 @@ export const ChatMessageItem: React.FC<Props> = ({ msg, previousSnapshot, onEnvV
                         </div>
                     )}
 
-                    {/* Revert Button for Model */}
-                    {isModel && hasFiles && (
+                    {isModel && hasFiles && !msg.isPartial && (
                         <div className="px-4 pb-3 pt-0 flex justify-end">
                             <button
                                 onClick={() => onRevert(msg.refactor_history_id)}

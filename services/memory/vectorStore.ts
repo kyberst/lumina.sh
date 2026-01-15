@@ -4,55 +4,23 @@ import { MemoryVector, RetrievalResult } from './types';
 import { logger } from '../logger';
 import { AppModule } from '../../types';
 
-/**
- * Handles persistence and vector similarity search within SurrealDB (WASM).
- */
 export class VectorStore {
     private static instance: VectorStore;
-
     private constructor() {}
 
     public static getInstance(): VectorStore {
-        if (!VectorStore.instance) {
-            VectorStore.instance = new VectorStore();
-        }
+        if (!VectorStore.instance) VectorStore.instance = new VectorStore();
         return VectorStore.instance;
-    }
-
-    public async saveMemory(memory: MemoryVector): Promise<void> {
-        try {
-            await dbCore.query(`CREATE memories CONTENT $memory`, { memory });
-        } catch (e) {
-            logger.error(AppModule.CORE, "Failed to save memory vector", e);
-        }
     }
 
     public async saveMemories(memories: MemoryVector[]): Promise<void> {
         if (memories.length === 0) return;
-        
-        const chunkSize = 20; 
-        for (let i = 0; i < memories.length; i += chunkSize) {
-            const chunk = memories.slice(i, i + chunkSize);
-            
-            const ops = chunk.map(mem => ({
-                query: `
-                    CREATE memories SET 
-                        project_id = $mem.project_id,
-                        content = $mem.content,
-                        embedding = $mem.embedding,
-                        type = $mem.type,
-                        metadata = $mem.metadata,
-                        timestamp = $mem.timestamp
-                `,
-                params: { mem }
-            }));
-
-            try {
-                await dbCore.executeTransaction(ops);
-            } catch (e) {
-                logger.error(AppModule.CORE, "Failed to save batch memories chunk", e);
-            }
-        }
+        const ops = memories.map(mem => ({
+            query: `CREATE memories CONTENT $mem`,
+            params: { mem }
+        }));
+        try { await dbCore.executeTransaction(ops); } 
+        catch (e) { logger.error(AppModule.CORE, "VectorStore batch save failed", e); }
     }
 
     public async deleteProjectMemories(projectId: string): Promise<void> {
@@ -60,36 +28,31 @@ export class VectorStore {
     }
 
     /**
-     * Performs a cosine similarity search on the embedded vectors.
+     * HYBRID SEARCH: Combina similitud vectorial con Full-Text Search.
      */
-    public async search(projectId: string, queryEmbedding: number[], limit: number = 5): Promise<RetrievalResult[]> {
+    public async hybridSearch(projectId: string, embedding: number[], query: string, limit: number = 20): Promise<RetrievalResult[]> {
         try {
-            // Use explicit fields instead of SELECT *
-            const query = `
+            // Consulta híbrida: vector similarity + técnico FTS
+            const sql = `
                 SELECT 
-                    meta::id(id) AS uid,
-                    project_id,
-                    content,
-                    type,
-                    metadata,
-                    timestamp,
-                    vector::similarity::cosine(embedding, $queryEmbedding) AS score 
+                    *,
+                    vector::similarity::cosine(embedding, $embedding) AS v_score,
+                    (function_names @@ $query OR variable_definitions @@ $query OR content @@ $query) AS fts_match
                 FROM memories 
                 WHERE project_id = $projectId 
-                ORDER BY score DESC 
+                ORDER BY v_score DESC 
                 LIMIT $limit
             `;
             
-            const results = await dbCore.query<RetrievalResult>(query, { 
-                projectId, 
-                queryEmbedding, 
-                limit 
-            });
-
-            return results.filter(r => r.score > 0.65);
-
+            const results = await dbCore.query<any>(sql, { projectId, embedding, query, limit });
+            
+            return results.map(r => ({
+                ...r,
+                score: r.v_score,
+                fts_score: r.fts_match ? 1.5 : 1.0 // Boost por coincidencia exacta de nombres
+            }));
         } catch (e) {
-            logger.error(AppModule.CORE, "Vector search failed", e);
+            logger.error(AppModule.CORE, "Hybrid search failed", e);
             return [];
         }
     }

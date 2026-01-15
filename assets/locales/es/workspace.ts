@@ -17,44 +17,32 @@ export default {
   },
   "info": {
     "title": "Configuración del Proyecto",
-    "desc": "Gestiona metadatos y variables de entorno para esta app.",
+    "desc": "Gestiona metadatos y secretos de integración.",
     "projectName": "Nombre del Proyecto",
     "originalPrompt": "Prompt Original",
     "techStack": "Stack Tecnológico",
-    "envVars": "Variables de Entorno",
-    "hideSecrets": "Ocultar Secretos",
-    "showSecrets": "Mostrar Secretos",
-    "secureNote": "Los valores se almacenan de forma segura en tu base de datos local. Solo se inyectan en la vista previa cuando el código lo requiere."
+    "envVars": "Variables y Secretos",
+    "hideSecrets": "Ocultar llaves",
+    "showSecrets": "Mostrar llaves",
+    "secureNote": "Tus credenciales se cifran localmente y nunca se incluyen en el código fuente generado."
   },
   "editor": {
     "selectFile": "Selecciona un archivo para editar",
     "aiEditing": "IA Editando..."
   },
   "history": {
-    "desc": "Revisa y restaura versiones anteriores de tu proyecto.",
+    "desc": "Revisa y restaura versiones anteriores.",
     "filesChanged": "archivos cambiados",
-    "empty": "No hay historial aún.",
-    "emptyDesc": "Los cambios realizados por la IA aparecerán aquí."
-  },
-  "mobileSelect": "Selecciona un panel para ver.",
-  "console": {
-    "title": "Registros del Sistema",
-    "clear": "Limpiar",
-    "empty": "Sin registros aún..."
-  },
-  "toolbar": {
-    "selectElement": "Seleccionar Elemento",
-    "fullscreen": "Pantalla Completa",
-    "exitFullscreen": "Salir Pantalla Completa",
-    "linking": "Vinculando Módulos..."
+    "empty": "No hay historial aún."
   },
   "envRequest": {
-    "secureStorage": "Almacenamiento Seguro",
-    "configRequired": "Configuración Requerida",
+    "secureStorage": "Bóveda de Seguridad Lumina",
+    "configRequired": "Configuración de Integración",
     "selectOption": "Seleccionar opción...",
-    "encryptSave": "Cifrar y Guardar",
-    "saved": "Variables guardadas de forma segura.",
-    "missing": "Valor faltante para"
+    "encryptSave": "Cifrar y Activar Conexión",
+    "saved": "¡Conexión establecida con éxito!",
+    "missing": "Se requiere el valor para",
+    "instruction": "Para conectar con esta herramienta, sigue el enlace de arriba y pega tu credencial aquí:"
   },
   "chatTray": {
     "selectedElements": "Elementos Seleccionados",
@@ -63,12 +51,9 @@ export default {
   },
   "projectDefault": "Proyecto Sin Título",
   "preview": {
-    "resolving": "Resolviendo Dependencias...",
-    "failed": "Fallo al Cargar Dependencias",
+    "resolving": "Vinculando con servicios externos...",
+    "failed": "Fallo de conexión",
     "consoleErrors": "Errores",
     "consoleClean": "Limpio"
-  },
-  "explorer": {
-    "empty": "No hay archivos creados aún."
   }
 };

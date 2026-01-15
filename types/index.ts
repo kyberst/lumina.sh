@@ -147,13 +147,15 @@ export interface ChatMessage {
   annotations?: CodeAnnotation[];
   contextSize?: string;
   contextLogs?: ConsoleLog[]; 
-  contextElements?: string[]; // New: Stores visual selectors sent with this message
+  contextElements?: string[];
   usage?: {
       inputTokens: number;
       outputTokens: number;
   };
   pending?: boolean;
   projects_id?: string;
+  isPartial?: boolean;
+  errorMessage?: string;
 }
 
 // --- Security Types ---

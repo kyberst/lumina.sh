@@ -3,107 +3,115 @@ import { dbCore } from '../db/dbCore';
 import { GoogleGenAI, Type } from "@google/genai";
 import { GeneratedFile } from '../../types';
 
-/**
- * GraphService: Manages the Semantic Knowledge Graph.
- * Transitions from plain-text history to a web of persistent architectural decisions.
- */
 export class GraphService {
     private static instance: GraphService;
-
     public static getInstance() {
         if (!GraphService.instance) GraphService.instance = new GraphService();
         return GraphService.instance;
     }
 
-    /** Analyzes codebase to build the initial structural graph */
-    public async analyzeProjectTopology(projectId: string, files: GeneratedFile[]) {
-        if (!process.env.API_KEY || files.length === 0) return;
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        
-        const ctx = files.map(f => `${f.name}: ${f.content.substring(0, 300)}`).join('\n---\n');
-        const prompt = `Map the architecture of this project. Identify features, tech stack, and dependencies.
-        Return JSON: { nodes: [{name, kind, summary}], edges: [{from, to}] }`;
-
-        try {
-            const res = await ai.models.generateContent({
-                model: 'gemini-3-flash-preview',
-                contents: prompt + "\n\n" + ctx,
-                config: { 
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: Type.OBJECT,
-                        properties: {
-                            nodes: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: {type: Type.STRING}, kind: {type: Type.STRING}, summary: {type: Type.STRING} } } },
-                            edges: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { from: {type: Type.STRING}, to: {type: Type.STRING} } } }
-                        }
-                    }
-                }
-            });
-
-            const data = JSON.parse(res.text || '{}');
-            await this.persistTopology(projectId, data, false);
-        } catch (e) { console.warn("Graph topology analysis failed", e); }
-    }
-
-    /** Extracts persistent "memories" (decisions) from chat turns */
-    public async extractEntitiesFromChat(projectId: string, userPrompt: string) {
+    /**
+     * Identifies entities mentioned in the chat prompt using Gemini and 
+     * cross-references them with existing graph nodes for contextual RAG.
+     */
+    public async extractEntitiesFromChat(projectId: string, prompt: string) {
+        // Fix: Added missing method required by useRefactorStream.ts
         if (!process.env.API_KEY) return;
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         
-        const prompt = `Extract technical requirements or UI preferences from this message.
-        Example: "Use blue background" -> Node {name: "UI_BG_COLOR", kind: "preference", summary: "Blue"}
-        Message: "${userPrompt}"
-        Output JSON: { nodes: [{name, kind: 'preference'|'requirement', summary}] }`;
-
         try {
-            const res = await ai.models.generateContent({
+            // Get existing nodes for context to help the model identify matches
+            const nodes = await dbCore.query(`SELECT name FROM graph_nodes WHERE project_id = $pid`, { pid: projectId });
+            if (nodes.length === 0) return;
+
+            const nodeNames = nodes.map((n: any) => n.name).join(', ');
+
+            const response = await ai.models.generateContent({
                 model: 'gemini-3-flash-preview',
-                contents: prompt,
-                config: { 
-                    responseMimeType: "application/json",
+                contents: `Identify which of the following project entities (files/features) are mentioned or highly relevant to the user prompt.
+                
+                Available Entities: ${nodeNames}
+                User Command: "${prompt}"
+                
+                Return a JSON array containing ONLY the exact names of the matched entities.`,
+                config: {
+                    responseMimeType: 'application/json',
                     responseSchema: {
-                        type: Type.OBJECT,
-                        properties: {
-                            nodes: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: {type: Type.STRING}, kind: {type: Type.STRING}, summary: {type: Type.STRING} } } }
-                        }
+                        type: Type.ARRAY,
+                        items: { type: Type.STRING }
                     }
                 }
             });
 
-            const data = JSON.parse(res.text || '{}');
-            if (data.nodes?.length) await this.persistTopology(projectId, data, true);
-        } catch (e) { console.warn("Chat entity extraction failed", e); }
+            // The .text property is used directly as per GenAI SDK guidelines
+            const identifiedNames = JSON.parse(response.text || '[]');
+            // Future implementation will RELATE these nodes to the chat history record
+            console.debug(`[GraphService] Extracted entities: ${identifiedNames.join(', ')}`);
+        } catch (e) {
+            console.warn("Graph entity extraction failed", e);
+        }
     }
 
-    private async persistTopology(projectId: string, data: any, merge: boolean) {
-        if (!data.nodes) return;
+    /** Travesía de Topología: Nivel 1 (Full) y Nivel 2 (Skeleton) */
+    public async getHierarchicalMap(projectId: string, targetFile: string) {
+        // Nivel 1: Dependencias directas
+        const level1 = await dbCore.query(`
+            SELECT out.name AS name, out.content AS content 
+            FROM imports WHERE in.project_id = $pid AND in.name = $target
+        `, { pid: projectId, target: targetFile });
+
+        // Nivel 2: Dependencias de dependencias
+        const level2 = await dbCore.query(`
+            SELECT out.name AS name, out.content AS content 
+            FROM imports WHERE in.project_id = $pid 
+            AND in.name IN (SELECT out.name FROM imports WHERE in.name = $target)
+        `, { pid: projectId, target: targetFile });
+
+        return {
+            direct: level1,
+            transitive: level2.map((f: any) => ({
+                name: f.name,
+                skeleton: this.summarizeSkeleton(f.content)
+            }))
+        };
+    }
+
+    /** Extrae firmas y tipos, omitiendo implementaciones */
+    private summarizeSkeleton(content: string): string {
+        if (!content) return "";
+        // Elimina cuerpos de funciones preservando la firma
+        return content
+            .replace(/\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\}/g, '{ /* implementation hidden */ }')
+            .replace(/import\s+.*?;/g, '') // Remueve imports internos para limpiar
+            .split('\n')
+            .filter(line => line.trim().length > 0)
+            .join('\n');
+    }
+
+    public async analyzeProjectTopology(projectId: string, files: GeneratedFile[]) {
         const ops = [];
+        // Limpiar grafo previo del archivo
+        ops.push({ query: `DELETE graph_nodes WHERE project_id = $pid`, params: { pid: projectId } });
         
-        if (!merge) {
-            ops.push({ query: `DELETE graph_nodes WHERE project_id = $pid AND kind NOT IN ['preference', 'requirement']`, params: { pid: projectId } });
+        for (const file of files) {
+            ops.push({ 
+                query: `CREATE graph_nodes SET project_id = $pid, name = $n, kind = 'file', content = $c`,
+                params: { pid: projectId, n: file.name, c: file.content }
+            });
         }
-
-        for (const node of data.nodes) {
-            const query = merge 
-                ? `UPSERT graph_nodes SET summary = $s, kind = $k WHERE project_id = $pid AND name = $n`
-                : `CREATE graph_nodes SET project_id = $pid, name = $n, kind = $k, summary = $s`;
-            
-            ops.push({ query, params: { pid: projectId, n: node.name, k: node.kind, s: node.summary } });
+        
+        // Crear relaciones de importación basadas en estática
+        for (const file of files) {
+            const matches = file.content.matchAll(/from\s+['"]\.\/(.*?)['"]/g);
+            for (const match of matches) {
+                const depName = match[1].includes('.') ? match[1] : `${match[1]}.ts`; 
+                ops.push({
+                    query: `RELATE (SELECT * FROM graph_nodes WHERE name = $in_n AND project_id = $pid) -> imports -> (SELECT * FROM graph_nodes WHERE name = $out_n AND project_id = $pid)`,
+                    params: { in_n: file.name, out_n: depName, pid: projectId }
+                });
+            }
         }
-
         await dbCore.executeTransaction(ops);
     }
-
-    /** Context-aware retrieval of graph nodes */
-    public async getRelevantContext(projectId: string, query: string): Promise<string[]> {
-        const results = await dbCore.query(`
-            SELECT summary, name, kind FROM graph_nodes 
-            WHERE project_id = $pid AND (name ~ $q OR summary ~ $q OR kind ~ $q)
-            ORDER BY kind = 'preference' DESC, kind = 'requirement' DESC
-        `, { pid: projectId, q: query });
-        
-        return results.map((r: any) => `[GRAPH_NODE] ${r.kind.toUpperCase()}: ${r.name} -> ${r.summary}`);
-    }
 }
-
 export const graphService = GraphService.getInstance();
