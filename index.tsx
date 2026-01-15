@@ -9,7 +9,7 @@ import { getLanguage } from './services/i18n';
  * Robust silencer for ResizeObserver loop errors.
  */
 const suppressResizeObserverErrors = () => {
-    const isResizeObserverError = (msg) => {
+    const isResizeObserverError = (msg: any) => {
         const errorMsg = typeof msg === 'string' ? msg : (msg?.message || '');
         return (
             errorMsg.includes('ResizeObserver loop completed with undelivered notifications.') ||

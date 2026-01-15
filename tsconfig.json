@@ -22,11 +22,9 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": [
-    "src/**/*.ts", 
-    "src/**/*.tsx", 
-    "src/**/*.d.ts",
-    "services/**/*.ts", // Agrega carpetas adicionales si están fuera de src
-    "main.ts"           // O archivos específicos en la raíz
+    "**/*.ts", 
+    "**/*.tsx",
+    "**/*.d.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "dist", ".vercel"]
 }
