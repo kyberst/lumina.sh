@@ -57,7 +57,7 @@ export async function* streamChatRefactor(
     for await (const chunk of result) {
         if (signal.aborted) break;
         const c = chunk as GenerateContentResponse;
-        yield { text: c.text, usage: c.usageMetadata };
+        yield { text: c.text ?? "", usage: c.usageMetadata };
     }
 }
 

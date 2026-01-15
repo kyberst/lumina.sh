@@ -130,7 +130,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
     <div className={`font-sans text-sm leading-relaxed space-y-4 ${className}`}>
       {parts.map((part, index) => {
         if (part.type === 'code') {
-          return <CodeBlock key={index} language={part.language} content={part.content} />;
+          return <CodeBlock key={index} language={part.language ?? 'text'} content={part.content} />;
         } else {
           return (
             // Removed fixed text-slate-600 to allow inheritance from parent (e.g. ChatBubble)

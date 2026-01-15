@@ -14,7 +14,7 @@ interface WorkspacePreviewProps {
   errorCount: number;
   onClearLogs: () => void;
   onNavigateError?: (file: string, line: number) => void;
-  iframeRef: React.RefObject<HTMLIFrameElement>;
+  iframeRef: React.RefObject<HTMLIFrameElement | null>;
   isSelectionModeActive: boolean;
   onToggleSelectionMode: () => void;
   consolePanelProps?: any; 

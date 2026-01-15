@@ -84,7 +84,7 @@ export class GeminiProvider implements ILLMProvider {
         
         for await (const chunk of result) {
             yield {
-                text: chunk.text,
+                text: chunk.text ?? "",
                 usage: chunk.usageMetadata ? {
                     inputTokens: chunk.usageMetadata.promptTokenCount || 0,
                     outputTokens: chunk.usageMetadata.candidatesTokenCount || 0

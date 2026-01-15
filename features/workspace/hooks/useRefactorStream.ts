@@ -38,7 +38,7 @@ export const useRefactorStream = ({ entry, settings, history, setHistory, onTurn
             promptText = `[RUNTIME CONSOLE CONTEXT]\n${logsStr}\n\n[USER COMMAND]\n${promptText}`;
         }
 
-        const previousFiles = (entry.files ?? []).map(f => ({...f}));
+        const previousFiles = (entry.files ?? []).map((f: any) => ({...f}));
         const controller = new AbortController();
         abortControllerRef.current = controller;
         
