@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
-import { computeSideBySideDiff, DiffBlock } from '../../../../services/ai/diffUtils';
-import { t } from '../../../../services/i18n';
+import { computeSideBySideDiff, DiffBlock } from '../../../services/ai/diffUtils';
+import { t } from '../../../services/i18n';
 
 interface FileDiffProps {
     oldContent: string;
