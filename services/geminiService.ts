@@ -4,6 +4,7 @@ import { ChatMessage, GeneratedFile, AppSettings, SecurityReport } from '../type
 import { getRefactorSystemPrompt } from './ai/prompts/refactor';
 import { generateFSManifest } from './ai/utils/manifest';
 
+
 export async function* streamChatRefactor(
     files: GeneratedFile[],
     prompt: string,
